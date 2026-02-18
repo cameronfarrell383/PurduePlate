@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Modal,
   RefreshControl,
@@ -54,44 +55,38 @@ type DiningHall = {
   location_num: string;
 };
 
+type StationGroup = {
+  station: string;
+  count: number;
+};
+
 function getCurrentMeal(): string {
   const h = new Date().getHours();
   const m = new Date().getMinutes();
   const totalMin = h * 60 + m;
-  if (totalMin < 630) return 'Breakfast'; // before 10:30
-  if (totalMin < 960) return 'Lunch'; // before 4 PM
+  if (totalMin < 630) return 'Breakfast';
+  if (totalMin < 960) return 'Lunch';
   return 'Dinner';
 }
 
 function getDateStr(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
-  return d.toISOString().split('T')[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-function DietaryBadge({ flag }: { flag: string }) {
+function DietaryDot({ flag }: { flag: string }) {
   const lower = flag.toLowerCase();
-  let label = flag;
-  let bg = '#E8F5E9';
-  let fg = '#2E7D32';
-  if (lower === 'vegan' || lower === 'vgn') {
-    label = 'V';
-  } else if (lower === 'vegetarian' || lower === 'veg') {
-    label = 'VG';
+  let color = '#6A1B9A';
+  if (lower === 'vegan' || lower === 'vgn' || lower === 'vegetarian' || lower === 'veg') {
+    color = '#2E7D32';
   } else if (lower === 'halal') {
-    label = 'H';
-    bg = '#E3F2FD';
-    fg = '#1565C0';
-  } else {
-    label = flag.substring(0, 3).toUpperCase();
-    bg = '#F3E5F5';
-    fg = '#6A1B9A';
+    color = '#1565C0';
   }
-  return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
-    </View>
-  );
+  return <View style={[styles.dietaryDot, { backgroundColor: color }]} />;
 }
 
 function NutritionRow({ label, value, unit, bold }: { label: string; value: number | null; unit: string; bold?: boolean }) {
@@ -118,10 +113,17 @@ export default function MenuScreen() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // Drill-down state
+  const [view, setView] = useState<'stations' | 'items'>('stations');
+  const [selectedStation, setSelectedStation] = useState<string | null>(null);
+
   // Detail modal
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [servings, setServings] = useState(1);
   const [logging, setLogging] = useState(false);
+
+  // Animation
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     fetchDiningHalls();
@@ -129,6 +131,13 @@ export default function MenuScreen() {
 
   useEffect(() => {
     if (selectedHall) fetchMenu();
+  }, [selectedHall, selectedMeal, dayOffset]);
+
+  // Reset to stations view when filters change
+  useEffect(() => {
+    setView('stations');
+    setSelectedStation(null);
+    setSearch('');
   }, [selectedHall, selectedMeal, dayOffset]);
 
   const fetchDiningHalls = async () => {
@@ -185,9 +194,68 @@ export default function MenuScreen() {
     fetchMenu();
   };
 
-  const filteredItems = search.trim()
-    ? items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
-    : items;
+  // Group items by station
+  const stationGroups: StationGroup[] = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach((item) => {
+      const station = item.station || 'General';
+      map.set(station, (map.get(station) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([station, count]) => ({ station, count }));
+  }, [items]);
+
+  // Filtered station groups (search in stations view)
+  const filteredStationGroups = useMemo(() => {
+    if (!search.trim()) return stationGroups;
+    const q = search.toLowerCase();
+    // In stations view, filter stations that have matching items
+    return stationGroups
+      .map((sg) => {
+        const matchingItems = items.filter(
+          (i) => (i.station || 'General') === sg.station && i.name.toLowerCase().includes(q)
+        );
+        return { station: sg.station, count: matchingItems.length };
+      })
+      .filter((sg) => sg.count > 0);
+  }, [stationGroups, search, items]);
+
+  // Items for selected station
+  const stationItems = useMemo(() => {
+    if (!selectedStation) return [];
+    let filtered = items.filter((i) => (i.station || 'General') === selectedStation);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((i) => i.name.toLowerCase().includes(q));
+    }
+    return filtered;
+  }, [items, selectedStation, search]);
+
+  const animateTransition = (toView: 'stations' | 'items', station?: string) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 120,
+      useNativeDriver: true,
+    }).start(() => {
+      if (toView === 'items' && station) {
+        setSelectedStation(station);
+      }
+      setView(toView);
+      setSearch('');
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const handleStationTap = (station: string) => {
+    animateTransition('items', station);
+  };
+
+  const handleBack = () => {
+    animateTransition('stations');
+  };
 
   const logMeal = async () => {
     if (!selectedItem) return;
@@ -216,6 +284,47 @@ export default function MenuScreen() {
 
   const meals = ['Breakfast', 'Lunch', 'Dinner'];
 
+  const renderStationCard = ({ item, index }: { item: StationGroup; index: number }) => (
+    <TouchableOpacity
+      style={[styles.stationCard, index % 2 === 0 ? { marginRight: 6 } : { marginLeft: 6 }]}
+      onPress={() => handleStationTap(item.station)}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.stationName}>{item.station}</Text>
+      <Text style={styles.stationCount}>{item.count} item{item.count !== 1 ? 's' : ''}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderItemRow = ({ item }: { item: MenuItem }) => {
+    const n = item.nutrition;
+    return (
+      <TouchableOpacity
+        style={styles.itemRow}
+        onPress={() => { setSelectedItem(item); setServings(1); }}
+        activeOpacity={0.6}
+      >
+        <View style={styles.itemRowLeft}>
+          <View style={styles.itemNameRow}>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            {item.dietary_flags && item.dietary_flags.length > 0 && (
+              <View style={styles.dotRow}>
+                {item.dietary_flags.map((f, i) => (
+                  <DietaryDot key={i} flag={f} />
+                ))}
+              </View>
+            )}
+          </View>
+          {n && (
+            <Text style={styles.macroLine}>
+              P: {n.protein_g ?? 0}g{'  '}C: {n.total_carbs_g ?? 0}g{'  '}F: {n.total_fat_g ?? 0}g
+            </Text>
+          )}
+        </View>
+        <Text style={styles.itemCalories}>{n?.calories ?? '—'}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -242,39 +351,39 @@ export default function MenuScreen() {
           ))}
         </ScrollView>
 
-        {/* Date toggle */}
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.filterPill, dayOffset === 0 && styles.filterPillActive]}
-            onPress={() => setDayOffset(0)}
-          >
-            <Text style={[styles.filterPillText, dayOffset === 0 && styles.filterPillTextActive]}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterPill, dayOffset === 1 && styles.filterPillActive]}
-            onPress={() => setDayOffset(1)}
-          >
-            <Text style={[styles.filterPillText, dayOffset === 1 && styles.filterPillTextActive]}>Tomorrow</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Meal filter */}
-        <View style={styles.filterRow}>
-          {meals.map((m) => (
+        {/* Date + Meal row */}
+        <View style={styles.dateMealRow}>
+          <View style={styles.dateToggle}>
             <TouchableOpacity
-              key={m}
-              style={[styles.filterPill, selectedMeal === m && styles.filterPillActive]}
-              onPress={() => setSelectedMeal(m)}
+              style={[styles.datePill, dayOffset === 0 && styles.datePillActive]}
+              onPress={() => setDayOffset(0)}
             >
-              <Text style={[styles.filterPillText, selectedMeal === m && styles.filterPillTextActive]}>{m}</Text>
+              <Text style={[styles.datePillText, dayOffset === 0 && styles.datePillTextActive]}>Today</Text>
             </TouchableOpacity>
-          ))}
+            <TouchableOpacity
+              style={[styles.datePill, dayOffset === 1 && styles.datePillActive]}
+              onPress={() => setDayOffset(1)}
+            >
+              <Text style={[styles.datePillText, dayOffset === 1 && styles.datePillTextActive]}>Tomorrow</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.mealToggle}>
+            {meals.map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[styles.mealPill, selectedMeal === m && styles.mealPillActive]}
+                onPress={() => setSelectedMeal(m)}
+              >
+                <Text style={[styles.mealPillText, selectedMeal === m && styles.mealPillTextActive]}>{m}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Search */}
+        {/* Search bar */}
         <TextInput
           style={styles.searchInput}
-          placeholder="Search items..."
+          placeholder={view === 'stations' ? 'Search items...' : `Search in ${selectedStation}...`}
           placeholderTextColor="#999"
           value={search}
           onChangeText={setSearch}
@@ -284,58 +393,59 @@ export default function MenuScreen() {
         {error ? (
           <View style={styles.centerContent}>
             <Text style={styles.errorText}>{error}</Text>
-            <Text style={styles.errorHint}>Pull down to retry</Text>
+            <TouchableOpacity onPress={onRefresh}>
+              <Text style={styles.retryText}>Tap to retry</Text>
+            </TouchableOpacity>
           </View>
         ) : loading ? (
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : filteredItems.length === 0 ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.emptyText}>No menu available for this selection</Text>
-          </View>
         ) : (
-          <FlatList
-            data={filteredItems}
-            keyExtractor={(item) => item.id.toString()}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            renderItem={({ item }) => {
-              const n = item.nutrition;
-              return (
-                <TouchableOpacity style={styles.itemCard} onPress={() => { setSelectedItem(item); setServings(1); }}>
-                  <View style={styles.itemTop}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemStation}>{item.station || 'General'}</Text>
-                    </View>
-                    <Text style={styles.itemCalories}>{n?.calories ?? '—'}</Text>
-                    <Text style={styles.itemCalLabel}>cal</Text>
-                  </View>
-
-                  {n && (
-                    <View style={styles.macroRow}>
-                      <Text style={[styles.macroChip, { color: Colors.protein }]}>P: {n.protein_g ?? 0}g</Text>
-                      <Text style={[styles.macroChip, { color: Colors.carbs }]}>C: {n.total_carbs_g ?? 0}g</Text>
-                      <Text style={[styles.macroChip, { color: '#C5A000' }]}>F: {n.total_fat_g ?? 0}g</Text>
-                    </View>
-                  )}
-
-                  {item.dietary_flags && item.dietary_flags.length > 0 && (
-                    <View style={styles.badgeRow}>
-                      {item.dietary_flags.map((f, i) => (
-                        <DietaryBadge key={i} flag={f} />
-                      ))}
-                    </View>
-                  )}
-
-                  {item.allergens && item.allergens.length > 0 && (
-                    <Text style={styles.allergenText}>Allergens: {item.allergens.join(', ')}</Text>
-                  )}
+          <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
+            {view === 'stations' ? (
+              filteredStationGroups.length === 0 ? (
+                <View style={styles.centerContent}>
+                  <Text style={styles.emptyText}>
+                    {search.trim() ? 'No matching items' : 'No menu available for this selection'}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredStationGroups}
+                  keyExtractor={(item) => item.station}
+                  numColumns={2}
+                  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+                  contentContainerStyle={styles.stationGrid}
+                  columnWrapperStyle={styles.stationRow}
+                  renderItem={renderStationCard}
+                />
+              )
+            ) : (
+              <View style={{ flex: 1 }}>
+                {/* Back header */}
+                <TouchableOpacity style={styles.backHeader} onPress={handleBack}>
+                  <Text style={styles.backArrow}>←</Text>
+                  <Text style={styles.backTitle}>{selectedStation}</Text>
                 </TouchableOpacity>
-              );
-            }}
-          />
+
+                {stationItems.length === 0 ? (
+                  <View style={styles.centerContent}>
+                    <Text style={styles.emptyText}>
+                      {search.trim() ? 'No matching items' : 'No items in this station'}
+                    </Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={stationItems}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 16 }}
+                    renderItem={renderItemRow}
+                  />
+                )}
+              </View>
+            )}
+          </Animated.View>
         )}
       </View>
 
@@ -344,7 +454,6 @@ export default function MenuScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Handle */}
               <View style={styles.modalHandle} />
 
               <Text style={styles.modalTitle}>{selectedItem?.name}</Text>
@@ -449,7 +558,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1, padding: 16 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: Colors.textPrimary, marginBottom: 8 },
-  chipScroll: { maxHeight: 40, marginBottom: 10 },
+
+  // Hall chips
+  chipScroll: { maxHeight: 40, marginBottom: 12 },
   chipRow: { gap: 8, paddingRight: 8 },
   chip: {
     paddingHorizontal: 14,
@@ -462,18 +573,40 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   chipTextActive: { color: '#fff' },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-  filterPill: {
-    paddingHorizontal: 16,
+
+  // Date + Meal row
+  dateMealRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dateToggle: { flexDirection: 'row', gap: 6 },
+  datePill: {
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: Colors.card,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  filterPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  filterPillText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
-  filterPillTextActive: { color: '#fff' },
+  datePillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  datePillText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  datePillTextActive: { color: '#fff' },
+  mealToggle: { flexDirection: 'row', gap: 4 },
+  mealPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  mealPillActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
+  mealPillText: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  mealPillTextActive: { color: '#fff' },
+
+  // Search
   searchInput: {
     backgroundColor: Colors.card,
     borderRadius: 12,
@@ -484,32 +617,97 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginBottom: 10,
   },
+
+  // Center states
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: Colors.error, fontWeight: '600', fontSize: 14 },
-  errorHint: { color: Colors.error, fontSize: 12, marginTop: 4 },
+  retryText: { color: Colors.primary, fontSize: 14, marginTop: 8, fontWeight: '600' },
   emptyText: { fontSize: 15, color: Colors.textSecondary },
-  itemCard: {
+
+  // Station grid
+  stationGrid: { paddingBottom: 16 },
+  stationRow: { marginBottom: 12 },
+  stationCard: {
+    flex: 1,
     backgroundColor: Colors.card,
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 90,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  itemTop: { flexDirection: 'row', alignItems: 'center' },
-  itemName: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  itemStation: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  itemCalories: { fontSize: 20, fontWeight: 'bold', color: Colors.primary, marginLeft: 8 },
-  itemCalLabel: { fontSize: 12, color: Colors.textSecondary, marginLeft: 2 },
-  macroRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  macroChip: { fontSize: 13, fontWeight: '600' },
-  badgeRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
-  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-  badgeText: { fontSize: 11, fontWeight: 'bold' },
-  allergenText: { fontSize: 11, color: Colors.textSecondary, fontStyle: 'italic', marginTop: 4 },
+  stationName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  stationCount: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // Back header
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  backArrow: {
+    fontSize: 22,
+    color: Colors.primary,
+    marginRight: 8,
+    fontWeight: '600',
+  },
+  backTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  // Item rows
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  itemRowLeft: { flex: 1 },
+  itemNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    flexShrink: 1,
+  },
+  dotRow: { flexDirection: 'row', gap: 4, marginLeft: 4 },
+  dietaryDot: { width: 8, height: 8, borderRadius: 4 },
+  macroLine: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 3,
+  },
+  itemCalories: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginLeft: 12,
+  },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

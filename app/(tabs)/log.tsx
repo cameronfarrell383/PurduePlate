@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   ScrollView,
   StyleSheet,
@@ -28,6 +29,11 @@ type DiningHall = {
   location_num: string;
 };
 
+type StationGroup = {
+  station: string;
+  count: number;
+};
+
 function getCurrentMeal(): string {
   const h = new Date().getHours();
   const m = new Date().getMinutes();
@@ -48,12 +54,25 @@ export default function QuickLogScreen() {
   const [logging, setLogging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Drill-down state
+  const [view, setView] = useState<'stations' | 'items'>('stations');
+  const [selectedStation, setSelectedStation] = useState<string | null>(null);
+
+  // Animation
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     fetchHalls();
   }, []);
 
   useEffect(() => {
     if (selectedHall) fetchItems();
+  }, [selectedHall, selectedMeal]);
+
+  // Reset to stations view when filters change
+  useEffect(() => {
+    setView('stations');
+    setSelectedStation(null);
   }, [selectedHall, selectedMeal]);
 
   const fetchHalls = async () => {
@@ -91,7 +110,7 @@ export default function QuickLogScreen() {
         return {
           id: row.id,
           name: row.name,
-          station: row.station,
+          station: row.station || 'General',
           calories: nutr?.calories || 0,
         };
       });
@@ -102,6 +121,47 @@ export default function QuickLogScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Group items by station
+  const stationGroups: StationGroup[] = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach((item) => {
+      map.set(item.station, (map.get(item.station) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([station, count]) => ({ station, count }));
+  }, [items]);
+
+  // Items for selected station
+  const stationItems = useMemo(() => {
+    if (!selectedStation) return [];
+    return items.filter((i) => i.station === selectedStation);
+  }, [items, selectedStation]);
+
+  const animateTransition = (toView: 'stations' | 'items', station?: string) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 120,
+      useNativeDriver: true,
+    }).start(() => {
+      if (toView === 'items' && station) {
+        setSelectedStation(station);
+      }
+      setView(toView);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const handleStationTap = (station: string) => {
+    animateTransition('items', station);
+  };
+
+  const handleBack = () => {
+    animateTransition('stations');
   };
 
   const toggle = (id: number) => {
@@ -144,6 +204,48 @@ export default function QuickLogScreen() {
 
   const meals = ['Breakfast', 'Lunch', 'Dinner'];
 
+  // Count selected items in a station
+  const selectedInStation = (station: string) => {
+    return items.filter((i) => i.station === station && selected.has(i.id)).length;
+  };
+
+  const renderStationCard = ({ item, index }: { item: StationGroup; index: number }) => {
+    const selCount = selectedInStation(item.station);
+    return (
+      <TouchableOpacity
+        style={[styles.stationCard, index % 2 === 0 ? { marginRight: 6 } : { marginLeft: 6 }]}
+        onPress={() => handleStationTap(item.station)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.stationName}>{item.station}</Text>
+        <Text style={styles.stationCount}>{item.count} item{item.count !== 1 ? 's' : ''}</Text>
+        {selCount > 0 && (
+          <View style={styles.stationBadge}>
+            <Text style={styles.stationBadgeText}>{selCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderCheckItem = ({ item }: { item: MenuItem }) => {
+    const isSelected = selected.has(item.id);
+    return (
+      <TouchableOpacity
+        style={[styles.checkItem, isSelected && styles.checkItemActive]}
+        onPress={() => toggle(item.id)}
+      >
+        <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+          {isSelected && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <Text style={[styles.checkName, isSelected && { color: Colors.primary }]} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.checkCal}>{item.calories} cal</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -185,34 +287,46 @@ export default function QuickLogScreen() {
           <View style={styles.center}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : items.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>No items available</Text>
-          </View>
         ) : (
-          <FlatList
-            data={items}
-            keyExtractor={(i) => i.id.toString()}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            renderItem={({ item }) => {
-              const isSelected = selected.has(item.id);
-              return (
-                <TouchableOpacity
-                  style={[styles.checkItem, isSelected && styles.checkItemActive]}
-                  onPress={() => toggle(item.id)}
-                >
-                  <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.checkName, isSelected && { color: Colors.primary }]}>{item.name}</Text>
-                    <Text style={styles.checkStation}>{item.station}</Text>
-                  </View>
-                  <Text style={styles.checkCal}>{item.calories} cal</Text>
+          <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
+            {view === 'stations' ? (
+              stationGroups.length === 0 ? (
+                <View style={styles.center}>
+                  <Text style={styles.emptyText}>No items available</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={stationGroups}
+                  keyExtractor={(item) => item.station}
+                  numColumns={2}
+                  contentContainerStyle={styles.stationGrid}
+                  columnWrapperStyle={styles.stationRow}
+                  renderItem={renderStationCard}
+                />
+              )
+            ) : (
+              <View style={{ flex: 1 }}>
+                {/* Back header */}
+                <TouchableOpacity style={styles.backHeader} onPress={handleBack}>
+                  <Text style={styles.backArrow}>←</Text>
+                  <Text style={styles.backTitle}>{selectedStation}</Text>
                 </TouchableOpacity>
-              );
-            }}
-          />
+
+                {stationItems.length === 0 ? (
+                  <View style={styles.center}>
+                    <Text style={styles.emptyText}>No items in this station</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={stationItems}
+                    keyExtractor={(i) => i.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 80 }}
+                    renderItem={renderCheckItem}
+                  />
+                )}
+              </View>
+            )}
+          </Animated.View>
         )}
 
         {/* Bottom bar */}
@@ -239,6 +353,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1, padding: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: Colors.textPrimary, marginBottom: 8 },
+
+  // Hall chips
   chipScroll: { maxHeight: 40, marginBottom: 10 },
   chipRow: { gap: 8 },
   chip: {
@@ -264,20 +380,88 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   pillText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   pillTextActive: { color: '#fff' },
+
+  // Center states
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: Colors.error, fontWeight: '600' },
   emptyText: { color: Colors.textSecondary, fontSize: 15 },
+
+  // Station grid
+  stationGrid: { paddingBottom: 16 },
+  stationRow: { marginBottom: 12 },
+  stationCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 90,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  stationName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  stationCount: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  stationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stationBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+
+  // Back header
+  backHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 4,
+  },
+  backArrow: {
+    fontSize: 22,
+    color: Colors.primary,
+    marginRight: 8,
+    fontWeight: '600',
+  },
+  backTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  // Check items
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  checkItemActive: { borderColor: Colors.primary, backgroundColor: '#FDF2F5' },
+  checkItemActive: { backgroundColor: '#FDF2F5' },
   checkbox: {
     width: 24,
     height: 24,
@@ -290,9 +474,10 @@ const styles = StyleSheet.create({
   },
   checkboxActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   checkmark: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  checkName: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
-  checkStation: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
+  checkName: { flex: 1, fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
   checkCal: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary, marginLeft: 8 },
+
+  // Bottom bar
   bottomBar: {
     position: 'absolute',
     bottom: 0,

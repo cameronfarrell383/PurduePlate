@@ -3,8 +3,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
 
-function TabIcon({ label, active }: { label: string; active: boolean }) {
-  return <Text style={{ fontSize: 20, opacity: active ? 1 : 0.5 }}>{label}</Text>;
+function TabIcon({ label, active, color }: { label: string; active: boolean; color?: string }) {
+  return <Text style={{ fontSize: 20, opacity: active ? 1 : 0.5, ...(color ? { color } : {}) }}>{label}</Text>;
 }
 
 export default function TabLayout() {
@@ -67,7 +67,7 @@ export default function TabLayout() {
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ focused }) => <TabIcon label="•••" active={focused} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon label="•••" active={focused} color={color} />,
         }}
       />
     </Tabs>

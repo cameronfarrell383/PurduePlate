@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/src/utils/supabase';
-import { getUserId } from '@/src/utils/user';
+import { requireUserId } from '@/src/utils/auth';
 
 type NutritionFull = {
   calories: number | null;
@@ -142,7 +142,7 @@ export default function MenuScreen() {
 
   const fetchDiningHalls = async () => {
     try {
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const [hallsResult, profileResult] = await Promise.all([
         supabase.from('dining_halls').select('*').order('name'),
         supabase.from('profiles').select('home_hall_id').eq('id', userId).maybeSingle(),
@@ -265,21 +265,30 @@ export default function MenuScreen() {
     if (!selectedItem) return;
     setLogging(true);
     try {
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const date = getDateStr(dayOffset);
-      const { error: insertErr } = await supabase.from('meal_logs').insert({
+      console.log('[MenuLog] Inserting meal_log:', {
         user_id: userId,
         menu_item_id: selectedItem.id,
         date,
         meal: selectedMeal,
         servings,
       });
+      const { data: insertData, error: insertErr } = await supabase.from('meal_logs').insert({
+        user_id: userId,
+        menu_item_id: selectedItem.id,
+        date,
+        meal: selectedMeal,
+        servings,
+      }).select();
+      console.log('[MenuLog] Insert response:', { data: insertData, error: insertErr });
       if (insertErr) throw insertErr;
       const cal = Math.round((selectedItem.nutrition?.calories || 0) * servings);
       Alert.alert('Logged!', `+${cal} cal`);
       setSelectedItem(null);
       setServings(1);
     } catch (e: any) {
+      console.log('[MenuLog] Insert error:', e);
       Alert.alert('Error', e.message || 'Failed to log meal');
     } finally {
       setLogging(false);
@@ -457,12 +466,50 @@ export default function MenuScreen() {
       <Modal visible={!!selectedItem} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
               <View style={styles.modalHandle} />
 
               <Text style={styles.modalTitle}>{selectedItem?.name}</Text>
               {selectedItem?.station && (
                 <Text style={styles.modalStation}>{selectedItem.station}</Text>
+              )}
+
+              {/* Servings selector */}
+              <Text style={styles.servingsLabel}>Servings</Text>
+              <View style={styles.servingsRow}>
+                {[0.5, 1, 1.5, 2].map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.servingsBtn, servings === s && styles.servingsBtnActive]}
+                    onPress={() => setServings(s)}
+                  >
+                    <Text style={[styles.servingsBtnText, servings === s && styles.servingsBtnTextActive]}>
+                      {s}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Calorie + macro summary */}
+              {selectedItem?.nutrition && (
+                <View style={styles.macroSummaryRow}>
+                  <View style={styles.macroSummaryItem}>
+                    <Text style={styles.macroSummaryValue}>{Math.round((selectedItem.nutrition.calories || 0) * servings)}</Text>
+                    <Text style={styles.macroSummaryLabel}>cal</Text>
+                  </View>
+                  <View style={styles.macroSummaryItem}>
+                    <Text style={[styles.macroSummaryValue, { color: Colors.protein }]}>{Math.round((selectedItem.nutrition.protein_g || 0) * servings)}g</Text>
+                    <Text style={styles.macroSummaryLabel}>protein</Text>
+                  </View>
+                  <View style={styles.macroSummaryItem}>
+                    <Text style={[styles.macroSummaryValue, { color: Colors.carbs }]}>{Math.round((selectedItem.nutrition.total_carbs_g || 0) * servings)}g</Text>
+                    <Text style={styles.macroSummaryLabel}>carbs</Text>
+                  </View>
+                  <View style={styles.macroSummaryItem}>
+                    <Text style={[styles.macroSummaryValue, { color: Colors.fat }]}>{Math.round((selectedItem.nutrition.total_fat_g || 0) * servings)}g</Text>
+                    <Text style={styles.macroSummaryLabel}>fat</Text>
+                  </View>
+                </View>
               )}
 
               {selectedItem?.nutrition && (
@@ -491,17 +538,6 @@ export default function MenuScreen() {
                   <NutritionRow label="Calcium" value={selectedItem.nutrition.calcium_mg} unit="mg" />
                   <NutritionRow label="Iron" value={selectedItem.nutrition.iron_mg} unit="mg" />
                   <NutritionRow label="Potassium" value={selectedItem.nutrition.potassium_mg} unit="mg" />
-
-                  {selectedItem.nutrition.ingredients && (
-                    <View style={{ marginTop: 12 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: Colors.textPrimary, marginBottom: 4 }}>
-                        Ingredients
-                      </Text>
-                      <Text style={{ fontSize: 12, color: Colors.textSecondary, lineHeight: 18 }}>
-                        {selectedItem.nutrition.ingredients}
-                      </Text>
-                    </View>
-                  )}
                 </View>
               )}
 
@@ -512,28 +548,27 @@ export default function MenuScreen() {
                 </View>
               )}
 
-              {/* Servings selector */}
-              <Text style={styles.servingsLabel}>Servings</Text>
-              <View style={styles.servingsRow}>
-                {[0.5, 1, 1.5, 2].map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    style={[styles.servingsBtn, servings === s && styles.servingsBtnActive]}
-                    onPress={() => setServings(s)}
-                  >
-                    <Text style={[styles.servingsBtnText, servings === s && styles.servingsBtnTextActive]}>
-                      {s}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {selectedItem?.nutrition?.calories != null && (
-                <Text style={styles.totalCalText}>
-                  Total: {Math.round(selectedItem.nutrition.calories * servings)} cal
-                </Text>
+              {selectedItem?.nutrition?.ingredients && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 13, color: Colors.textPrimary, marginBottom: 4 }}>
+                    Ingredients
+                  </Text>
+                  <Text style={{ fontSize: 12, color: Colors.textSecondary, lineHeight: 18 }}>
+                    {selectedItem.nutrition.ingredients}
+                  </Text>
+                </View>
               )}
 
+              <View style={{ height: 16 }} />
+            </ScrollView>
+
+            {/* Fixed footer — always visible */}
+            <View style={styles.modalFooter}>
+              {selectedItem?.nutrition?.calories != null && (
+                <Text style={styles.footerCalText}>
+                  {Math.round(selectedItem.nutrition.calories * servings)} cal
+                </Text>
+              )}
               <TouchableOpacity
                 style={[styles.logButton, logging && { opacity: 0.6 }]}
                 onPress={logMeal}
@@ -541,16 +576,13 @@ export default function MenuScreen() {
               >
                 <Text style={styles.logButtonText}>{logging ? 'Logging...' : 'Log This Meal'}</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => { setSelectedItem(null); setServings(1); }}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-
-              <View style={{ height: 32 }} />
-            </ScrollView>
+            </View>
           </View>
         </View>
       </Modal>
@@ -720,7 +752,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   modalHandle: {
     width: 40,
@@ -767,11 +800,30 @@ const styles = StyleSheet.create({
   servingsBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   servingsBtnText: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
   servingsBtnTextActive: { color: '#fff' },
-  totalCalText: {
+  macroSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  macroSummaryItem: { alignItems: 'center' },
+  macroSummaryValue: { fontSize: 16, fontWeight: 'bold', color: Colors.textPrimary },
+  macroSummaryLabel: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
+  modalFooter: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  footerCalText: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
     color: Colors.textSecondary,
-    marginTop: 10,
+    marginBottom: 8,
   },
   logButton: {
     backgroundColor: Colors.primary,

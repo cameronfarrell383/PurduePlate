@@ -12,8 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/src/utils/supabase';
-import { getUserId } from '@/src/utils/user';
-import { calculateDailyGoal, type ActivityLevel } from '@/src/utils/nutrition';
+import { requireUserId, signOut } from '@/src/utils/auth';
+import { calculateDailyGoal, calculateTDEE, getWeeklyProjection, GOAL_OPTIONS, type ActivityLevel, type GoalType } from '@/src/utils/nutrition';
 
 type DiningHall = {
   id: number;
@@ -67,11 +67,25 @@ export default function ProfileScreen() {
   const [inches, setInches] = useState('');
   const [age, setAge] = useState('');
   const [isMale, setIsMale] = useState(true);
-  const [goal, setGoal] = useState<'cut' | 'maintain' | 'bulk'>('maintain');
+  const [goal, setGoal] = useState<GoalType>('maintain');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('light');
   const [highProtein, setHighProtein] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ calories: number; protein: number; carbs: number; fat: number } | null>(null);
+
+  // Live preview of calorie target
+  const previewCalories = (() => {
+    const w = Number(weight);
+    const f = Number(feet);
+    const i = Number(inches) || 0;
+    const a = Number(age);
+    if (!w || !f || !a || w <= 0 || f <= 0 || a <= 0) return null;
+    const weightKg = w * 0.453592;
+    const heightCm = (f * 12 + i) * 2.54;
+    const tdee = calculateTDEE(weightKg, heightCm, a, isMale, activityLevel);
+    const goalCal = calculateDailyGoal(weightKg, heightCm, a, isMale, goal, activityLevel);
+    return { goalCal, tdee };
+  })();
 
   const fetchDiningHalls = useCallback(async () => {
     try {
@@ -82,7 +96,7 @@ export default function ProfileScreen() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -120,7 +134,7 @@ export default function ProfileScreen() {
         setInches((totalInches % 12).toString());
         setAge(p.age ? p.age.toString() : '');
         setIsMale(p.is_male);
-        setGoal((p.goal as any) || 'maintain');
+        setGoal((p.goal as GoalType) || 'maintain');
         setActivityLevel((p.activity_level as ActivityLevel) || 'light');
         setHighProtein(p.high_protein);
       } else {
@@ -173,7 +187,7 @@ export default function ProfileScreen() {
       const dailyCalories = calculateDailyGoal(weightKg, heightCm, a, isMale, goal, activityLevel);
       const { proteinG, carbsG, fatG } = computeMacros(dailyCalories, w, highProtein);
 
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const { error } = await supabase.from('profiles').upsert({
         id: userId,
         name: name.trim() || null,
@@ -295,7 +309,7 @@ export default function ProfileScreen() {
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>Goal</Text>
               <Text style={styles.statValue}>
-                {profileData.goal === 'cut' ? 'Cut (-500)' : profileData.goal === 'bulk' ? 'Bulk (+500)' : 'Maintain'}
+                {GOAL_OPTIONS.find((g) => g.key === profileData.goal)?.label || profileData.goal}
               </Text>
             </View>
             {profileData.high_protein && (
@@ -339,6 +353,10 @@ export default function ProfileScreen() {
 
           <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
             <Text style={styles.editButtonText}>Recalculate</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.signOutButton} onPress={() => signOut()}>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -489,21 +507,36 @@ export default function ProfileScreen() {
         ))}
 
         <Text style={[styles.label, { marginTop: 8 }]}>Goal</Text>
-        <View style={styles.toggleRow}>
-          {([
-            { key: 'cut' as const, label: 'Cut (-500)' },
-            { key: 'maintain' as const, label: 'Maintain' },
-            { key: 'bulk' as const, label: 'Bulk (+500)' },
-          ]).map((g) => (
-            <TouchableOpacity
-              key={g.key}
-              style={[styles.toggleButton, goal === g.key && styles.toggleActive]}
-              onPress={() => setGoal(g.key)}
-            >
-              <Text style={[styles.toggleText, goal === g.key && styles.toggleTextActive]}>{g.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {GOAL_OPTIONS.map((g) => (
+          <TouchableOpacity
+            key={g.key}
+            style={[styles.goalOptionCard, goal === g.key && styles.goalOptionCardActive]}
+            onPress={() => setGoal(g.key)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.goalOptionLabel, goal === g.key && { color: Colors.primary }]}>
+                {g.label}
+              </Text>
+              <Text style={[styles.goalOptionDesc, goal === g.key && { color: Colors.textPrimary }]}>
+                {g.description}
+              </Text>
+            </View>
+            {goal === g.key && (
+              <Text style={{ fontSize: 18, color: Colors.primary, marginLeft: 8 }}>&#10003;</Text>
+            )}
+          </TouchableOpacity>
+        ))}
+
+        {previewCalories && (
+          <View style={styles.previewCard}>
+            <Text style={styles.previewCalText}>
+              Your daily target: {previewCalories.goalCal.toLocaleString()} cal
+            </Text>
+            <Text style={styles.previewProjection}>
+              {getWeeklyProjection(previewCalories.goalCal, previewCalories.tdee)}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.highProteinCard}>
           <View style={styles.highProteinInfo}>
@@ -533,6 +566,10 @@ export default function ProfileScreen() {
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={styles.signOutButton} onPress={() => signOut()}>
+          <Text style={styles.signOutButtonText}>Sign Out</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -689,6 +726,33 @@ const styles = StyleSheet.create({
   resultTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.success },
   resultText: { fontSize: 14, color: Colors.textPrimary, marginTop: 4 },
   resultMacros: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
+  goalOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+  },
+  goalOptionCardActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#FDF2F5',
+  },
+  goalOptionLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  goalOptionDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  previewCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  previewCalText: { fontSize: 18, fontWeight: 'bold', color: Colors.primary },
+  previewProjection: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
   editButton: {
     backgroundColor: Colors.card,
     borderRadius: 12,
@@ -699,4 +763,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   editButtonText: { color: Colors.primary, fontWeight: 'bold', fontSize: 16 },
+  signOutButton: {
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  signOutButtonText: { color: Colors.error, fontWeight: '600', fontSize: 15 },
 });

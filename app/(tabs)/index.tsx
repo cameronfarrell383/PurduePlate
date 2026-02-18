@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/src/utils/supabase';
-import { getUserId } from '@/src/utils/user';
+import { requireUserId } from '@/src/utils/auth';
 
 type MealLog = {
   id: number;
@@ -115,8 +115,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
-  const dayName = new Date().toLocaleDateString('en-US', {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const dayName = now.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -125,7 +126,8 @@ export default function HomeScreen() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const userId = await getUserId();
+      const userId = await requireUserId();
+      console.log('[DashboardDebug] Fetching data for user_id:', userId, 'date:', today);
 
       // Fetch meal logs and profile in parallel
       const [logsResult, profileResult] = await Promise.all([
@@ -138,8 +140,12 @@ export default function HomeScreen() {
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       ]);
 
-      if (logsResult.error) throw logsResult.error;
+      if (logsResult.error) {
+        console.log('[DashboardDebug] Logs fetch error:', logsResult.error);
+        throw logsResult.error;
+      }
       const rawLogs = logsResult.data || [];
+      console.log('[DashboardDebug] Results returned:', rawLogs.length, 'logs');
 
       if (rawLogs.length > 0) {
         // Batch fetch menu items with nutrition
@@ -184,6 +190,7 @@ export default function HomeScreen() {
         });
       }
     } catch (e: any) {
+      console.log('[DashboardDebug] Error:', e);
       setError(e.message || 'Failed to load data');
     } finally {
       setLoading(false);

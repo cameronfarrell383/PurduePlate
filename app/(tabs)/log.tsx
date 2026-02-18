@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/src/utils/supabase';
-import { getUserId } from '@/src/utils/user';
+import { requireUserId } from '@/src/utils/auth';
 
 type MenuItem = {
   id: number;
@@ -77,7 +77,7 @@ export default function QuickLogScreen() {
 
   const fetchHalls = async () => {
     try {
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const [hallsResult, profileResult] = await Promise.all([
         supabase.from('dining_halls').select('*').order('name'),
         supabase.from('profiles').select('home_hall_id').eq('id', userId).maybeSingle(),
@@ -102,7 +102,8 @@ export default function QuickLogScreen() {
     setError(null);
     setSelected(new Set());
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const n = new Date();
+      const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
       const { data, error: e } = await supabase
         .from('menu_items')
         .select('id, name, station, nutrition(calories)')
@@ -188,8 +189,9 @@ export default function QuickLogScreen() {
     if (selected.size === 0) return;
     setLogging(true);
     try {
-      const userId = await getUserId();
-      const today = new Date().toISOString().split('T')[0];
+      const userId = await requireUserId();
+      const n = new Date();
+      const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
       const rows = Array.from(selected).map((menuItemId) => ({
         user_id: userId,
         menu_item_id: menuItemId,

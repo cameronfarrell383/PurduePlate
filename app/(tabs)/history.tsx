@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/src/utils/supabase';
-import { getUserId } from '@/src/utils/user';
+import { requireUserId } from '@/src/utils/auth';
 
 type HistoryLog = {
   id: number;
@@ -29,7 +29,7 @@ function getLast7Days(): { date: string; label: string; dayLabel: string }[] {
     const d = new Date();
     d.setDate(d.getDate() - i);
     days.push({
-      date: d.toISOString().split('T')[0],
+      date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       dayLabel: i === 0 ? 'Today' : i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday: 'short' }),
     });
@@ -48,7 +48,7 @@ export default function HistoryScreen() {
     setLoading(true);
     setError(null);
     try {
-      const userId = await getUserId();
+      const userId = await requireUserId();
       const { data, error: e } = await supabase
         .from('meal_logs')
         .select('id, servings, meal, menu_item_id')

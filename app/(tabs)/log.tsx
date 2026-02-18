@@ -77,12 +77,19 @@ export default function QuickLogScreen() {
 
   const fetchHalls = async () => {
     try {
-      const { data, error: e } = await supabase.from('dining_halls').select('*').order('name');
-      if (e) throw e;
-      const list = (data || []) as DiningHall[];
+      const userId = await getUserId();
+      const [hallsResult, profileResult] = await Promise.all([
+        supabase.from('dining_halls').select('*').order('name'),
+        supabase.from('profiles').select('home_hall_id').eq('id', userId).maybeSingle(),
+      ]);
+      if (hallsResult.error) throw hallsResult.error;
+      const list = (hallsResult.data || []) as DiningHall[];
       setHalls(list);
+
+      const homeHallId = profileResult.data?.home_hall_id;
+      const homeHall = homeHallId ? list.find((h) => h.id === homeHallId) : null;
       const d2 = list.find((h) => h.location_num === '15');
-      setSelectedHall(d2 || list[0] || null);
+      setSelectedHall(homeHall || d2 || list[0] || null);
     } catch (e: any) {
       setError(e.message);
       setLoading(false);

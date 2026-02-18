@@ -27,6 +27,7 @@ type MealLog = {
 };
 
 type Profile = {
+  name: string | null;
   goal_calories: number;
   goal_protein_g: number;
   goal_carbs_g: number;
@@ -34,6 +35,7 @@ type Profile = {
 };
 
 const DEFAULT_GOALS: Profile = {
+  name: null,
   goal_calories: 2100,
   goal_protein_g: 158,
   goal_carbs_g: 236,
@@ -174,6 +176,7 @@ export default function HomeScreen() {
       if (profileResult.data?.goal_calories) {
         const p = profileResult.data;
         setProfile({
+          name: p.name || null,
           goal_calories: p.goal_calories || DEFAULT_GOALS.goal_calories,
           goal_protein_g: p.goal_protein_g || Math.round((p.goal_calories * 0.3) / 4),
           goal_carbs_g: p.goal_carbs_g || Math.round((p.goal_calories * 0.45) / 4),
@@ -247,7 +250,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
-        <Text style={styles.greeting}>Hey Hokie!</Text>
+        <Text style={styles.greeting}>Hey {profile.name || 'Hokie'}!</Text>
         <Text style={styles.dateText}>{dayName}</Text>
 
         {error && (

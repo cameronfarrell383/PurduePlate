@@ -142,15 +142,19 @@ export default function MenuScreen() {
 
   const fetchDiningHalls = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('dining_halls')
-        .select('*')
-        .order('name');
-      if (fetchError) throw fetchError;
-      const hallList = (data || []) as DiningHall[];
+      const userId = await getUserId();
+      const [hallsResult, profileResult] = await Promise.all([
+        supabase.from('dining_halls').select('*').order('name'),
+        supabase.from('profiles').select('home_hall_id').eq('id', userId).maybeSingle(),
+      ]);
+      if (hallsResult.error) throw hallsResult.error;
+      const hallList = (hallsResult.data || []) as DiningHall[];
       setHalls(hallList);
+
+      const homeHallId = profileResult.data?.home_hall_id;
+      const homeHall = homeHallId ? hallList.find((h) => h.id === homeHallId) : null;
       const d2 = hallList.find((h) => h.location_num === '15');
-      setSelectedHall(d2 || hallList[0] || null);
+      setSelectedHall(homeHall || d2 || hallList[0] || null);
     } catch (e: any) {
       setError(e.message || "Couldn't load dining halls");
       setLoading(false);

@@ -78,20 +78,17 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Message cannot be empty" }, 400);
     }
 
-    // ── Create Supabase client (uses caller's auth token for RLS) ───────
+    // ── Create admin Supabase client (bypasses RLS for server-side ops) ─
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authHeader = req.headers.get("Authorization") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // ── 1. Rate limiting ────────────────────────────────────────────────
     const d = new Date();
     const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await adminClient
       .from("ai_chat_logs")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
@@ -114,7 +111,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 2. Get AI context via RPC ───────────────────────────────────────
-    const { data: context, error: rpcError } = await supabase.rpc(
+    const { data: context, error: rpcError } = await adminClient.rpc(
       "get_ai_context",
       { p_user_id: userId, p_date: date }
     );
@@ -197,11 +194,45 @@ ${menuJson}
       );
     }
 
-    // Only send last 10 history messages
-    const trimmedHistory = history.slice(-10).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // Sanitize history: only valid roles, ensure alternation, start with "user"
+    const validHistory = history
+      .slice(-10)
+      .filter(
+        (m) =>
+          (m.role === "user" || m.role === "assistant") &&
+          typeof m.content === "string" &&
+          m.content.trim().length > 0
+      )
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    // Deduplicate consecutive same-role messages (keep the last one)
+    const trimmedHistory: { role: string; content: string }[] = [];
+    for (const m of validHistory) {
+      if (
+        trimmedHistory.length > 0 &&
+        trimmedHistory[trimmedHistory.length - 1].role === m.role
+      ) {
+        trimmedHistory[trimmedHistory.length - 1] = m;
+      } else {
+        trimmedHistory.push(m);
+      }
+    }
+
+    // Ensure history starts with "user" (Claude API requirement)
+    while (
+      trimmedHistory.length > 0 &&
+      trimmedHistory[0].role !== "user"
+    ) {
+      trimmedHistory.shift();
+    }
+
+    // Ensure history ends with "assistant" so the new user message continues alternation
+    while (
+      trimmedHistory.length > 0 &&
+      trimmedHistory[trimmedHistory.length - 1].role !== "assistant"
+    ) {
+      trimmedHistory.pop();
+    }
 
     const claudeResponse = await fetch(
       "https://api.anthropic.com/v1/messages",
@@ -230,8 +261,10 @@ ${menuJson}
         `Claude API error ${claudeResponse.status}: ${errBody}`
       );
       return jsonResponse(
-        { error: "AI is temporarily unavailable. Please try again." },
-        503
+        {
+          error: `Claude API error (${claudeResponse.status}): ${errBody.slice(0, 200)}`,
+        },
+        502
       );
     }
 
@@ -243,7 +276,7 @@ ${menuJson}
     const { cleaned: assistantText, mealItems } = parseMealItems(assistantRaw);
 
     // ── 6. Save to ai_chat_logs ─────────────────────────────────────────
-    const { error: insertErr } = await supabase.from("ai_chat_logs").insert([
+    const { error: insertErr } = await adminClient.from("ai_chat_logs").insert([
       {
         user_id: userId,
         role: "user",
@@ -269,10 +302,8 @@ ${menuJson}
       mealItems: mealItems.length > 0 ? mealItems : [],
     });
   } catch (err) {
-    console.error("Unexpected error:", (err as Error).message);
-    return jsonResponse(
-      { error: "AI is temporarily unavailable. Please try again." },
-      503
-    );
+    const errMsg = (err as Error).message ?? String(err);
+    console.error("Unexpected error:", errMsg, (err as Error).stack);
+    return jsonResponse({ error: errMsg }, 500);
   }
 });

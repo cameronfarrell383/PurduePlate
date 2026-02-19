@@ -36,23 +36,51 @@ export async function sendMessage(
   message: string,
   history: ChatMessage[]
 ): Promise<{ content: string; mealItems: MealItem[] | null }> {
+  // Verify we have an active session (JWT) before calling the Edge Function
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) {
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
   const date = await getEffectiveMenuDate();
 
-  // Only send last 10 messages as history per rate limiting spec
+  // Only send last 10 messages as context — exclude the current user message
+  // since it's passed separately as `message`. The Edge Function expects
+  // history to be prior conversation context only.
   const trimmedHistory = history.slice(-10).map((m) => ({
     role: m.role,
     content: m.content,
   }));
 
-  const { data, error } = await supabase.functions.invoke('ai-chat', {
-    body: { userId, message, history: trimmedHistory, date },
+  const supabaseUrl = 'https://kexytkfzoomvhjcotkqs.supabase.co';
+  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtleHl0a2Z6b29tdmhqY290a3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNjk4OTMsImV4cCI6MjA4Njk0NTg5M30.UiXS-ZHAKpS6xrg1D4BEBv0BEv2V1YpU2PR3ynQP3ag';
+  const session = sessionData.session;
+
+  const invokeBody = { userId, message, history: trimmedHistory, date };
+  console.log('[AI] Invoking ai-chat with body:', JSON.stringify(invokeBody));
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+    },
+    body: JSON.stringify(invokeBody),
   });
 
-  if (error) {
-    throw new Error(error.message || 'Failed to get AI response');
+  const responseText = await response.text();
+  console.log('[AI] Raw response status:', response.status);
+  console.log('[AI] Raw response body:', responseText);
+
+  if (!response.ok) {
+    throw new Error(`AI error (${response.status}): ${responseText}`);
   }
 
+  const data = JSON.parse(responseText);
+
   if (data?.error) {
+    console.error('[AI] Function returned error in body:', data.error);
     throw new Error(data.error);
   }
 

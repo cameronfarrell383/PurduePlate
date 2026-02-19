@@ -129,7 +129,6 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
       content: msg,
     };
     setMessages((prev) => [...prev, userMsg]);
-    historyRef.current = [...historyRef.current, { role: 'user', content: msg }];
 
     setLoading(true);
     try {
@@ -139,7 +138,9 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
         return;
       }
 
+      // Pass history WITHOUT the current message — sendMessage sends it separately
       const response = await sendAIMessage(userId, msg, historyRef.current);
+      historyRef.current = [...historyRef.current, { role: 'user', content: msg }];
 
       const assistantMsg: DisplayMessage = {
         id: `a-${Date.now()}`,
@@ -158,7 +159,6 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
       setLastFailedMessage(msg);
       // Remove the user message we optimistically added since the call failed
       setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
-      historyRef.current = historyRef.current.slice(0, -1);
     } finally {
       setLoading(false);
     }

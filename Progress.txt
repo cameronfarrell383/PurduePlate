@@ -24,13 +24,13 @@ READ THIS FILE BEFORE STARTING ANY TASK.
 - [x] 1.1 — Create favorites table in Supabase
 - [x] 2.1 — Create hall_ratings table and RPCs in Supabase
 - [x] 3.1 — Create dining_hall_hours table in Supabase
-- [ ] 3.2 — Scrape/collect VT dining hours and insert data
+- [x] 3.2 — Scrape/collect VT dining hours and insert data — hours_scraper.py created, fetches VT hours API for today + 3 days
 - [x] 4.1 — Create meal_plans table in Supabase
-- [ ] 4.2 — Ensure scraper handles future dates (+1, +2, +3 days)
+- [~] 4.2 — Ensure scraper handles future dates (+1, +2, +3 days) — hours scraper handles future dates, menu scraper future dates still TODO
 
 ## Phase 2: Utility Functions (Bandhip)
 
-- [ ] 1.2 — Create src/utils/favorites.ts
+- [x] 1.2 — Create src/utils/favorites.ts — toggleFavorite, getFavorites, isFavorited, getFavoritesOnTodaysMenu all implemented with error handling, user_id filtering, and local date format
 - [ ] 2.2 — Create src/utils/ratings.ts
 - [ ] 3.3 — Create src/utils/hours.ts
 - [ ] 4.3 — Create src/utils/mealPlans.ts

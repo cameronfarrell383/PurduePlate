@@ -22,7 +22,7 @@ import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getMealQueryValues, getCurrentMealPeriod } from '@/src/utils/meals';
 import { toggleFavorite, getFavorites } from '@/src/utils/favorites';
-import { getHallAverages, HallAverage, rateHall, getUserRating } from '@/src/utils/ratings';
+import { getHallAverages, HallAverage, rateHall, getUserRating, getHallReviews, HallReview } from '@/src/utils/ratings';
 import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
 import { addToPlan, removeFromPlan, getPlannedMeals } from '@/src/utils/mealPlans';
 import Skeleton from '@/src/components/Skeleton';
@@ -152,6 +152,10 @@ export default function BrowseScreen() {
   // Hall open/closed statuses
   const [hallStatuses, setHallStatuses] = useState<Record<number, HallStatus>>({});
 
+  // Hall reviews
+  const [hallReviews, setHallReviews] = useState<HallReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   // Meal planning (future dates)
   const [plannedItemIds, setPlannedItemIds] = useState<Set<number>>(new Set());
   const [planning, setPlanning] = useState(false);
@@ -265,6 +269,7 @@ export default function BrowseScreen() {
       setRatingModalVisible(false);
       showToastMessage('Rating submitted!');
       loadRatings();
+      if (selectedHall) loadHallReviews(selectedHall.id);
     } catch {
       Alert.alert('Error', 'Failed to submit rating. Please try again.');
     } finally {
@@ -311,12 +316,25 @@ export default function BrowseScreen() {
     }
   }, [date, dayOffset]);
 
+  const loadHallReviews = async (hallId: number) => {
+    setReviewsLoading(true);
+    try {
+      const reviews = await getHallReviews(hallId);
+      setHallReviews(reviews.slice(0, 10));
+    } catch {
+      setHallReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
   // ─── Open hall: loads ALL items for the hall at once ───
   const openHall = async (hall: any) => {
     animateTransition('forward', () => {
       setSelectedHall(hall);
       setItemSearch('');
       setAllHallItems([]);
+      setHallReviews([]);
       setView('stations');
     });
     setHallItemsLoading(true);
@@ -334,6 +352,7 @@ export default function BrowseScreen() {
     } finally {
       setHallItemsLoading(false);
     }
+    loadHallReviews(hall.id);
   };
 
   // ─── Open station: items already loaded in allHallItems ───
@@ -946,6 +965,47 @@ export default function BrowseScreen() {
                 </View>
               )
             )}
+
+            {/* Recent Reviews */}
+            <View style={{ marginTop: 28 }}>
+              <Text style={[st.reviewSectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>Recent Reviews</Text>
+              {reviewsLoading ? (
+                <View style={{ gap: 10 }}>
+                  <Skeleton width={'100%'} height={80} borderRadius={14} />
+                  <Skeleton width={'100%'} height={80} borderRadius={14} />
+                </View>
+              ) : hallReviews.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                  <Text style={{ fontSize: 28 }}>💬</Text>
+                  <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 6, fontFamily: 'DMSans_400Regular' }]}>
+                    No reviews yet — be the first!
+                  </Text>
+                </View>
+              ) : (
+                hallReviews.map((review, i) => (
+                  <View key={i} style={[st.reviewCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 14 }}>
+                          {'⭐'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                        </Text>
+                        <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
+                          {review.user_name?.split(' ')[0] || 'Anonymous'}
+                        </Text>
+                      </View>
+                      <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
+                        {review.date}
+                      </Text>
+                    </View>
+                    {review.review_text ? (
+                      <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular', lineHeight: 18 }]}>
+                        {review.review_text}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))
+              )}
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -1226,5 +1286,14 @@ const st = StyleSheet.create({
     fontSize: 14,
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  reviewSectionTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+  },
+  reviewCard: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -29,14 +29,10 @@ interface Props {
   onComplete: () => void;
 }
 
-const DINING_HALLS = [
-  { id: 1, emoji: '🏛️', name: 'D2 at Dietrick', sub: 'Gauchos, Olives, Edens, Mangia' },
-  { id: 2, emoji: '🍔', name: 'West End at Cochrane', sub: "JP's, London Broil, Leaf & Ladle" },
-  { id: 3, emoji: '🍗', name: 'Food Court / Hokie Grill', sub: "Chick-fil-A, Origami, Fire Grill" },
-  { id: 4, emoji: '🌮', name: 'Turner Place at Lavery', sub: 'Qdoba, Jamba Juice, Bruegger\'s' },
-  { id: 5, emoji: '🎓', name: 'Squires Food Court', sub: "Burger '37, BBQ, ABP" },
-  { id: 6, emoji: '🏢', name: 'Perry Place at HITT', sub: 'Newest dining location' },
-];
+interface DiningHall {
+  id: number;
+  name: string;
+}
 
 // ─── Sub-components (defined outside to prevent TextInput remount on re-render) ──
 
@@ -127,6 +123,31 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const { colors } = useTheme();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Dining halls fetched from Supabase
+  const [diningHalls, setDiningHalls] = useState<DiningHall[]>([]);
+  const [hallsLoading, setHallsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHalls = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('dining_halls')
+          .select('id, name');
+        if (error) {
+          console.error('[Onboarding] Failed to fetch dining halls:', error.message);
+          return;
+        }
+        console.log('[Onboarding] Fetched dining halls:', JSON.stringify(data));
+        setDiningHalls(data ?? []);
+      } catch (e: any) {
+        console.error('[Onboarding] Error fetching dining halls:', e.message);
+      } finally {
+        setHallsLoading(false);
+      }
+    };
+    fetchHalls();
+  }, []);
 
   // Step 2
   const [goal, setGoal] = useState<'lose' | 'maintain' | 'build' | null>(null);
@@ -222,6 +243,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
       const macros = calcMacros(goalCals);
       const dietaryNeeds = dietary.includes('No restrictions') ? [] : dietary;
 
+      console.log('[Onboarding] Selected home hall ID:', homeHall);
+
       const { data: upsertData, error: upsertError } = await supabase.from('profiles').upsert({
         id: userId,
         name: name.trim() || 'Student',
@@ -237,7 +260,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         goal_protein_g: macros.proteinG,
         goal_carbs_g: macros.carbsG,
         goal_fat_g: macros.fatG,
-        home_hall_id: homeHall ?? 1,
+        home_hall_id: homeHall,
         dietary_needs: dietaryNeeds,
         high_protein: false,
         meals_per_day: mealsPerDay ?? 2,
@@ -459,25 +482,32 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Title text="Where do you eat most?" />
             <Subtitle text="We'll default to this hall when you open the app." />
             <View style={{ marginTop: 20 }}>
-              {DINING_HALLS.map((hall) => (
-                <TouchableOpacity
-                  key={hall.id}
-                  style={[s.optionCard, {
-                    backgroundColor: colors.card,
-                    borderColor: homeHall === hall.id ? colors.maroon : colors.border,
-                    borderWidth: homeHall === hall.id ? 2 : 1,
-                  }]}
-                  onPress={() => setHomeHall(hall.id)}
-                >
-                  <View style={[s.optionEmoji, { backgroundColor: homeHall === hall.id ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }]}>
-                    <Text style={{ fontSize: 22 }}>{hall.emoji}</Text>
-                  </View>
-                  <View style={s.optionText}>
-                    <Text style={[s.optionLabel, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{hall.name}</Text>
-                    <Text style={[s.optionDesc, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{hall.sub}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {hallsLoading ? (
+                <ActivityIndicator size="large" color={colors.maroon} style={{ marginTop: 40 }} />
+              ) : diningHalls.length === 0 ? (
+                <Text style={[{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontFamily: 'DMSans_400Regular' }]}>
+                  🍽️ No dining halls found. Please try again later.
+                </Text>
+              ) : (
+                diningHalls.map((hall) => (
+                  <TouchableOpacity
+                    key={hall.id}
+                    style={[s.optionCard, {
+                      backgroundColor: colors.card,
+                      borderColor: homeHall === hall.id ? colors.maroon : colors.border,
+                      borderWidth: homeHall === hall.id ? 2 : 1,
+                    }]}
+                    onPress={() => setHomeHall(hall.id)}
+                  >
+                    <View style={[s.optionEmoji, { backgroundColor: homeHall === hall.id ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }]}>
+                      <Text style={{ fontSize: 22 }}>🍽️</Text>
+                    </View>
+                    <View style={s.optionText}>
+                      <Text style={[s.optionLabel, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{hall.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
             </View>
             <ContinueBtn onPress={next} disabled={homeHall === null} />
           </View>
@@ -515,7 +545,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         const tdee = calcTDEE();
         const macros = calcMacros(goalCals);
         const projection = getWeeklyProjection(goalCals, tdee);
-        const hallName = DINING_HALLS.find((h) => h.id === homeHall)?.name || 'your hall';
+        const hallName = diningHalls.find((h) => h.id === homeHall)?.name || 'your hall';
         return (
           <View style={s.centered}>
             <Title text="Your plan is ready 🎉" />

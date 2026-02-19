@@ -15,7 +15,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
-import { getTodayWater, addGlass, removeGlass } from '@/src/utils/water';
+import { getTodayWater, addWater, getWaterGoal } from '@/src/utils/water';
 import WaterTracker from '@/src/components/WaterTracker';
 
 function getLocalDate(d = new Date()) {
@@ -70,7 +70,8 @@ export default function HomeScreen() {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [waterGlasses, setWaterGlasses] = useState<number>(0);
+  const [waterOz, setWaterOz] = useState<number>(0);
+  const [waterGoal, setWaterGoal] = useState<number>(64);
   const [waterLoading, setWaterLoading] = useState<boolean>(true);
 
   const loadData = useCallback(async () => {
@@ -78,7 +79,7 @@ export default function HomeScreen() {
       const userId = await requireUserId();
       const today = getLocalDate();
 
-      const [profileRes, logsRes, collectionsRes, waterCount] = await Promise.all([
+      const [profileRes, logsRes, collectionsRes, waterCount, waterGoalRes] = await Promise.all([
         supabase.from('profiles').select('name, goal_calories, goal_protein_g, goal_carbs_g, goal_fat_g').eq('id', userId).single(),
         supabase
           .from('meal_logs')
@@ -88,13 +89,15 @@ export default function HomeScreen() {
           .order('created_at', { ascending: true }),
         loadCollections(today),
         getTodayWater(userId),
+        getWaterGoal(userId),
       ]);
 
       console.log('[DashboardData] raw logsRes:', JSON.stringify(logsRes.data, null, 2));
       if (profileRes.data) setProfile(profileRes.data as any);
       if (logsRes.data) setLogs(logsRes.data as any);
       if (collectionsRes) setCollections(collectionsRes);
-      setWaterGlasses(waterCount);
+      setWaterOz(waterCount);
+      setWaterGoal(waterGoalRes);
     } catch (e) {
       console.error('Dashboard load error:', e);
     } finally {
@@ -159,23 +162,13 @@ export default function HomeScreen() {
     }
   };
 
-  const handleAddGlass = async () => {
+  const handleAddWater = async (oz: number) => {
     try {
       const userId = await requireUserId();
-      const newCount = await addGlass(userId);
-      setWaterGlasses(newCount);
+      const newTotal = await addWater(userId, oz);
+      setWaterOz(newTotal);
     } catch (error) {
-      console.error('Failed to add glass:', error);
-    }
-  };
-
-  const handleRemoveGlass = async () => {
-    try {
-      const userId = await requireUserId();
-      const newCount = await removeGlass(userId);
-      setWaterGlasses(newCount);
-    } catch (error) {
-      console.error('Failed to remove glass:', error);
+      console.error('Failed to add water:', error);
     }
   };
 
@@ -345,10 +338,9 @@ export default function HomeScreen() {
         {/* Water Tracker */}
         <View style={{ marginTop: 16 }}>
           <WaterTracker
-            glasses={waterGlasses}
-            goal={8}
-            onAddGlass={handleAddGlass}
-            onRemoveGlass={handleRemoveGlass}
+            consumed={waterOz}
+            goal={waterGoal}
+            onAddWater={handleAddWater}
             loading={waterLoading}
           />
         </View>

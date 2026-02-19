@@ -18,34 +18,35 @@ export async function getTodayWater(userId: string): Promise<number> {
   return data.glasses ?? 0;
 }
 
-export async function addGlass(userId: string): Promise<number> {
+export async function addWater(userId: string, ounces: number): Promise<number> {
   const today = getLocalDate();
   const current = await getTodayWater(userId);
-  const next = current + 1;
+  const newTotal = current + ounces;
 
   await supabase
     .from('water_logs')
     .upsert(
-      { user_id: userId, date: today, glasses: next, updated_at: new Date().toISOString() },
+      { user_id: userId, date: today, glasses: newTotal, updated_at: new Date().toISOString() },
       { onConflict: 'user_id,date' }
     );
 
-  return next;
+  return newTotal;
 }
 
-export async function removeGlass(userId: string): Promise<number> {
-  const today = getLocalDate();
-  const current = await getTodayWater(userId);
-  if (current <= 0) return 0;
+export async function getWaterGoal(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('water_goal_oz')
+    .eq('id', userId)
+    .single();
 
-  const next = current - 1;
+  if (error || !data || data.water_goal_oz == null) return 64;
+  return data.water_goal_oz;
+}
 
+export async function setWaterGoal(userId: string, goalOz: number): Promise<void> {
   await supabase
-    .from('water_logs')
-    .upsert(
-      { user_id: userId, date: today, glasses: next, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id,date' }
-    );
-
-  return next;
+    .from('profiles')
+    .update({ water_goal_oz: goalOz })
+    .eq('id', userId);
 }

@@ -20,7 +20,9 @@
       "Bash(npx expo export:*)",
       "Bash(timeout 15 npx expo start:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

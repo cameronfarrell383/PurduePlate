@@ -14,22 +14,27 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId, signOut } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
+import { setWaterGoal } from '@/src/utils/water';
 
 export default function MoreScreen() {
   const { mode, colors, toggleTheme } = useTheme();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
+  const [waterGoalOz, setWaterGoalOz] = useState<number>(64);
 
   const loadData = useCallback(async () => {
     try {
       const userId = await requireUserId();
       const { data } = await supabase
         .from('profiles')
-        .select('name, year, dorm, goal_calories, high_protein')
+        .select('name, year, dorm, goal_calories, high_protein, water_goal_oz')
         .eq('id', userId)
         .single();
-      if (data) setProfile(data);
+      if (data) {
+        setProfile(data);
+        setWaterGoalOz(data.water_goal_oz ?? 64);
+      }
 
       // Calculate streak
       let s = 0;
@@ -64,6 +69,27 @@ export default function MoreScreen() {
     } catch (e) {
       console.error('Toggle error:', e);
     }
+  };
+
+  const handleWaterGoal = () => {
+    Alert.prompt(
+      'Water Goal',
+      'Set your daily water goal in ounces:',
+      async (value) => {
+        const parsed = parseInt(value, 10);
+        if (isNaN(parsed) || parsed < 1) return;
+        try {
+          const userId = await requireUserId();
+          await setWaterGoal(userId, parsed);
+          setWaterGoalOz(parsed);
+        } catch (e) {
+          console.error('Failed to save water goal:', e);
+        }
+      },
+      'plain-text',
+      String(waterGoalOz),
+      'numeric',
+    );
   };
 
   const handleSignOut = () => {
@@ -128,6 +154,21 @@ export default function MoreScreen() {
           <MenuItem emoji="🎯" label="Goals" />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem emoji="🍎" label="Nutrition Preferences" />
+          <View style={[st.separator, { backgroundColor: colors.border }]} />
+          <MenuItem
+            emoji="💧"
+            label="Water Goal"
+            rightContent={
+              <TouchableOpacity
+                onPress={handleWaterGoal}
+                style={[st.themeChip, { backgroundColor: colors.cardAlt }]}
+              >
+                <Text style={[{ fontSize: 12, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
+                  {waterGoalOz} oz
+                </Text>
+              </TouchableOpacity>
+            }
+          />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             emoji="💪"

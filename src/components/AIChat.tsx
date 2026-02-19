@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -61,6 +62,7 @@ const SUGGESTIONS = [
 
 export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState('');
@@ -241,8 +243,8 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 24}
+          behavior="padding"
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
         >
           {/* ── Messages ── */}
           {initialLoading ? (
@@ -318,7 +320,7 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
           )}
 
           {/* ── Input row (TextInput is explicit, never inside .map or conditional re-create) ── */}
-          <View style={[styles.inputRow, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          <View style={[styles.inputRow, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 10) }]}>
             <TextInput
               style={[
                 styles.textInput,

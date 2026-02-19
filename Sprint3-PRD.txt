@@ -1,0 +1,357 @@
+# CampusPlate Sprint 3 — Revised PRD
+
+## Overview
+
+Three features this sprint. Each broken into small tasks for the Ralph loop.
+
+**Assignee:** Cameron (all coding) | Bandhip (PRD/planning only)
+
+---
+
+## Global Rules (APPLY TO EVERY TASK)
+
+1. **Dates:** NEVER use `toISOString()` for date columns. Always format manually:
+   ```typescript
+   const d = new Date();
+   const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+   ```
+2. **Menu date fallback:** Always use `getEffectiveMenuDate()` from `src/utils/meals.ts` when querying menu data. This returns yesterday's date if today has no scraped data yet.
+3. **Colors:** All colors from ThemeContext. Approved hardcoded accents: maroon `#8B1E3F`, orange `#E87722`, blue `#5B7FFF`, yellow `#FFD60A`, green `#34C759`, red `#FF453A`.
+4. **Errors:** Every Supabase call must destructure `{ error }` and handle it. Show `Alert.alert()` or toast on mutation failures.
+5. **User filtering:** All queries on user-owned tables MUST filter by `user_id`.
+6. **Fonts:** DM Sans (body), Outfit (headings/numbers).
+7. **Git:** `git pull origin main` before starting. Push when done.
+8. **No external images.** Emojis only.
+9. **Keyboard:** Never create TextInput inside `.map()`, conditional renders, or functions that re-run on state change.
+10. **RLS:** Every new table gets RLS policies immediately — not deferred.
+11. **Console:** No `console.log` with user data. Use `console.error` for error paths only.
+
+---
+
+## Feature 1: AI Meal Planning Agent
+
+**What:** A chat interface where students ask natural language questions about dining — "plan my meals today", "high protein lunch under 600 cal", "what should I eat at D2?" — and get personalized recommendations from today's actual VT menu data. One-tap logging from suggestions.
+
+**Architecture:** The Claude API key NEVER touches the frontend. All AI calls go through a Supabase Edge Function that holds the key server-side. The Edge Function also enforces rate limiting (20 messages/user/day).
+
+### Database
+
+```sql
+-- Run in Supabase SQL Editor
+CREATE TABLE ai_chat_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role text NOT NULL CHECK (role IN ('user', 'assistant')),
+  content text NOT NULL,
+  meal_items jsonb DEFAULT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_ai_chat_user ON ai_chat_logs(user_id, created_at DESC);
+
+-- RLS immediately
+ALTER TABLE ai_chat_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own chats" ON ai_chat_logs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own chats" ON ai_chat_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own chats" ON ai_chat_logs FOR DELETE USING (auth.uid() = user_id);
+```
+
+```sql
+-- AI context RPC — returns profile, consumed macros, and filtered menu
+CREATE OR REPLACE FUNCTION get_ai_context(p_user_id uuid, p_date date)
+RETURNS json AS $$
+  SELECT json_build_object(
+    'profile', (
+      SELECT json_build_object(
+        'goal_calories', goal_calories,
+        'goal_protein_g', goal_protein_g,
+        'goal_carbs_g', goal_carbs_g,
+        'goal_fat_g', goal_fat_g,
+        'dietary_needs', dietary_needs,
+        'high_protein', high_protein,
+        'goal', goal
+      ) FROM profiles WHERE id = p_user_id
+    ),
+    'consumed_today', (
+      SELECT json_build_object(
+        'calories', COALESCE(SUM(n.calories * ml.servings), 0),
+        'protein', COALESCE(SUM(n.protein_g * ml.servings), 0),
+        'carbs', COALESCE(SUM(n.total_carbs_g * ml.servings), 0),
+        'fat', COALESCE(SUM(n.total_fat_g * ml.servings), 0)
+      )
+      FROM meal_logs ml
+      JOIN nutrition n ON n.menu_item_id = ml.menu_item_id
+      WHERE ml.user_id = p_user_id AND ml.date = p_date
+    ),
+    'todays_menu', (
+      SELECT json_agg(json_build_object(
+        'id', mi.id,
+        'hall', dh.name,
+        'meal', mi.meal,
+        'station', mi.station,
+        'name', mi.name,
+        'calories', n.calories,
+        'protein_g', n.protein_g,
+        'carbs_g', n.total_carbs_g,
+        'fat_g', n.total_fat_g,
+        'dietary_flags', mi.dietary_flags
+      ))
+      FROM menu_items mi
+      JOIN dining_halls dh ON dh.id = mi.dining_hall_id
+      JOIN nutrition n ON n.menu_item_id = mi.id
+      WHERE mi.date = p_date
+    )
+  );
+$$ LANGUAGE sql STABLE;
+```
+
+### Tasks
+
+| # | Task | Description |
+|---|------|-------------|
+| 1.1 | Create ai_chat_logs table + RLS | Run the table, index, and RLS SQL above in Supabase SQL Editor. |
+| 1.2 | Create get_ai_context RPC | Run the RPC SQL above. Test with: `SELECT get_ai_context('YOUR_USER_UUID', '2026-02-19');` |
+| 1.3 | Create Supabase Edge Function `ai-chat` | This is the critical piece. The Edge Function receives `{ userId, message, history }`, calls get_ai_context, builds the system prompt, calls the Claude API with the key stored as a Supabase secret, enforces rate limiting (20 msgs/user/day by checking ai_chat_logs count), and returns the response. See detailed spec below. |
+| 1.4 | Create `src/utils/ai.ts` | Frontend utility: `sendMessage(userId, message, history)` — calls the Edge Function via `supabase.functions.invoke('ai-chat', { body: ... })`. `getChatHistory(userId)` — queries ai_chat_logs. `clearChatHistory(userId)` — deletes all chat logs for user. No API key anywhere in this file. |
+| 1.5 | Create `src/utils/aiPrompt.ts` | `buildSystemPrompt(context)` — takes RPC output, calculates remaining macros, adds current meal period from `getCurrentMealPeriod()`, formats the system prompt. Filters menu to current + next meal period only (don't send breakfast items at 6 PM). Truncates if menu exceeds 60K chars. |
+| 1.6 | Create `src/components/AIChatBubble.tsx` | Single message bubble. User = right-aligned maroon. Assistant = left-aligned card color. If `mealItems` exists, render item cards with name, hall, calories, P/C/F, and "Log this" button. |
+| 1.7 | Create `src/components/AIChat.tsx` | Full chat screen as a Modal. Header with title + close + "Clear chat" button. FlatList of messages with auto-scroll. Quick suggestion chips: "Plan my meals today", "High protein lunch", "What should I eat next?", "Low cal dinner". Input row with TextInput + send button. Loading state shows typing indicator (3 bouncing dots). Error state shows retry button. Uses `getEffectiveMenuDate()` for menu fallback. KeyboardAvoidingView to keep input above keyboard. |
+| 1.8 | Add AI floating button to dashboard | In `app/(tabs)/index.tsx`, add a floating action button (✨ emoji, maroon circle, shadow) in the bottom-right above the tab bar. Tapping opens AIChat modal. |
+| 1.9 | "Log this" integration | When user taps "Log this" on an AI-suggested item, insert into meal_logs using the menu_item_id from the response. Show green toast. Update the AI context so the next response reflects the new consumed totals. |
+| 1.10 | Test AI end-to-end | Send 5+ different queries. Verify responses only reference real menu items. Verify "Log this" works. Verify rate limit kicks in after 20 messages. Verify clear chat works. Test with no menu data (fallback). |
+
+### Edge Function Spec (Task 1.3)
+
+File: `supabase/functions/ai-chat/index.ts`
+
+```typescript
+// Pseudocode — the actual implementation will use Deno
+import { createClient } from '@supabase/supabase-js';
+
+// Key is stored as a Supabase secret, accessed via Deno.env.get()
+const CLAUDE_API_KEY = Deno.env.get('CLAUDE_API_KEY');
+
+Deno.serve(async (req) => {
+  const { userId, message, history, date } = await req.json();
+  
+  // 1. Rate limit check — count today's messages for this user
+  // If >= 20, return { error: 'Daily limit reached. Try again tomorrow.' }
+  
+  // 2. Get AI context via RPC
+  // const context = await supabase.rpc('get_ai_context', { p_user_id: userId, p_date: date });
+  
+  // 3. Build system prompt (import buildSystemPrompt)
+  
+  // 4. Call Claude API
+  // POST https://api.anthropic.com/v1/messages
+  // model: claude-sonnet-4-20250514
+  // max_tokens: 1500
+  // system: systemPrompt
+  // messages: [...history, { role: 'user', content: message }]
+  
+  // 5. Parse response, extract meal item references
+  
+  // 6. Save user message + assistant response to ai_chat_logs
+  
+  // 7. Return { content, mealItems }
+});
+```
+
+The Claude API key is set via Supabase CLI:
+```bash
+supabase secrets set CLAUDE_API_KEY=sk-ant-...
+```
+
+---
+
+## Feature 2: Weekly Nutrition Report
+
+**What:** A comprehensive 7-day report showing daily calorie chart, macro averages, hydration summary, weight trend, streaks, and goal adherence. Navigable by week.
+
+### Database
+
+```sql
+-- Weekly report RPC — returns 7-day nutrition, water, weight, and streak data
+CREATE OR REPLACE FUNCTION get_weekly_report(p_user_id uuid, p_end_date date)
+RETURNS json AS $$
+  SELECT json_build_object(
+    'daily_totals', (
+      SELECT COALESCE(json_agg(day_row ORDER BY day_row.log_date), '[]'::json)
+      FROM (
+        SELECT
+          ml.date AS log_date,
+          COALESCE(SUM(n.calories * ml.servings), 0) AS calories,
+          COALESCE(SUM(n.protein_g * ml.servings), 0) AS protein,
+          COALESCE(SUM(n.total_carbs_g * ml.servings), 0) AS carbs,
+          COALESCE(SUM(n.total_fat_g * ml.servings), 0) AS fat,
+          COUNT(DISTINCT ml.id) AS meals_logged
+        FROM meal_logs ml
+        JOIN nutrition n ON n.menu_item_id = ml.menu_item_id
+        WHERE ml.user_id = p_user_id
+          AND ml.date > p_end_date - 7
+          AND ml.date <= p_end_date
+        GROUP BY ml.date
+      ) day_row
+    ),
+    'goals', (
+      SELECT json_build_object(
+        'calories', goal_calories,
+        'protein', goal_protein_g,
+        'carbs', goal_carbs_g,
+        'fat', goal_fat_g,
+        'water_goal_oz', COALESCE(water_goal_oz, 64)
+      ) FROM profiles WHERE id = p_user_id
+    ),
+    'water_totals', (
+      SELECT COALESCE(json_agg(json_build_object(
+        'date', date,
+        'total_oz', total_oz
+      ) ORDER BY date), '[]'::json)
+      FROM water_logs
+      WHERE user_id = p_user_id
+        AND date > p_end_date - 7
+        AND date <= p_end_date
+    ),
+    'weight_entries', (
+      SELECT COALESCE(json_agg(json_build_object(
+        'date', date,
+        'weight', weight
+      ) ORDER BY date), '[]'::json)
+      FROM weight_logs
+      WHERE user_id = p_user_id
+        AND date > p_end_date - 7
+        AND date <= p_end_date
+    ),
+    'streak', (
+      WITH consecutive_days AS (
+        SELECT DISTINCT date
+        FROM meal_logs
+        WHERE user_id = p_user_id AND date <= p_end_date
+        ORDER BY date DESC
+      ),
+      streak_calc AS (
+        SELECT date, 
+               date - (ROW_NUMBER() OVER (ORDER BY date DESC))::int AS grp
+        FROM consecutive_days
+      )
+      SELECT COUNT(*)
+      FROM streak_calc
+      WHERE grp = (SELECT grp FROM streak_calc ORDER BY date DESC LIMIT 1)
+    )
+  );
+$$ LANGUAGE sql STABLE;
+```
+
+**Changes from Bandhip's version:**
+- `water_totals` uses `total_oz` (our actual column) instead of `glasses`
+- Added `weight_entries` for weight trend chart
+- Added `water_goal_oz` to goals
+- Streak is a real consecutive-day calculation, not just count of distinct dates
+- COALESCE wraps all json_agg calls to return `[]` instead of null when no data
+
+### Tasks
+
+| # | Task | Description |
+|---|------|-------------|
+| 2.1 | Create get_weekly_report RPC | Run the SQL above. Test with your user ID. |
+| 2.2 | Create `src/utils/weeklyReport.ts` | `getWeeklyReport(userId, endDate?)` — calls RPC, calculates 7-day averages, goal adherence percentages `(avg/goal * 100)`, finds most consistent meal, returns processed `WeeklyReportData`. |
+| 2.3 | Create `src/components/WeeklyReport.tsx` | Full scrollable report modal with 6 sections: **Header** (title, date range, week nav arrows), **Summary cards** (2x2 grid: avg cal/protein/carbs/fat with % of goal), **Daily bar chart** (7 bars using react-native-svg, maroon=under/green=at/red=over goal, dashed goal line, tappable bars), **Macro breakdown** (horizontal stacked bar for avg P/C/F ratio vs goal), **Hydration** (avg daily oz, days goal met as 7 circles filled/outline), **Streaks** (current streak, days logged, most consistent meal). |
+| 2.4 | Add weight trend to report | If `weight_entries` has 2+ entries, show a simple line chart at the bottom of the report. Label with start/end weight and change. |
+| 2.5 | Wire into More tab + Progress tab | More tab: wire "Weekly Report" row to open modal. Progress tab: add "View Full Report" button. Both pass current week's end date. |
+| 2.6 | Test weekly report | Verify with a week of logged data. Check empty state (no data). Test week navigation. Verify bar chart renders correctly. |
+
+---
+
+## Feature 3: Meal Reminders (Push Notifications)
+
+**What:** Local push notifications reminding students to eat and log meals. Configurable per-meal times. Tapping a notification deep-links to the browse tab with the right meal period selected.
+
+### Database
+
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS reminder_prefs jsonb DEFAULT NULL;
+```
+
+### Tasks
+
+| # | Task | Description |
+|---|------|-------------|
+| 3.1 | Add reminder_prefs column | Run the ALTER TABLE SQL above. |
+| 3.2 | Install expo-notifications | Run `npx expo install expo-notifications expo-device expo-constants` in the CampusPlate directory. |
+| 3.3 | Create `src/utils/notifications.ts` | Functions: `registerForPushNotifications()` — request permissions, get token. `scheduleMealReminders(reminders)` — cancel existing, schedule daily repeating for each enabled meal. `saveMealReminders(userId, reminders)` — save to profiles.reminder_prefs + schedule. `loadMealReminders(userId)` — load from profiles, return defaults if null. `cancelAllNotifications()`. Default times: breakfast 8 AM, lunch 12 PM, dinner 6 PM. |
+| 3.4 | Add deep linking to notifications | When scheduling notifications, include `data: { screen: 'browse', meal: 'Lunch' }` in the notification payload. In `app/_layout.tsx`, add a notification response listener that reads the data and navigates to `/(tabs)/browse` with the meal filter applied. |
+| 3.5 | Create `src/components/ReminderSettings.tsx` | Modal with 3 rows (breakfast/lunch/dinner). Each row: Switch toggle, meal name, time display, tap to edit time. Save button saves to Supabase + schedules notifications. Note about device notification settings. |
+| 3.6 | Wire into More tab | Replace "coming soon" on Reminders row with ReminderSettings modal. Show "On"/"Off" chip based on whether any reminders are enabled. Request permissions on first open. |
+| 3.7 | Restore reminders on app launch | In `app/_layout.tsx`, after auth gate passes, silently load reminder prefs and re-schedule if any are enabled (notifications reset on app update). Don't prompt for permissions here. |
+| 3.8 | Test reminders | Enable all 3 reminders. Verify notifications fire at configured times (set one 1 minute from now to test quickly). Tap notification, verify it opens browse with correct meal. Toggle off, verify notification is cancelled. |
+
+---
+
+## Dependency Order
+
+```
+Phase 1 — Backend (all Supabase SQL, no code):
+  1.1  Create ai_chat_logs table + RLS
+  1.2  Create get_ai_context RPC
+  2.1  Create get_weekly_report RPC
+  3.1  Add reminder_prefs column
+
+Phase 2 — Edge Function:
+  1.3  Create and deploy ai-chat Edge Function
+       (requires Supabase CLI installed + Claude API key)
+
+Phase 3 — Utility Functions:
+  1.4  src/utils/ai.ts
+  1.5  src/utils/aiPrompt.ts
+  2.2  src/utils/weeklyReport.ts
+  3.2  Install expo-notifications
+  3.3  src/utils/notifications.ts
+
+Phase 4 — UI Components:
+  1.6  AIChatBubble.tsx
+  1.7  AIChat.tsx
+  1.8  AI floating button on dashboard
+  2.3  WeeklyReport.tsx
+  2.4  Weight trend in report
+  2.5  Wire report into More + Progress
+  3.4  Deep linking for notifications
+  3.5  ReminderSettings.tsx
+  3.6  Wire reminders into More tab
+  3.7  Restore reminders on launch
+
+Phase 5 — Integration + Polish:
+  1.9  "Log this" from AI suggestions
+  1.10 Test AI end-to-end
+
+Phase 6 — Testing:
+  2.6  Test weekly report
+  3.8  Test reminders
+```
+
+---
+
+## Cost & Rate Limiting Notes
+
+Claude Sonnet API pricing (approximate):
+- Input: ~$3 per million tokens
+- Output: ~$15 per million tokens
+- Average AI meal plan query with full context: ~4K input tokens, ~800 output tokens
+- Cost per query: ~$0.024
+- At 20 queries/user/day, 100 active users: ~$48/day max
+
+Rate limits in the Edge Function:
+- 20 messages per user per day (resets at midnight ET)
+- Max input length: 500 characters per message
+- Max history sent to Claude: last 10 messages (not full history)
+- If rate limited, return friendly message: "You've used all 20 AI messages for today. They reset at midnight!"
+
+---
+
+## Security Checklist
+
+- [ ] Claude API key stored as Supabase secret only — never in frontend code, .env files, or git
+- [ ] ai_chat_logs has RLS enabled (done in task 1.1)
+- [ ] Edge Function validates userId matches auth token
+- [ ] Rate limiting enforced server-side
+- [ ] User input sanitized before sending to Claude (strip HTML, limit length)
+- [ ] AI responses never include the system prompt or raw menu JSON to the user

@@ -50,3 +50,18 @@ export async function setWaterGoal(userId: string, goalOz: number): Promise<void
     .update({ water_goal_oz: goalOz })
     .eq('id', userId);
 }
+
+export async function removeWater(userId: string, ounces: number): Promise<number> {
+  const today = getLocalDate();
+  const current = await getTodayWater(userId);
+  const newTotal = Math.max(current - ounces, 0);
+
+  await supabase
+    .from('water_logs')
+    .upsert(
+      { user_id: userId, date: today, glasses: newTotal, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,date' }
+    );
+
+  return newTotal;
+}

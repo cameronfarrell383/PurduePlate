@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -26,6 +26,7 @@ interface WaterTrackerProps {
   consumed: number;
   goal: number;
   onAddWater: (oz: number) => void;
+  onRemoveWater: (oz: number) => void;
   loading: boolean;
 }
 
@@ -36,8 +37,9 @@ const QUICK_ADD = [
   { label: '+24 oz', oz: 24 },
 ];
 
-export default function WaterTracker({ consumed, goal, onAddWater, loading }: WaterTrackerProps) {
+export default function WaterTracker({ consumed, goal, onAddWater, onRemoveWater, loading }: WaterTrackerProps) {
   const { colors } = useTheme();
+  const lastAdded = useRef<number | null>(null);
 
   const goalReached = consumed >= goal;
   const ringColor = goalReached ? GOAL_GREEN : WATER_BLUE;
@@ -73,7 +75,15 @@ export default function WaterTracker({ consumed, goal, onAddWater, loading }: Wa
     } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    lastAdded.current = oz;
     onAddWater(oz);
+  };
+
+  const handleUndo = () => {
+    if (lastAdded.current == null) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onRemoveWater(lastAdded.current);
+    lastAdded.current = null;
   };
 
   const renderPill = (item: (typeof QUICK_ADD)[number], index: number) => (
@@ -147,7 +157,7 @@ export default function WaterTracker({ consumed, goal, onAddWater, loading }: Wa
           </View>
         </View>
 
-        {/* Right — 2×2 quick-add pill grid */}
+        {/* Right — 2×2 quick-add pill grid + undo */}
         <View style={st.pillGrid}>
           <View style={st.pillRow}>
             {renderPill(QUICK_ADD[0], 0)}
@@ -156,6 +166,28 @@ export default function WaterTracker({ consumed, goal, onAddWater, loading }: Wa
           <View style={st.pillRow}>
             {renderPill(QUICK_ADD[2], 2)}
             {renderPill(QUICK_ADD[3], 3)}
+          </View>
+          {/* Undo row */}
+          <View style={[st.pillRow, st.undoRow]}>
+            <Pressable
+              onPress={handleUndo}
+              disabled={loading || lastAdded.current == null}
+              style={[
+                st.undoBtn,
+                { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                (loading || lastAdded.current == null) && st.undoDisabled,
+              ]}
+            >
+              <Text
+                style={[
+                  st.undoText,
+                  { color: colors.textMuted, fontFamily: 'DMSans_500Medium' },
+                  (loading || lastAdded.current == null) && { opacity: 0.35 },
+                ]}
+              >
+                Undo last
+              </Text>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -225,5 +257,22 @@ const st = StyleSheet.create({
   pillText: {
     fontSize: 13,
     color: WATER_BLUE,
+  },
+  undoRow: {
+    marginTop: 2,
+  },
+  undoBtn: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  undoDisabled: {
+    opacity: 0.5,
+  },
+  undoText: {
+    fontSize: 12,
   },
 });

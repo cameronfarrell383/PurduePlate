@@ -15,7 +15,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
-import { getTodayWater, addWater, getWaterGoal } from '@/src/utils/water';
+import { getTodayWater, addWater, removeWater, getWaterGoal } from '@/src/utils/water';
 import WaterTracker from '@/src/components/WaterTracker';
 
 function getLocalDate(d = new Date()) {
@@ -169,6 +169,16 @@ export default function HomeScreen() {
       setWaterOz(newTotal);
     } catch (error) {
       console.error('Failed to add water:', error);
+    }
+  };
+
+  const handleRemoveWater = async (oz: number) => {
+    try {
+      const userId = await requireUserId();
+      const newTotal = await removeWater(userId, oz);
+      setWaterOz(newTotal);
+    } catch (error) {
+      console.error('Failed to remove water:', error);
     }
   };
 
@@ -341,6 +351,7 @@ export default function HomeScreen() {
             consumed={waterOz}
             goal={waterGoal}
             onAddWater={handleAddWater}
+            onRemoveWater={handleRemoveWater}
             loading={waterLoading}
           />
         </View>

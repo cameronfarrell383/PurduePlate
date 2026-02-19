@@ -194,7 +194,12 @@ ${menuJson}
    [MEAL_ITEM]{"id":<menu_item_id>,"name":"<item name>","hall":"<dining hall>","calories":<cal>,"protein_g":<p>,"carbs_g":<c>,"fat_g":<f>}[/MEAL_ITEM]
 6. You can suggest multiple items. Place each [MEAL_ITEM] block on its own line after describing it.
 7. If the user has already consumed most of their daily calories, suggest lighter options.
-8. If no menu items are available, let the user know that today's menu hasn't been loaded yet and to check back later.`;
+8. If no menu items are available, let the user know that today's menu hasn't been loaded yet and to check back later.
+9. IMPORTANT — MEAL ITEM CARDS: Only include [MEAL_ITEM] blocks when the user explicitly asks to LOG or ADD a meal to their tracker.
+   - Examples that SHOULD include [MEAL_ITEM] blocks: "log the grilled chicken", "add that to my log", "I just ate the turkey club"
+   - Examples that should NOT include [MEAL_ITEM] blocks: "what should I eat?", "give me a high protein meal", "what's good at D2?", "plan my meals today"
+   - For general recommendations, describe the food with nutrition info in your text response WITHOUT [MEAL_ITEM] blocks.
+   - Only use [MEAL_ITEM] blocks when the user wants to actually log something they ate.`;
 
     // ── 4. Call Claude API ──────────────────────────────────────────────
     const claudeApiKey = Deno.env.get("CLAUDE_API_KEY");

@@ -68,7 +68,7 @@ READ THIS FILE BEFORE STARTING ANY TASK.
   - `renderForYouItemRow()` (line ~449) renders 4 of the 5 collections (all except Top Rated Halls which is custom). None pass filter params.
   - **Action needed for 6.2:** Add "See All →" to each collection subtitle row. Each should navigate to browse with a `filter` param (favorites, macros, new, light). Top Rated Halls may not need a "See All" (only max 5 halls).
   - **Action needed for 6.3:** Browse tab needs to read `filter` param on mount and show a filtered flat item list instead of the hall → station drill-down.
-- [ ] 6.2 — Wire See All links on each collection
+- [x] 6.2 — Wire See All links on each collection — added optional `filter` param to renderForYouItemRow(), each collection header now shows "See All →" in maroon that navigates to browse with filter param (favorites, macros, new, light). Item card taps also pass the filter. Top Rated Halls has no filter (no matching filter in 6.3 spec).
 - [ ] 6.3 — Handle filter params in browse tab
 
 ## Phase 5: Testing

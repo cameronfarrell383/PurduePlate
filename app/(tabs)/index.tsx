@@ -446,17 +446,27 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderForYouItemRow = (title: string, emoji: string, items: { id: number; name: string; calories: number; hallName: string }[]) => {
+  const renderForYouItemRow = (title: string, emoji: string, items: { id: number; name: string; calories: number; hallName: string }[], filter?: string) => {
     if (items.length === 0) return null;
     return (
       <View style={{ marginBottom: 16 }}>
-        <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{title}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 0 }]}>{title}</Text>
+          {filter && (
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: '/(tabs)/browse', params: { filter } })}
+              activeOpacity={0.7}
+            >
+              <Text style={[{ fontSize: 13, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>See All →</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
           {items.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[st.forYouCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-              onPress={() => router.push('/(tabs)/browse')}
+              onPress={() => router.push({ pathname: '/(tabs)/browse', params: filter ? { filter } : {} })}
               activeOpacity={0.7}
             >
               <Text style={{ fontSize: 24 }}>{emoji}</Text>
@@ -666,11 +676,11 @@ export default function HomeScreen() {
               <>
                 {renderForYouItemRow('Your Favorites Today', '❤️', forYouFavs.map((f) => ({
                   id: f.id, name: f.name, calories: f.nutrition?.calories ?? 0, hallName: hallNames[f.dining_hall_id] ?? '',
-                })))}
+                })), 'favorites')}
 
                 {renderForYouItemRow('Fits Your Macros', '🎯', forYouMacros.map((i) => ({
                   id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })))}
+                })), 'macros')}
 
                 {forYouTopHalls.length > 0 && (
                   <View style={{ marginBottom: 16 }}>
@@ -699,11 +709,11 @@ export default function HomeScreen() {
 
                 {renderForYouItemRow('Try Something New', '✨', forYouNew.map((i) => ({
                   id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })))}
+                })), 'new')}
 
                 {renderForYouItemRow('Quick & Light', '🥗', forYouLight.map((i) => ({
                   id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })))}
+                })), 'light')}
               </>
             )}
           </Animated.View>

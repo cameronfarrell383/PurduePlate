@@ -19,6 +19,7 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getMealQueryValues, getCurrentMealPeriod } from '@/src/utils/meals';
+import { toggleFavorite, getFavorites } from '@/src/utils/favorites';
 import Skeleton from '@/src/components/Skeleton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -120,6 +121,9 @@ export default function BrowseScreen() {
   const [logging, setLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
 
+  // Favorites
+  const [favRecNums, setFavRecNums] = useState<Set<string>>(new Set());
+
   // ─── View transition animation ───
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -177,6 +181,16 @@ export default function BrowseScreen() {
     }
   }, [date, meal]);
 
+  const loadFavorites = useCallback(async () => {
+    try {
+      const userId = await requireUserId();
+      const favs = await getFavorites(userId);
+      setFavRecNums(new Set(favs.map((f) => f.rec_num)));
+    } catch {
+      // Non-critical — heart icons just won't show filled state
+    }
+  }, []);
+
   useFocusEffect(useCallback(() => {
     setView('halls');
     setHallSearch('');
@@ -184,7 +198,8 @@ export default function BrowseScreen() {
     slideAnim.setValue(0);
     fadeAnim.setValue(1);
     loadHalls();
-  }, [loadHalls]));
+    loadFavorites();
+  }, [loadHalls, loadFavorites]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -204,7 +219,7 @@ export default function BrowseScreen() {
     try {
       const { data } = await supabase
         .from('menu_items')
-        .select('id, name, station, dietary_flags, nutrition(*)')
+        .select('id, name, rec_num, station, dietary_flags, nutrition(*)')
         .eq('dining_hall_id', hall.id)
         .eq('date', date)
         .in('meal', getMealQueryValues(meal))
@@ -456,16 +471,42 @@ export default function BrowseScreen() {
     </Animated.View>
   );
 
+  const handleToggleFavorite = async (item: any) => {
+    if (!item.rec_num) return;
+    const recNum = item.rec_num as string;
+    // Optimistic update
+    setFavRecNums((prev) => {
+      const next = new Set(prev);
+      if (next.has(recNum)) next.delete(recNum);
+      else next.add(recNum);
+      return next;
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const userId = await requireUserId();
+      await toggleFavorite(userId, recNum, item.name);
+    } catch {
+      // Revert on failure
+      setFavRecNums((prev) => {
+        const next = new Set(prev);
+        if (next.has(recNum)) next.delete(recNum);
+        else next.add(recNum);
+        return next;
+      });
+    }
+  };
+
   const renderItemRow = (item: any, i: number, total: number) => {
     const n = getNutr(item);
     const badge = getDietaryBadge(item.dietary_flags);
+    const isFav = !!item.rec_num && favRecNums.has(item.rec_num);
     return (
       <TouchableOpacity key={item.id} onPress={() => openDetail(item)}>
         <View style={st.itemRow}>
           <View style={[st.itemDot, { backgroundColor: getDotColor(item.dietary_flags) }]} />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[{ fontSize: 15, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]} numberOfLines={1}>{item.name}</Text>
+              <Text style={[{ fontSize: 15, color: colors.text, fontFamily: 'DMSans_600SemiBold', flexShrink: 1 }]} numberOfLines={1}>{item.name}</Text>
               {badge && (
                 <View style={[st.badge, { backgroundColor: badge.color + '22' }]}>
                   <Text style={[{ fontSize: 10, color: badge.color, fontFamily: 'DMSans_700Bold' }]}>{badge.text}</Text>
@@ -476,7 +517,14 @@ export default function BrowseScreen() {
               P: {n.pro}g · C: {n.carb}g · F: {n.fat}g
             </Text>
           </View>
-          <View style={{ alignItems: 'flex-end' }}>
+          <TouchableOpacity
+            onPress={() => handleToggleFavorite(item)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={{ paddingHorizontal: 8 }}
+          >
+            <Text style={{ fontSize: 18 }}>{isFav ? '❤️' : '🤍'}</Text>
+          </TouchableOpacity>
+          <View style={{ alignItems: 'flex-end', minWidth: 40 }}>
             <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{n.cal}</Text>
             <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>cal</Text>
           </View>

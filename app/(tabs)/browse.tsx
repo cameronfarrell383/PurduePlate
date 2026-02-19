@@ -23,6 +23,7 @@ import { supabase } from '@/src/utils/supabase';
 import { getMealQueryValues, getCurrentMealPeriod } from '@/src/utils/meals';
 import { toggleFavorite, getFavorites } from '@/src/utils/favorites';
 import { getHallAverages, HallAverage, rateHall, getUserRating } from '@/src/utils/ratings';
+import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
 import Skeleton from '@/src/components/Skeleton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -136,6 +137,9 @@ export default function BrowseScreen() {
   const [reviewText, setReviewText] = useState('');
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingLoading, setRatingLoading] = useState(false);
+
+  // Hall open/closed statuses
+  const [hallStatuses, setHallStatuses] = useState<Record<number, HallStatus>>({});
 
   // ─── View transition animation ───
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -253,6 +257,15 @@ export default function BrowseScreen() {
     }
   };
 
+  const loadHallStatuses = useCallback(async () => {
+    try {
+      const statuses = await getAllHallStatuses(new Date());
+      setHallStatuses(statuses);
+    } catch {
+      // Non-critical — badges just won't show
+    }
+  }, []);
+
   useFocusEffect(useCallback(() => {
     setView('halls');
     setHallSearch('');
@@ -262,7 +275,8 @@ export default function BrowseScreen() {
     loadHalls();
     loadFavorites();
     loadRatings();
-  }, [loadHalls, loadFavorites, loadRatings]));
+    loadHallStatuses();
+  }, [loadHalls, loadFavorites, loadRatings, loadHallStatuses]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -451,10 +465,17 @@ export default function BrowseScreen() {
       .sort((a, b) => a.station.localeCompare(b.station));
   })();
 
-  // ─── Filtered halls for hall-level search ───
-  const filteredHalls = hallSearch
-    ? halls.filter((h) => h.name.toLowerCase().includes(hallSearch.toLowerCase()))
-    : halls;
+  // ─── Filtered halls for hall-level search, open halls sorted to top ───
+  const filteredHalls = (() => {
+    const list = hallSearch
+      ? halls.filter((h) => h.name.toLowerCase().includes(hallSearch.toLowerCase()))
+      : halls;
+    return [...list].sort((a, b) => {
+      const aOpen = hallStatuses[a.id]?.isOpen ? 1 : 0;
+      const bOpen = hallStatuses[b.id]?.isOpen ? 1 : 0;
+      return bOpen - aOpen;
+    });
+  })();
 
   // ─── Toast overlay ───
   const renderToast = () => {
@@ -719,6 +740,7 @@ export default function BrowseScreen() {
             ) : (
               filteredHalls.map((hall, i) => {
                 const rating = hallRatings[hall.id];
+                const status = hallStatuses[hall.id];
                 return (
                   <PressableCard
                     key={hall.id}
@@ -728,7 +750,22 @@ export default function BrowseScreen() {
                     <Text style={{ fontSize: 36, marginRight: 14 }}>{hallEmojis[i] || '🏛️'}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{hall.name}</Text>
-                      <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>{hall.count} items</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        {status?.isOpen ? (
+                          <View style={[st.statusBadge, { backgroundColor: colors.green + '22' }]}>
+                            <Text style={[{ fontSize: 11, color: colors.green, fontFamily: 'DMSans_700Bold' }]}>
+                              Open · {status.currentMeal}
+                            </Text>
+                          </View>
+                        ) : status ? (
+                          <View style={[st.statusBadge, { backgroundColor: colors.textMuted + '22' }]}>
+                            <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_700Bold' }]}>
+                              Closed{status.nextOpen ? ` · Opens ${status.nextOpen}` : ''}
+                            </Text>
+                          </View>
+                        ) : null}
+                        <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{hall.count} items</Text>
+                      </View>
                       {rating ? (
                         <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>
                           ⭐ {rating.avg.toFixed(1)} · {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
@@ -1043,6 +1080,7 @@ const st = StyleSheet.create({
   filterChip: { flex: 1, paddingVertical: 10, borderRadius: 24, alignItems: 'center' },
   filterChipText: { fontSize: 13 },
   hallCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, marginBottom: 12 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, position: 'absolute', top: 12, right: 12 },
   stationGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
   stationCard: { width: (SCREEN_WIDTH - 40 - 10) / 2, height: 100, padding: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

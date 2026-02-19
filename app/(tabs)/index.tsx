@@ -116,6 +116,7 @@ export default function HomeScreen() {
   const [waterGoal, setWaterGoal] = useState<number>(64);
   const [waterLoading, setWaterLoading] = useState<boolean>(true);
   const [openHalls, setOpenHalls] = useState<OpenHall[]>([]);
+  const [forYouLoading, setForYouLoading] = useState(true);
 
   // ─── Entry stagger animations ───
   // 0: greeting, 1: calorie ring, 2-4: macro cards, 5: collections, 6: meals
@@ -163,6 +164,7 @@ export default function HomeScreen() {
   };
 
   const loadForYou = async (userId: string, today: string): Promise<void> => {
+    setForYouLoading(true);
     const mealPeriod = getCurrentMealPeriod();
     try {
       const [favs, macros, topHalls, newItems, lightItems, hallsRes] = await Promise.all([
@@ -186,6 +188,8 @@ export default function HomeScreen() {
       setForYouLight(lightItems);
     } catch {
       // Non-critical — For You sections just won't show
+    } finally {
+      setForYouLoading(false);
     }
   };
 
@@ -381,7 +385,23 @@ export default function HomeScreen() {
     );
   };
 
-  const hasForYou = forYouFavs.length > 0 || forYouMacros.length > 0 || forYouTopHalls.length > 0 || forYouNew.length > 0 || forYouLight.length > 0;
+  const hasForYou = forYouLoading || forYouFavs.length > 0 || forYouMacros.length > 0 || forYouTopHalls.length > 0 || forYouNew.length > 0 || forYouLight.length > 0;
+
+  const renderForYouSkeletonRow = () => (
+    <View style={{ marginBottom: 16 }}>
+      <Skeleton width={130} height={15} borderRadius={7} style={{ marginBottom: 10 }} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={[st.forYouCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <Skeleton width={28} height={28} borderRadius={14} />
+            <Skeleton width={100} height={13} borderRadius={6} style={{ marginTop: 8 }} />
+            <Skeleton width={60} height={12} borderRadius={6} style={{ marginTop: 6 }} />
+            <Skeleton width={80} height={11} borderRadius={6} style={{ marginTop: 4 }} />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
   const renderForYouItemRow = (title: string, emoji: string, items: { id: number; name: string; calories: number; hallName: string }[]) => {
     if (items.length === 0) return null;
@@ -593,46 +613,56 @@ export default function HomeScreen() {
               <Text style={[st.sectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>For You</Text>
             </View>
 
-            {renderForYouItemRow('Your Favorites Today', '❤️', forYouFavs.map((f) => ({
-              id: f.id, name: f.name, calories: f.nutrition?.calories ?? 0, hallName: hallNames[f.dining_hall_id] ?? '',
-            })))}
+            {forYouLoading ? (
+              <>
+                {renderForYouSkeletonRow()}
+                {renderForYouSkeletonRow()}
+                {renderForYouSkeletonRow()}
+              </>
+            ) : (
+              <>
+                {renderForYouItemRow('Your Favorites Today', '❤️', forYouFavs.map((f) => ({
+                  id: f.id, name: f.name, calories: f.nutrition?.calories ?? 0, hallName: hallNames[f.dining_hall_id] ?? '',
+                })))}
 
-            {renderForYouItemRow('Fits Your Macros', '🎯', forYouMacros.map((i) => ({
-              id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-            })))}
+                {renderForYouItemRow('Fits Your Macros', '🎯', forYouMacros.map((i) => ({
+                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
+                })))}
 
-            {forYouTopHalls.length > 0 && (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Top Rated Halls</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-                  {forYouTopHalls.map((hall) => (
-                    <TouchableOpacity
-                      key={hall.id}
-                      style={[st.forYouCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-                      onPress={() => router.push('/(tabs)/browse')}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={{ fontSize: 24 }}>🏛️</Text>
-                      <Text style={[st.forYouName, { color: colors.text }]} numberOfLines={1}>{hall.name}</Text>
-                      <Text style={[st.forYouDetail, { color: colors.textMuted }]}>⭐ {hall.avg} ({hall.count})</Text>
-                      <View style={[st.forYouBadge, { backgroundColor: hall.status.isOpen ? colors.green + '22' : colors.border }]}>
-                        <Text style={{ fontSize: 10, color: hall.status.isOpen ? colors.green : colors.textMuted, fontFamily: 'DMSans_600SemiBold' }}>
-                          {hall.status.isOpen ? `Open · ${hall.status.currentMeal}` : 'Closed'}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+                {forYouTopHalls.length > 0 && (
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Top Rated Halls</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+                      {forYouTopHalls.map((hall) => (
+                        <TouchableOpacity
+                          key={hall.id}
+                          style={[st.forYouCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+                          onPress={() => router.push('/(tabs)/browse')}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={{ fontSize: 24 }}>🏛️</Text>
+                          <Text style={[st.forYouName, { color: colors.text }]} numberOfLines={1}>{hall.name}</Text>
+                          <Text style={[st.forYouDetail, { color: colors.textMuted }]}>⭐ {hall.avg} ({hall.count})</Text>
+                          <View style={[st.forYouBadge, { backgroundColor: hall.status.isOpen ? colors.green + '22' : colors.border }]}>
+                            <Text style={{ fontSize: 10, color: hall.status.isOpen ? colors.green : colors.textMuted, fontFamily: 'DMSans_600SemiBold' }}>
+                              {hall.status.isOpen ? `Open · ${hall.status.currentMeal}` : 'Closed'}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {renderForYouItemRow('Try Something New', '✨', forYouNew.map((i) => ({
+                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
+                })))}
+
+                {renderForYouItemRow('Quick & Light', '🥗', forYouLight.map((i) => ({
+                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
+                })))}
+              </>
             )}
-
-            {renderForYouItemRow('Try Something New', '✨', forYouNew.map((i) => ({
-              id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-            })))}
-
-            {renderForYouItemRow('Quick & Light', '🥗', forYouLight.map((i) => ({
-              id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-            })))}
           </Animated.View>
         )}
 

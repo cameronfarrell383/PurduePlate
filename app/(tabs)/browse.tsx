@@ -1,9 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Alert,
   Dimensions,
   Easing,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -20,7 +22,7 @@ import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getMealQueryValues, getCurrentMealPeriod } from '@/src/utils/meals';
 import { toggleFavorite, getFavorites } from '@/src/utils/favorites';
-import { getHallAverages, HallAverage } from '@/src/utils/ratings';
+import { getHallAverages, HallAverage, rateHall, getUserRating } from '@/src/utils/ratings';
 import Skeleton from '@/src/components/Skeleton';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -128,6 +130,13 @@ export default function BrowseScreen() {
   // Hall ratings
   const [hallRatings, setHallRatings] = useState<Record<number, HallAverage>>({});
 
+  // Rating modal
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [ratingStars, setRatingStars] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
+
   // ─── View transition animation ───
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -135,7 +144,7 @@ export default function BrowseScreen() {
   // ─── Toast animation ───
   const toastAnim = useRef(new Animated.Value(-60)).current;
   const toastOpacity = useRef(new Animated.Value(0)).current;
-  const [toastCal, setToastCal] = useState(0);
+  const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
 
   const animateTransition = (direction: 'forward' | 'back', callback: () => void) => {
@@ -204,6 +213,46 @@ export default function BrowseScreen() {
     }
   }, []);
 
+  const openRatingModal = async () => {
+    if (!selectedHall) return;
+    setRatingStars(0);
+    setReviewText('');
+    setRatingModalVisible(true);
+    setRatingLoading(true);
+    try {
+      const userId = await requireUserId();
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const existing = await getUserRating(userId, selectedHall.id, today);
+      if (existing) {
+        setRatingStars(existing.rating);
+        setReviewText(existing.review_text ?? '');
+      }
+    } catch {
+      // Pre-fill failed — user can still rate fresh
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
+  const submitRating = async () => {
+    if (!selectedHall || ratingStars === 0) return;
+    setRatingSubmitting(true);
+    try {
+      const userId = await requireUserId();
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      await rateHall(userId, selectedHall.id, ratingStars, reviewText.trim() || undefined, today);
+      setRatingModalVisible(false);
+      showToastMessage('Rating submitted!');
+      loadRatings();
+    } catch {
+      Alert.alert('Error', 'Failed to submit rating. Please try again.');
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
+
   useFocusEffect(useCallback(() => {
     setView('halls');
     setHallSearch('');
@@ -263,8 +312,8 @@ export default function BrowseScreen() {
     });
   };
 
-  const showLogToast = (calories: number) => {
-    setToastCal(calories);
+  const showToastMessage = (msg: string) => {
+    setToastMessage(msg);
     setShowToast(true);
     toastAnim.setValue(-60);
     toastOpacity.setValue(0);
@@ -300,7 +349,7 @@ export default function BrowseScreen() {
       if (error) { console.error('Log meal failed:', error.message); Alert.alert('Error', 'Failed to save. Please try again.'); return; }
       setLogSuccess(true);
       const n = getNutr(selectedItem);
-      showLogToast(Math.round(n.cal * servings));
+      showToastMessage(`Logged! +${Math.round(n.cal * servings)} cal`);
       setTimeout(() => {
         animateTransition('back', () => {
           setView('items');
@@ -416,10 +465,82 @@ export default function BrowseScreen() {
         transform: [{ translateY: toastAnim }],
         opacity: toastOpacity,
       }]}>
-        <Text style={st.toastText}>Logged! +{toastCal} cal</Text>
+        <Text style={st.toastText}>{toastMessage}</Text>
       </Animated.View>
     );
   };
+
+  // ─── Rating modal ───
+  const renderRatingModal = () => (
+    <Modal
+      visible={ratingModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setRatingModalVisible(false)}
+    >
+      <View style={st.modalOverlay}>
+        <View style={[st.modalContent, { backgroundColor: colors.card }]}>
+          <Text style={[{ fontSize: 20, color: colors.text, fontFamily: 'Outfit_700Bold', textAlign: 'center', marginBottom: 4 }]}>
+            Rate {selectedHall?.name}
+          </Text>
+          <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginBottom: 20 }]}>
+            Tap a star to rate
+          </Text>
+
+          {ratingLoading ? (
+            <ActivityIndicator color={colors.maroon} style={{ marginVertical: 20 }} />
+          ) : (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => {
+                      setRatingStars(star);
+                      Haptics.selectionAsync();
+                    }}
+                  >
+                    <Text style={{ fontSize: 36 }}>{star <= ratingStars ? '⭐' : '☆'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput
+                style={[st.reviewInput, { color: colors.text, backgroundColor: colors.inputBg, borderColor: colors.inputBorder, fontFamily: 'DMSans_400Regular' }]}
+                placeholder="Write a short review (optional)"
+                placeholderTextColor={colors.textDim}
+                value={reviewText}
+                onChangeText={(t) => setReviewText(t.slice(0, 200))}
+                maxLength={200}
+                multiline
+                numberOfLines={3}
+              />
+              <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'right', marginTop: 4, marginBottom: 16 }]}>
+                {reviewText.length}/200
+              </Text>
+
+              <TouchableOpacity
+                style={[st.logBtn, { backgroundColor: ratingStars > 0 ? colors.maroon : colors.border, opacity: ratingSubmitting ? 0.6 : 1 }]}
+                onPress={submitRating}
+                disabled={ratingStars === 0 || ratingSubmitting}
+              >
+                <Text style={[{ fontSize: 16, color: '#fff', fontFamily: 'DMSans_700Bold' }]}>
+                  {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ marginTop: 12, alignItems: 'center' }}
+                onPress={() => setRatingModalVisible(false)}
+              >
+                <Text style={[{ fontSize: 14, color: colors.textMuted, fontFamily: 'DMSans_600SemiBold' }]}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
 
   // ─── RENDER ────────────────────────────────────
 
@@ -638,9 +759,19 @@ export default function BrowseScreen() {
     return (
       <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
         {renderToast()}
+        {renderRatingModal()}
         {wrapAnimated(
           <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {renderHeader()}
+
+            {/* Rate this hall button */}
+            <TouchableOpacity
+              style={[st.rateBtn, { borderColor: colors.border }]}
+              onPress={openRatingModal}
+            >
+              <Text style={{ fontSize: 16 }}>⭐</Text>
+              <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Rate this hall</Text>
+            </TouchableOpacity>
 
             {/* Item-level search bar — always rendered at stable position */}
             <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
@@ -952,5 +1083,36 @@ const st = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontFamily: 'DMSans_700Bold',
+  },
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    borderRadius: 20,
+    padding: 24,
+  },
+  reviewInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    fontSize: 14,
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });

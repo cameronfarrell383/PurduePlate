@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -16,6 +17,9 @@ import { requireUserId, signOut } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { setWaterGoal } from '@/src/utils/water';
 import EditGoals from '@/src/components/EditGoals';
+import EditProfile from '@/src/components/EditProfile';
+import EditNutritionPrefs from '@/src/components/EditNutritionPrefs';
+import HelpFAQ from '@/src/components/HelpFAQ';
 import { Goals, getGoals, saveCustomGoals, recalculateGoals } from '@/src/utils/goals';
 
 export default function MoreScreen() {
@@ -24,7 +28,13 @@ export default function MoreScreen() {
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [waterGoalOz, setWaterGoalOz] = useState<number>(64);
+
+  // Modal visibility
   const [goalsModalVisible, setGoalsModalVisible] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [nutritionPrefsModalVisible, setNutritionPrefsModalVisible] = useState(false);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+
   const [currentGoals, setCurrentGoals] = useState<Goals>({
     goalCalories: 2000,
     goalProtein: 150,
@@ -109,7 +119,6 @@ export default function MoreScreen() {
       const userId = await requireUserId();
       await saveCustomGoals(userId, goals);
       setCurrentGoals(goals);
-      // Keep the header "cal goal" text in sync without a full refetch
       setProfile((p: any) => (p ? { ...p, goal_calories: goals.goalCalories } : p));
       setGoalsModalVisible(false);
     } catch (error) {
@@ -130,6 +139,38 @@ export default function MoreScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
     ]);
+  };
+
+  const handleReminders = () => {
+    Alert.alert(
+      'Meal Reminders',
+      'Push notifications are coming soon! Check back in a future update.',
+      [{ text: 'Got it' }],
+    );
+  };
+
+  const handleWeeklyReport = () => {
+    Alert.alert(
+      'Weekly Report',
+      'Weekly nutrition summaries are coming soon! This feature is in development.',
+      [{ text: 'Got it' }],
+    );
+  };
+
+  const handleDiningHalls = () => {
+    Alert.alert(
+      'Dining Halls',
+      'Browse all VT dining halls in the Log tab. Tap any hall to see today\'s full menu.',
+      [{ text: 'Got it' }],
+    );
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: 'Check out CampusPlate — track your dining nutrition at Virginia Tech! 🍽️',
+      });
+    } catch { /* ignore */ }
   };
 
   const MenuItem = ({ emoji, label, badge, badgeColor, onPress, rightContent, textColor }: {
@@ -163,7 +204,7 @@ export default function MoreScreen() {
     <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <View style={st.profileHeader}>
+        <TouchableOpacity style={st.profileHeader} onPress={() => setProfileModalVisible(true)} activeOpacity={0.8}>
           <View style={[st.avatar, { backgroundColor: colors.maroon }]}>
             <Text style={[{ fontSize: 28, color: '#fff', fontFamily: 'Outfit_700Bold' }]}>
               {(profile?.name || 'U')[0].toUpperCase()}
@@ -178,11 +219,14 @@ export default function MoreScreen() {
           <Text style={[{ fontSize: 12, color: colors.textDim, fontFamily: 'DMSans_400Regular', marginTop: 4 }]}>
             {streak} day streak 🔥 · {profile?.goal_calories?.toLocaleString() || '2,000'} cal goal
           </Text>
-        </View>
+          <Text style={[{ fontSize: 12, color: colors.maroon, fontFamily: 'DMSans_500Medium', marginTop: 6 }]}>
+            Edit Profile
+          </Text>
+        </TouchableOpacity>
 
         {/* Menu Items */}
         <View style={[st.menuCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
-          <MenuItem emoji="👤" label="My Profile" />
+          <MenuItem emoji="👤" label="My Profile" onPress={() => setProfileModalVisible(true)} />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             emoji="🎯"
@@ -197,11 +241,12 @@ export default function MoreScreen() {
             }
           />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
-          <MenuItem emoji="🍎" label="Nutrition Preferences" />
+          <MenuItem emoji="🍎" label="Nutrition Preferences" onPress={() => setNutritionPrefsModalVisible(true)} />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             emoji="💧"
             label="Water Goal"
+            onPress={handleWaterGoal}
             rightContent={
               <TouchableOpacity
                 onPress={handleWaterGoal}
@@ -231,7 +276,7 @@ export default function MoreScreen() {
         </View>
 
         <View style={[st.menuCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, marginTop: 12 }]}>
-          <MenuItem emoji="🔔" label="Reminders" />
+          <MenuItem emoji="🔔" label="Reminders" onPress={handleReminders} />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             emoji="🌙"
@@ -245,14 +290,16 @@ export default function MoreScreen() {
             }
           />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
-          <MenuItem emoji="📊" label="Weekly Report" badge="NEW" badgeColor={colors.blue} />
+          <MenuItem emoji="📊" label="Weekly Report" badge="NEW" badgeColor={colors.blue} onPress={handleWeeklyReport} />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
-          <MenuItem emoji="🏛️" label="Dining Halls" />
+          <MenuItem emoji="🏛️" label="Dining Halls" onPress={handleDiningHalls} />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
-          <MenuItem emoji="❓" label="Help & FAQ" />
+          <MenuItem emoji="❓" label="Help & FAQ" onPress={() => setHelpModalVisible(true)} />
         </View>
 
         <View style={[st.menuCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, marginTop: 12 }]}>
+          <MenuItem emoji="📤" label="Share CampusPlate" onPress={handleShare} />
+          <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem emoji="🚪" label="Sign Out" textColor={colors.red} onPress={handleSignOut} />
         </View>
 
@@ -267,6 +314,23 @@ export default function MoreScreen() {
         onSave={handleSaveGoals}
         onRecalculate={handleRecalculateGoals}
         onClose={() => setGoalsModalVisible(false)}
+      />
+
+      <EditProfile
+        visible={profileModalVisible}
+        onClose={() => setProfileModalVisible(false)}
+        onSaved={loadData}
+      />
+
+      <EditNutritionPrefs
+        visible={nutritionPrefsModalVisible}
+        onClose={() => setNutritionPrefsModalVisible(false)}
+        onSaved={loadData}
+      />
+
+      <HelpFAQ
+        visible={helpModalVisible}
+        onClose={() => setHelpModalVisible(false)}
       />
     </SafeAreaView>
   );

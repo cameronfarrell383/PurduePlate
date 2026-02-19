@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -98,15 +98,19 @@ export default function BrowseScreen() {
   const [view, setView] = useState<ViewState>('halls');
   const [dayOffset, setDayOffset] = useState(0);
   const [meal, setMeal] = useState(autoMeal);
-  const [search, setSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  // Hall-level search — filters dining hall names only
+  const [hallSearch, setHallSearch] = useState('');
+
+  // Item-level search — filters items within the selected hall
+  const [itemSearch, setItemSearch] = useState('');
 
   // Data
   const [halls, setHalls] = useState<any[]>([]);
   const [selectedHall, setSelectedHall] = useState<any>(null);
-  const [stations, setStations] = useState<{ name: string; count: number }[]>([]);
+  const [allHallItems, setAllHallItems] = useState<any[]>([]);
+  const [hallItemsLoading, setHallItemsLoading] = useState(false);
   const [selectedStation, setSelectedStation] = useState('');
-  const [items, setItems] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [servings, setServings] = useState(1);
 
@@ -114,12 +118,10 @@ export default function BrowseScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [logging, setLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
-  const [cameFromSearch, setCameFromSearch] = useState(false);
 
   // ─── View transition animation ───
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const directionRef = useRef<'forward' | 'back'>('forward');
 
   // ─── Toast animation ───
   const toastAnim = useRef(new Animated.Value(-60)).current;
@@ -128,19 +130,15 @@ export default function BrowseScreen() {
   const [showToast, setShowToast] = useState(false);
 
   const animateTransition = (direction: 'forward' | 'back', callback: () => void) => {
-    directionRef.current = direction;
     const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.3 : SCREEN_WIDTH * 0.3;
     const enterX = direction === 'forward' ? SCREEN_WIDTH * 0.3 : -SCREEN_WIDTH * 0.3;
 
-    // Fade out + slide out
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: exitX, duration: 100, useNativeDriver: true }),
     ]).start(() => {
       callback();
-      // Reset position to enter side
       slideAnim.setValue(enterX);
-      // Fade in + slide in
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
         Animated.timing(slideAnim, { toValue: 0, duration: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
@@ -180,7 +178,8 @@ export default function BrowseScreen() {
 
   useFocusEffect(useCallback(() => {
     setView('halls');
-    setSearch('');
+    setHallSearch('');
+    setItemSearch('');
     slideAnim.setValue(0);
     fadeAnim.setValue(1);
     loadHalls();
@@ -192,66 +191,37 @@ export default function BrowseScreen() {
     setRefreshing(false);
   };
 
-  // Search
-  useEffect(() => {
-    if (search.length < 2) { setSearchResults([]); return; }
-    const timer = setTimeout(async () => {
-      try {
-        const { data } = await supabase
-          .from('menu_items')
-          .select('id, name, station, dining_hall_id, dining_halls(name), nutrition(*), dietary_flags')
-          .eq('date', date)
-          .in('meal', getMealQueryValues(meal))
-          .ilike('name', `%${search}%`)
-          .limit(30);
-        setSearchResults(data || []);
-      } catch { setSearchResults([]); }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, date, meal]);
-
+  // ─── Open hall: loads ALL items for the hall at once ───
   const openHall = async (hall: any) => {
     animateTransition('forward', () => {
       setSelectedHall(hall);
+      setItemSearch('');
+      setAllHallItems([]);
       setView('stations');
     });
-    try {
-      const { data } = await supabase
-        .from('menu_items')
-        .select('station')
-        .eq('dining_hall_id', hall.id)
-        .eq('date', date)
-        .in('meal', getMealQueryValues(meal));
-
-      const stationMap: Record<string, number> = {};
-      (data || []).forEach((i: any) => {
-        const s = i.station || 'Other';
-        stationMap[s] = (stationMap[s] || 0) + 1;
-      });
-      setStations(Object.entries(stationMap).map(([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name)));
-    } catch (e) {
-      console.error('Load stations error:', e);
-    }
-  };
-
-  const openStation = async (stationName: string) => {
-    animateTransition('forward', () => {
-      setSelectedStation(stationName);
-      setView('items');
-    });
+    setHallItemsLoading(true);
     try {
       const { data } = await supabase
         .from('menu_items')
         .select('id, name, station, dietary_flags, nutrition(*)')
-        .eq('dining_hall_id', selectedHall?.id)
+        .eq('dining_hall_id', hall.id)
         .eq('date', date)
         .in('meal', getMealQueryValues(meal))
-        .eq('station', stationName)
         .order('name');
-      setItems(data || []);
+      setAllHallItems(data || []);
     } catch (e) {
-      console.error('Load items error:', e);
+      console.error('Load hall items error:', e);
+    } finally {
+      setHallItemsLoading(false);
     }
+  };
+
+  // ─── Open station: items already loaded in allHallItems ───
+  const openStation = (stationName: string) => {
+    animateTransition('forward', () => {
+      setSelectedStation(stationName);
+      setView('items');
+    });
   };
 
   const openDetail = (item: any) => {
@@ -271,13 +241,11 @@ export default function BrowseScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Slide in
     Animated.parallel([
       Animated.spring(toastAnim, { toValue: 0, useNativeDriver: true, speed: 14, bounciness: 6 }),
       Animated.timing(toastOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
 
-    // Auto dismiss after 2 seconds
     setTimeout(() => {
       Animated.parallel([
         Animated.timing(toastAnim, { toValue: -60, duration: 300, useNativeDriver: true }),
@@ -300,20 +268,11 @@ export default function BrowseScreen() {
         servings,
       });
       setLogSuccess(true);
-
       const n = getNutr(selectedItem);
-      const adjCal = Math.round(n.cal * servings);
-
-      showLogToast(adjCal);
-
+      showLogToast(Math.round(n.cal * servings));
       setTimeout(() => {
         animateTransition('back', () => {
-          if (cameFromSearch) {
-            setView('halls');
-            setCameFromSearch(false);
-          } else {
-            setView('items');
-          }
+          setView('items');
           setLogSuccess(false);
         });
       }, 800);
@@ -327,14 +286,13 @@ export default function BrowseScreen() {
   const goBack = () => {
     animateTransition('back', () => {
       if (view === 'detail') {
-        if (cameFromSearch) {
-          setView('halls');
-          setCameFromSearch(false);
-        } else {
-          setView('items');
-        }
-      } else if (view === 'items') setView('stations');
-      else if (view === 'stations') setView('halls');
+        setView('items');
+      } else if (view === 'items') {
+        setView('stations');
+      } else if (view === 'stations') {
+        setItemSearch('');
+        setView('halls');
+      }
     });
   };
 
@@ -375,6 +333,48 @@ export default function BrowseScreen() {
   };
 
   const hallEmojis = ['🏛️', '🍔', '🍗', '🌮', '🎓', '🏢'];
+
+  // ─── Derived: stations from allHallItems ───
+  const derivedStations: { name: string; count: number }[] = (() => {
+    const map: Record<string, number> = {};
+    allHallItems.forEach((item) => {
+      const s = item.station || 'Other';
+      map[s] = (map[s] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  })();
+
+  // ─── Derived: items for selected station, filtered by itemSearch ───
+  const stationItems = allHallItems.filter((item) => item.station === selectedStation);
+
+  const filteredStationItems = itemSearch
+    ? stationItems.filter((item) => item.name.toLowerCase().includes(itemSearch.toLowerCase()))
+    : stationItems;
+
+  // ─── Derived: when searching across all stations ───
+  const filteredAllItems = itemSearch
+    ? allHallItems.filter((item) => item.name.toLowerCase().includes(itemSearch.toLowerCase()))
+    : [];
+
+  // Group filtered items by station for display
+  const filteredByStation: { station: string; items: any[] }[] = (() => {
+    const map: Record<string, any[]> = {};
+    filteredAllItems.forEach((item) => {
+      const s = item.station || 'Other';
+      if (!map[s]) map[s] = [];
+      map[s].push(item);
+    });
+    return Object.entries(map)
+      .map(([station, items]) => ({ station, items }))
+      .sort((a, b) => a.station.localeCompare(b.station));
+  })();
+
+  // ─── Filtered halls for hall-level search ───
+  const filteredHalls = hallSearch
+    ? halls.filter((h) => h.name.toLowerCase().includes(hallSearch.toLowerCase()))
+    : halls;
 
   // ─── Toast overlay ───
   const renderToast = () => {
@@ -431,21 +431,6 @@ export default function BrowseScreen() {
     </View>
   );
 
-  const renderSearchBar = () => {
-    const placeholder = view === 'halls'
-      ? '🔍 Search any item across all halls...'
-      : `🔍 Search in ${selectedHall?.name || ''}...`;
-    return (
-      <TextInput
-        style={[st.searchInput, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textDim}
-        value={search}
-        onChangeText={setSearch}
-      />
-    );
-  };
-
   const renderMealFilter = () => (
     <View style={[st.filterRow, { marginBottom: 16 }]}>
       {['Breakfast', 'Lunch', 'Dinner'].map((m) => (
@@ -463,59 +448,43 @@ export default function BrowseScreen() {
     </View>
   );
 
-  // Wrap content in animated view for transitions
   const wrapAnimated = (content: React.ReactNode) => (
     <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateX: slideAnim }] }}>
       {content}
     </Animated.View>
   );
 
-  // Search results
-  if (search.length >= 2 && view === 'halls') {
+  const renderItemRow = (item: any, i: number, total: number) => {
+    const n = getNutr(item);
+    const badge = getDietaryBadge(item.dietary_flags);
     return (
-      <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
-        {renderToast()}
-        <View style={st.pad}>
-          {renderHeader()}
-          {renderSearchBar()}
-        </View>
-        <ScrollView contentContainerStyle={st.pad}>
-          {searchResults.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingTop: 40 }}>
-              <Text style={{ fontSize: 32 }}>🔍</Text>
-              <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>No results for "{search}"</Text>
+      <TouchableOpacity key={item.id} onPress={() => openDetail(item)}>
+        <View style={st.itemRow}>
+          <View style={[st.itemDot, { backgroundColor: getDotColor(item.dietary_flags) }]} />
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[{ fontSize: 15, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]} numberOfLines={1}>{item.name}</Text>
+              {badge && (
+                <View style={[st.badge, { backgroundColor: badge.color + '22' }]}>
+                  <Text style={[{ fontSize: 10, color: badge.color, fontFamily: 'DMSans_700Bold' }]}>{badge.text}</Text>
+                </View>
+              )}
             </View>
-          ) : (
-            searchResults.map((item) => {
-              const n = getNutr(item);
-              const hallName = item.dining_halls?.name || '';
-              return (
-                <TouchableOpacity key={item.id} style={[st.foodRow, { borderBottomColor: colors.border }]} onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedItem(item);
-                  setSelectedHall({ name: hallName });
-                  setServings(1);
-                  setLogSuccess(false);
-                  setCameFromSearch(true);
-                  setView('detail');
-                  setSearch('');
-                }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[{ fontSize: 15, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{item.name}</Text>
-                    <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{hallName} · {item.station}</Text>
-                  </View>
-                  <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{n.cal}</Text>
-                  <Text style={[{ fontSize: 11, color: colors.textMuted, marginLeft: 2, fontFamily: 'DMSans_400Regular' }]}>cal</Text>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </ScrollView>
-      </SafeAreaView>
+            <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>
+              P: {n.pro}g · C: {n.carb}g · F: {n.fat}g
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{n.cal}</Text>
+            <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>cal</Text>
+          </View>
+        </View>
+        {i < total - 1 && <View style={[st.divider, { backgroundColor: colors.border }]} />}
+      </TouchableOpacity>
     );
-  }
+  };
 
-  // Halls view
+  // ── Halls view ──
   if (view === 'halls') {
     return (
       <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
@@ -525,9 +494,27 @@ export default function BrowseScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.maroon} />}
             contentContainerStyle={st.pad}
+            keyboardShouldPersistTaps="handled"
           >
             {renderHeader()}
-            {renderSearchBar()}
+
+            {/* Hall-level search bar — filters hall names only */}
+            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+              <TextInput
+                style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+                placeholder="Search dining halls..."
+                placeholderTextColor={colors.textDim}
+                value={hallSearch}
+                onChangeText={setHallSearch}
+                returnKeyType="search"
+              />
+              {hallSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setHallSearch('')} style={st.clearBtn}>
+                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
             {renderMealFilter()}
 
             {loading ? (
@@ -537,13 +524,15 @@ export default function BrowseScreen() {
                 <Skeleton width={'100%'} height={80} borderRadius={20} />
                 <Skeleton width={'100%'} height={80} borderRadius={20} />
               </View>
-            ) : halls.length === 0 ? (
+            ) : filteredHalls.length === 0 ? (
               <View style={{ alignItems: 'center', paddingTop: 40 }}>
                 <Text style={{ fontSize: 32 }}>🏛️</Text>
-                <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>No halls found</Text>
+                <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>
+                  {hallSearch ? `No dining halls match "${hallSearch}"` : 'No halls found'}
+                </Text>
               </View>
             ) : (
-              halls.map((hall, i) => (
+              filteredHalls.map((hall, i) => (
                 <PressableCard
                   key={hall.id}
                   onPress={() => openHall(hall)}
@@ -568,40 +557,87 @@ export default function BrowseScreen() {
     );
   }
 
-  // Stations view
+  // ── Stations view ──
   if (view === 'stations') {
     return (
       <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
         {renderToast()}
         {wrapAnimated(
-          <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {renderHeader()}
-            <TextInput
-              style={[st.searchInput, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-              placeholder={`🔍 Search in ${selectedHall?.name}...`}
-              placeholderTextColor={colors.textDim}
-              value={search}
-              onChangeText={setSearch}
-            />
-            {stations.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingTop: 40 }}>
-                <Text style={{ fontSize: 32 }}>🍽️</Text>
-                <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>No stations for this meal</Text>
-              </View>
+
+            {/* Item-level search bar — always rendered at stable position */}
+            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+              <TextInput
+                style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+                placeholder="Search items..."
+                placeholderTextColor={colors.textDim}
+                value={itemSearch}
+                onChangeText={setItemSearch}
+                returnKeyType="search"
+              />
+              {itemSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setItemSearch('')} style={st.clearBtn}>
+                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Search active: show filtered items grouped by station */}
+            {itemSearch.length > 0 ? (
+              hallItemsLoading ? (
+                <View style={{ gap: 12 }}>
+                  <Skeleton width={'100%'} height={60} borderRadius={14} />
+                  <Skeleton width={'100%'} height={60} borderRadius={14} />
+                </View>
+              ) : filteredByStation.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingTop: 40 }}>
+                  <Text style={{ fontSize: 32 }}>🔍</Text>
+                  <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>
+                    No items found for "{itemSearch}"
+                  </Text>
+                </View>
+              ) : (
+                filteredByStation.map(({ station, items }) => (
+                  <View key={station}>
+                    <Text style={[st.stationGroupHeader, { color: colors.textMuted, fontFamily: 'DMSans_600SemiBold' }]}>
+                      {getStationEmoji(station)} {station}
+                    </Text>
+                    <View style={[st.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      {items.map((item, i) => renderItemRow(item, i, items.length))}
+                    </View>
+                  </View>
+                ))
+              )
             ) : (
-              <View style={st.stationGrid}>
-                {stations.map((s) => (
-                  <PressableCard
-                    key={s.name}
-                    onPress={() => openStation(s.name)}
-                    style={[st.stationCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-                  >
-                    <Text style={{ fontSize: 26 }}>{getStationEmoji(s.name)}</Text>
-                    <Text style={[{ fontSize: 12, color: colors.text, fontFamily: 'DMSans_600SemiBold', textAlign: 'center' }]} numberOfLines={2}>{s.name}</Text>
-                    <Text style={[st.stationItemCount, { color: colors.textMuted }]}>{s.count} items</Text>
-                  </PressableCard>
-                ))}
-              </View>
+              /* Normal: show station cards */
+              hallItemsLoading ? (
+                <View style={st.stationGrid}>
+                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={14} />
+                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={14} />
+                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={14} />
+                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={14} />
+                </View>
+              ) : derivedStations.length === 0 ? (
+                <View style={{ alignItems: 'center', paddingTop: 40 }}>
+                  <Text style={{ fontSize: 32 }}>🍽️</Text>
+                  <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>No stations for this meal</Text>
+                </View>
+              ) : (
+                <View style={st.stationGrid}>
+                  {derivedStations.map((s) => (
+                    <PressableCard
+                      key={s.name}
+                      onPress={() => openStation(s.name)}
+                      style={[st.stationCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+                    >
+                      <Text style={{ fontSize: 26 }}>{getStationEmoji(s.name)}</Text>
+                      <Text style={[{ fontSize: 12, color: colors.text, fontFamily: 'DMSans_600SemiBold', textAlign: 'center' }]} numberOfLines={2}>{s.name}</Text>
+                      <Text style={[st.stationItemCount, { color: colors.textMuted }]}>{s.count} items</Text>
+                    </PressableCard>
+                  ))}
+                </View>
+              )
             )}
           </ScrollView>
         )}
@@ -609,49 +645,41 @@ export default function BrowseScreen() {
     );
   }
 
-  // Items view
+  // ── Items view ──
   if (view === 'items') {
     return (
       <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
         {renderToast()}
         {wrapAnimated(
-          <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={st.pad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {renderHeader()}
-            {items.length === 0 ? (
+
+            {/* Item search bar — always rendered at stable position */}
+            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+              <TextInput
+                style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+                placeholder="Search items..."
+                placeholderTextColor={colors.textDim}
+                value={itemSearch}
+                onChangeText={setItemSearch}
+                returnKeyType="search"
+              />
+              {itemSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setItemSearch('')} style={st.clearBtn}>
+                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {filteredStationItems.length === 0 ? (
               <View style={{ alignItems: 'center', paddingTop: 40 }}>
                 <Text style={{ fontSize: 32 }}>🍽️</Text>
-                <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>No items found</Text>
+                <Text style={[{ fontSize: 14, color: colors.textMuted, marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>
+                  {itemSearch ? `No items found for "${itemSearch}"` : 'No items found'}
+                </Text>
               </View>
             ) : (
-              items.map((item, i) => {
-                const n = getNutr(item);
-                const badge = getDietaryBadge(item.dietary_flags);
-                return (
-                  <TouchableOpacity key={item.id} onPress={() => openDetail(item)}>
-                    <View style={st.itemRow}>
-                      <View style={[st.itemDot, { backgroundColor: getDotColor(item.dietary_flags) }]} />
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <Text style={[{ fontSize: 15, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]} numberOfLines={1}>{item.name}</Text>
-                          {badge && (
-                            <View style={[st.badge, { backgroundColor: badge.color + '22' }]}>
-                              <Text style={[{ fontSize: 10, color: badge.color, fontFamily: 'DMSans_700Bold' }]}>{badge.text}</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>
-                          P: {n.pro}g · C: {n.carb}g · F: {n.fat}g
-                        </Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{n.cal}</Text>
-                        <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>cal</Text>
-                      </View>
-                    </View>
-                    {i < items.length - 1 && <View style={[st.divider, { backgroundColor: colors.border }]} />}
-                  </TouchableOpacity>
-                );
-              })
+              filteredStationItems.map((item, i) => renderItemRow(item, i, filteredStationItems.length))
             )}
           </ScrollView>
         )}
@@ -659,7 +687,7 @@ export default function BrowseScreen() {
     );
   }
 
-  // Detail view
+  // ── Detail view ──
   if (view === 'detail' && selectedItem) {
     const n = getNutr(selectedItem);
     const badge = getDietaryBadge(selectedItem.dietary_flags);
@@ -690,7 +718,6 @@ export default function BrowseScreen() {
             <ScrollView contentContainerStyle={[st.pad, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
               {renderHeader()}
 
-              {/* Top card */}
               <View style={[st.detailCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
                 <Text style={[{ fontSize: 12, color: colors.textMuted, textAlign: 'center', fontFamily: 'DMSans_400Regular' }]}>
                   {selectedItem.station} · {selectedHall?.name}
@@ -715,7 +742,6 @@ export default function BrowseScreen() {
                 </View>
               </View>
 
-              {/* Servings */}
               <View style={{ marginTop: 20 }}>
                 <Text style={[{ fontSize: 14, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 10 }]}>Servings</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -734,7 +760,6 @@ export default function BrowseScreen() {
                 </View>
               </View>
 
-              {/* Nutrition grid */}
               <View style={st.nutritionGrid}>
                 {nutritionGrid.map((item) => (
                   <View key={item.label} style={[st.nutritionCell, { backgroundColor: colors.cardAlt }]}>
@@ -744,7 +769,6 @@ export default function BrowseScreen() {
                 ))}
               </View>
 
-              {/* Dietary badges */}
               {selectedItem.dietary_flags && selectedItem.dietary_flags.length > 0 && (
                 <View style={[st.flagRow, { marginTop: 16 }]}>
                   {selectedItem.dietary_flags.map((flag: string) => (
@@ -755,7 +779,6 @@ export default function BrowseScreen() {
                 </View>
               )}
 
-              {/* Ingredients */}
               {selectedItem.ingredients && (
                 <View style={[st.ingredientCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
                   <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8 }]}>Ingredients</Text>
@@ -764,7 +787,6 @@ export default function BrowseScreen() {
               )}
             </ScrollView>
 
-            {/* Fixed footer */}
             <View style={[st.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
               <Text style={[{ fontSize: 13, color: colors.textMuted, textAlign: 'center', marginBottom: 10, fontFamily: 'DMSans_400Regular' }]}>
                 {adjCal} cal · {servings} serving{servings !== 1 ? 's' : ''}
@@ -800,7 +822,16 @@ const st = StyleSheet.create({
   title: { fontSize: 26 },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 24 },
   chipText: { fontSize: 12 },
-  searchInput: { borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, marginBottom: 16 },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 13 },
+  clearBtn: { paddingLeft: 8, paddingVertical: 8 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterChip: { flex: 1, paddingVertical: 10, borderRadius: 24, alignItems: 'center' },
   filterChipText: { fontSize: 13 },
@@ -809,6 +840,8 @@ const st = StyleSheet.create({
   stationGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
   stationCard: { width: (SCREEN_WIDTH - 40 - 10) / 2, height: 100, padding: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   stationItemCount: { fontSize: 11, fontFamily: 'DMSans_400Regular', position: 'absolute', bottom: 8 },
+  stationGroupHeader: { fontSize: 13, marginBottom: 8, marginTop: 16 },
+  groupCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', marginBottom: 8 },
   itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14 },
   itemDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
   badge: { marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
@@ -823,7 +856,6 @@ const st = StyleSheet.create({
   ingredientCard: { borderRadius: 14, padding: 16, marginTop: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, borderTopWidth: 1 },
   logBtn: { padding: 16, borderRadius: 14, alignItems: 'center' },
-  foodRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1 },
   toast: {
     position: 'absolute',
     top: 60,

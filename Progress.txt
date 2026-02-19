@@ -31,7 +31,7 @@ READ THIS FILE BEFORE STARTING ANY TASK.
 ## Phase 2: Utility Functions (Bandhip)
 
 - [x] 1.2 — Create src/utils/favorites.ts — toggleFavorite, getFavorites, isFavorited, getFavoritesOnTodaysMenu all implemented with error handling, user_id filtering, and local date format
-- [ ] 2.2 — Create src/utils/ratings.ts
+- [x] 2.2 — Create src/utils/ratings.ts — rateHall (upsert), getHallAverages (RPC → map), getHallReviews (RPC), getUserRating with error handling and user_id filtering
 - [ ] 3.3 — Create src/utils/hours.ts
 - [ ] 4.3 — Create src/utils/mealPlans.ts
 - [ ] 5.4 — Add/verify getCurrentMealPeriod() in src/utils/meals.ts

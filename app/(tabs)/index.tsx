@@ -33,6 +33,8 @@ import { FavoriteMenuItem } from '@/src/utils/favorites';
 import { getPlannedMeals, PlannedMeal } from '@/src/utils/mealPlans';
 import WaterTracker from '@/src/components/WaterTracker';
 import Skeleton from '@/src/components/Skeleton';
+import AIChat from '@/src/components/AIChat';
+import type { MealItem } from '@/src/utils/ai';
 import { useStaggerAnimation } from '@/src/hooks/useStaggerAnimation';
 
 function getLocalDate(d = new Date()) {
@@ -131,6 +133,8 @@ export default function HomeScreen() {
   const [waterLoading, setWaterLoading] = useState<boolean>(true);
   const [openHalls, setOpenHalls] = useState<OpenHall[]>([]);
   const [forYouLoading, setForYouLoading] = useState(true);
+
+  const [showAIChat, setShowAIChat] = useState(false);
 
   // Meal plans
   const [planDayOffset, setPlanDayOffset] = useState(1);
@@ -277,6 +281,31 @@ export default function HomeScreen() {
       loadData();
     }, [loadData])
   );
+
+  // ─── "Log this" from AI meal suggestions ───
+  const handleLogAIItem = useCallback(async (item: MealItem) => {
+    try {
+      const userId = await requireUserId();
+      const date = await getEffectiveMenuDate();
+      const { error } = await supabase.from('meal_logs').insert({
+        user_id: userId,
+        menu_item_id: item.id,
+        date,
+        meal: item.meal,
+        servings: 1,
+      });
+      if (error) {
+        console.error('AI log meal failed:', error.message);
+        Alert.alert('Error', 'Failed to log meal. Please try again.');
+        return;
+      }
+      Alert.alert('Logged!', `${item.name} (${item.calories} cal) added to your log.`);
+      loadData();
+    } catch (e: any) {
+      console.error('AI log error:', e?.message);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    }
+  }, [loadData]);
 
   // ─── Animate ring + macros when data changes ───
   useEffect(() => {
@@ -867,6 +896,18 @@ export default function HomeScreen() {
           {renderMealGroup('Dinner', 'DINNER')}
         </Animated.View>
       </ScrollView>
+
+      {/* AI Floating Action Button */}
+      <TouchableOpacity
+        style={[st.aiFab, { backgroundColor: colors.maroon }]}
+        onPress={() => setShowAIChat(true)}
+        activeOpacity={0.85}
+      >
+        <Text style={st.aiFabEmoji}>✨</Text>
+      </TouchableOpacity>
+
+      {/* AI Chat Modal */}
+      <AIChat visible={showAIChat} onClose={() => setShowAIChat(false)} onLogItem={handleLogAIItem} />
     </SafeAreaView>
   );
 }
@@ -911,4 +952,20 @@ const st = StyleSheet.create({
   planBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
   planBarFill: { height: 6, borderRadius: 3 },
   planBrowseBtn: { marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 14 },
+  aiFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#8B1E3F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  aiFabEmoji: { fontSize: 24 },
 });

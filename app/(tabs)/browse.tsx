@@ -114,10 +114,10 @@ function PressableCard({ children, onPress, style, haptic = 'light' }: {
 
 export default function BrowseScreen() {
   const { colors } = useTheme();
-  const params = useLocalSearchParams<{ filter?: string }>();
+  const params = useLocalSearchParams<{ filter?: string; meal?: string }>();
   const [view, setView] = useState<ViewState>('halls');
   const [dayOffset, setDayOffset] = useState(0);
-  const [meal, setMeal] = useState(autoMeal);
+  const [meal, setMeal] = useState(params.meal && ['Breakfast', 'Lunch', 'Dinner'].includes(params.meal) ? params.meal : autoMeal);
 
   // Hall-level search — filters dining hall names only
   const [hallSearch, setHallSearch] = useState('');
@@ -319,6 +319,9 @@ export default function BrowseScreen() {
     setItemSearch('');
     slideAnim.setValue(0);
     fadeAnim.setValue(1);
+    if (params.meal && ['Breakfast', 'Lunch', 'Dinner'].includes(params.meal)) {
+      setMeal(params.meal);
+    }
     if (params.filter) {
       setActiveFilter(params.filter);
       loadFilteredItems(params.filter);
@@ -330,7 +333,7 @@ export default function BrowseScreen() {
     loadRatings();
     loadHallStatuses();
     loadPlannedItems();
-  }, [params.filter, loadHalls, loadFavorites, loadRatings, loadHallStatuses, loadPlannedItems]));
+  }, [params.filter, params.meal, loadHalls, loadFavorites, loadRatings, loadHallStatuses, loadPlannedItems]));
 
   const onRefresh = async () => {
     setRefreshing(true);

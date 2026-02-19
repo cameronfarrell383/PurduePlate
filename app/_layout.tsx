@@ -13,14 +13,16 @@ import {
   Outfit_700Bold,
   Outfit_800ExtraBold,
 } from '@expo-google-fonts/outfit';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { getSession, onAuthChange } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
+import { loadMealReminders, scheduleMealReminders } from '@/src/utils/notifications';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import AuthScreen from './auth';
 import OnboardingScreen from './onboarding';
@@ -103,6 +105,47 @@ function RootContent() {
       }
     })();
   }, [session]);
+
+  // ── Notification deep-link listener ──
+  const router = useRouter();
+  const notificationResponseListener = useRef<Notifications.EventSubscription | null>(null);
+
+  useEffect(() => {
+    if (!session || !onboardingComplete) return;
+
+    notificationResponseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      if (data?.screen === 'browse' && data?.meal) {
+        router.push({ pathname: '/(tabs)/browse', params: { meal: data.meal as string } });
+      }
+    });
+
+    return () => {
+      if (notificationResponseListener.current) {
+        Notifications.removeNotificationSubscription(notificationResponseListener.current);
+      }
+    };
+  }, [session, onboardingComplete]);
+
+  // ── Restore meal reminders on app launch ──
+  useEffect(() => {
+    if (!session || !onboardingComplete) return;
+
+    (async () => {
+      try {
+        const userId = session.user?.id;
+        if (!userId) return;
+        const reminders = await loadMealReminders(userId);
+        const hasEnabled = reminders.some((r) => r.enabled);
+        if (hasEnabled) {
+          await scheduleMealReminders(reminders);
+          console.log('[Reminders] Restored meal reminders on launch');
+        }
+      } catch (e: any) {
+        console.log('[Reminders] Failed to restore reminders:', e?.message);
+      }
+    })();
+  }, [session, onboardingComplete]);
 
   if (!loaded || session === undefined || (session && onboardingComplete === undefined)) {
     return (

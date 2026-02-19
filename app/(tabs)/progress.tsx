@@ -15,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
+import WeeklyReport from '@/src/components/WeeklyReport';
 
 function getLocalDate(offset = 0) {
   const d = new Date();
@@ -46,6 +47,7 @@ export default function ProgressScreen() {
   const [showWeightInput, setShowWeightInput] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
+  const [weeklyReportVisible, setWeeklyReportVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -238,7 +240,21 @@ export default function ProgressScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* View Full Report */}
+        <TouchableOpacity
+          style={[st.fullReportBtn, { backgroundColor: colors.maroon }]}
+          onPress={() => setWeeklyReportVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={[{ color: '#fff', fontSize: 15, fontFamily: 'DMSans_700Bold' }]}>View Full Report</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      <WeeklyReport
+        visible={weeklyReportVisible}
+        onClose={() => setWeeklyReportVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -258,4 +274,5 @@ const st = StyleSheet.create({
   statCard: { width: '48%', borderRadius: 14, padding: 16 },
   weightInput: { borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1, marginBottom: 12 },
   saveBtn: { padding: 12, borderRadius: 12, alignItems: 'center' },
+  fullReportBtn: { marginTop: 20, padding: 16, borderRadius: 14, alignItems: 'center' },
 });

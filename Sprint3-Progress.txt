@@ -21,39 +21,39 @@ READ THIS FILE BEFORE STARTING ANY TASK.
 
 ## Phase 1: Backend (Supabase SQL)
 
-- [ ] 1.1 — Create ai_chat_logs table + RLS policies
-- [ ] 1.2 — Create get_ai_context RPC function
-- [ ] 2.1 — Create get_weekly_report RPC function
-- [ ] 3.1 — Add reminder_prefs column to profiles
+- [x] 1.1 — Create ai_chat_logs table + RLS policies
+- [x] 1.2 — Create get_ai_context RPC function
+- [x] 2.1 — Create get_weekly_report RPC function
+- [x] 3.1 — Add reminder_prefs column to profiles
 
 ## Phase 2: Edge Function
 
-- [ ] 1.3 — Create and deploy ai-chat Supabase Edge Function
+- [x] 1.3 — Create and deploy ai-chat Supabase Edge Function
 
 ## Phase 3: Utility Functions
 
-- [ ] 1.4 — Create src/utils/ai.ts
-- [ ] 1.5 — Create src/utils/aiPrompt.ts
-- [ ] 2.2 — Create src/utils/weeklyReport.ts
-- [ ] 3.2 — Install expo-notifications
-- [ ] 3.3 — Create src/utils/notifications.ts
+- [x] 1.4 — Create src/utils/ai.ts — sendMessage, getChatHistory, clearChatHistory. Uses Edge Function invoke, no API key. Follows all Global Rules.
+- [x] 1.5 — Create src/utils/aiPrompt.ts — buildSystemPrompt(context), getRelevantMealPeriods(), menu filtering + truncation. Mirrors Edge Function prompt logic.
+- [x] 2.2 — Create src/utils/weeklyReport.ts — getWeeklyReport(userId, endDate?), calculates averages, goal adherence %, most consistent meal, water stats. Parallel RPC + meal query.
+- [x] 3.2 — Install expo-notifications — expo-notifications@~0.32.16, expo-device@~8.0.10, expo-constants@~18.0.13 installed and verified in package.json.
+- [x] 3.3 — Create src/utils/notifications.ts — registerForPushNotifications, scheduleMealReminders, saveMealReminders, loadMealReminders, cancelAllNotifications. Deep-link data included. Defaults: 8AM/12PM/6PM.
 
 ## Phase 4: UI Components
 
-- [ ] 1.6 — Create src/components/AIChatBubble.tsx
-- [ ] 1.7 — Create src/components/AIChat.tsx
-- [ ] 1.8 — Add AI floating button to dashboard
-- [ ] 2.3 — Create src/components/WeeklyReport.tsx
-- [ ] 2.4 — Add weight trend to weekly report
-- [ ] 2.5 — Wire report into More tab + Progress tab
-- [ ] 3.4 — Add deep linking to notifications
-- [ ] 3.5 — Create src/components/ReminderSettings.tsx
-- [ ] 3.6 — Wire reminders into More tab
-- [ ] 3.7 — Restore reminders on app launch
+- [x] 1.6 — Create src/components/AIChatBubble.tsx — User bubble (maroon, right-aligned) + assistant bubble (card, left-aligned). Meal item cards with name, hall, macros, "Log this" button. All colors from ThemeContext.
+- [x] 1.7 — Create src/components/AIChat.tsx — Full modal: header (close + clear), FlatList with auto-scroll, 4 suggestion chips, typing indicator (3 bouncing dots), error/retry, KeyboardAvoidingView, stable TextInput. All colors from ThemeContext.
+- [x] 1.8 — Add AI floating button to dashboard — 52px maroon circle FAB with ✨ emoji, maroon glow shadow, bottom-right positioned. Opens AIChat modal on tap.
+- [x] 2.3 — Create src/components/WeeklyReport.tsx — Full modal with 6 sections: week nav, 2x2 summary cards (avg + % of goal), 7-bar SVG chart (maroon/green/red + dashed goal line + tappable tooltips), macro breakdown (stacked bars actual vs goal), hydration (7 circles + avg oz), streaks (streak/days/most consistent). All colors from ThemeContext.
+- [x] 2.4 — Add weight trend to weekly report — SVG Polyline + Circle line chart shown when 2+ entries. Header shows start/end weight + change (green for loss, orange for gain). All colors from ThemeContext.
+- [x] 2.5 — Wire report into More tab + Progress tab — More: "Weekly Report" row now opens WeeklyReport modal (replaced coming-soon alert). Progress: added maroon "View Full Report" button + modal. Both use current week's end date (today).
+- [x] 3.4 — Add deep linking to notifications — Added notification response listener in _layout.tsx (navigates to /(tabs)/browse with meal param). Browse tab now reads params.meal and sets meal filter on focus. Notification payload data already set in notifications.ts.
+- [x] 3.5 — Create src/components/ReminderSettings.tsx — Modal with 3 rows (Breakfast/Lunch/Dinner), each with Switch toggle, emoji, meal name, time chip. Tap time to expand inline editor (hour +/-, minute +/- in 15-min steps, AM/PM toggle). Save button calls saveMealReminders (Supabase + schedule). Requests permissions on first enable. Note about device settings. All colors from ThemeContext.
+- [x] 3.6 — Wire reminders into More tab — Replaced "coming soon" alert with ReminderSettings modal. Added "On"/"Off" chip (green when any reminder enabled) to Reminders row. Loads reminder_prefs from profile query to determine chip state. Re-loads data on modal close to refresh chip. Permissions requested inside ReminderSettings on first toggle.
+- [x] 3.7 — Restore reminders on app launch — Added useEffect in _layout.tsx that runs after auth gate (session + onboardingComplete). Silently loads reminder_prefs via loadMealReminders, re-schedules enabled reminders via scheduleMealReminders. Does not prompt for permissions. Fails silently with console log on error.
 
 ## Phase 5: Integration + Polish
 
-- [ ] 1.9 — "Log this" from AI meal suggestions
+- [x] 1.9 — "Log this" from AI meal suggestions — Added handleLogAIItem callback in dashboard (index.tsx). Inserts meal_log using menu_item_id from AI MealItem, effective date, meal period, servings=1. Shows success alert with item name + calories. Calls loadData() to refresh dashboard totals. Wired to AIChat via onLogItem prop. Error handling with Alert.alert on failure.
 - [ ] 1.10 — Test AI end-to-end
 
 ## Phase 6: Testing

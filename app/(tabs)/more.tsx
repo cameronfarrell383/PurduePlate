@@ -20,7 +20,10 @@ import EditGoals from '@/src/components/EditGoals';
 import EditProfile from '@/src/components/EditProfile';
 import EditNutritionPrefs from '@/src/components/EditNutritionPrefs';
 import HelpFAQ from '@/src/components/HelpFAQ';
+import WeeklyReport from '@/src/components/WeeklyReport';
+import ReminderSettings from '@/src/components/ReminderSettings';
 import { Goals, getGoals, saveCustomGoals, recalculateGoals } from '@/src/utils/goals';
+import { loadMealReminders } from '@/src/utils/notifications';
 
 export default function MoreScreen() {
   const { mode, colors, toggleTheme } = useTheme();
@@ -34,6 +37,9 @@ export default function MoreScreen() {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [nutritionPrefsModalVisible, setNutritionPrefsModalVisible] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [weeklyReportVisible, setWeeklyReportVisible] = useState(false);
+  const [remindersVisible, setRemindersVisible] = useState(false);
+  const [remindersOn, setRemindersOn] = useState(false);
 
   const [currentGoals, setCurrentGoals] = useState<Goals>({
     goalCalories: 2000,
@@ -47,12 +53,14 @@ export default function MoreScreen() {
       const userId = await requireUserId();
       const { data } = await supabase
         .from('profiles')
-        .select('name, year, dorm, goal_calories, high_protein, water_goal_oz')
+        .select('name, year, dorm, goal_calories, high_protein, water_goal_oz, reminder_prefs')
         .eq('id', userId)
         .single();
       if (data) {
         setProfile(data);
         setWaterGoalOz(data.water_goal_oz ?? 64);
+        const prefs = data.reminder_prefs as any[] | null;
+        setRemindersOn(Array.isArray(prefs) && prefs.some((r: any) => r?.enabled));
       }
 
       const goals = await getGoals(userId);
@@ -143,19 +151,11 @@ export default function MoreScreen() {
   };
 
   const handleReminders = () => {
-    Alert.alert(
-      'Meal Reminders',
-      'Push notifications are coming soon! Check back in a future update.',
-      [{ text: 'Got it' }],
-    );
+    setRemindersVisible(true);
   };
 
   const handleWeeklyReport = () => {
-    Alert.alert(
-      'Weekly Report',
-      'Weekly nutrition summaries are coming soon! This feature is in development.',
-      [{ text: 'Got it' }],
-    );
+    setWeeklyReportVisible(true);
   };
 
   const handleDiningHalls = () => {
@@ -277,7 +277,18 @@ export default function MoreScreen() {
         </View>
 
         <View style={[st.menuCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, marginTop: 12 }]}>
-          <MenuItem emoji="🔔" label="Reminders" onPress={handleReminders} />
+          <MenuItem
+            emoji="🔔"
+            label="Reminders"
+            onPress={handleReminders}
+            rightContent={
+              <View style={[st.themeChip, { backgroundColor: colors.cardAlt }]}>
+                <Text style={[{ fontSize: 12, color: remindersOn ? colors.green : colors.textMuted, fontFamily: 'DMSans_600SemiBold' }]}>
+                  {remindersOn ? 'On' : 'Off'}
+                </Text>
+              </View>
+            }
+          />
           <View style={[st.separator, { backgroundColor: colors.border }]} />
           <MenuItem
             emoji="🌙"
@@ -332,6 +343,16 @@ export default function MoreScreen() {
       <HelpFAQ
         visible={helpModalVisible}
         onClose={() => setHelpModalVisible(false)}
+      />
+
+      <WeeklyReport
+        visible={weeklyReportVisible}
+        onClose={() => setWeeklyReportVisible(false)}
+      />
+
+      <ReminderSettings
+        visible={remindersVisible}
+        onClose={() => { setRemindersVisible(false); loadData(); }}
       />
     </SafeAreaView>
   );

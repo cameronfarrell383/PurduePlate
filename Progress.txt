@@ -43,7 +43,7 @@ READ THIS FILE BEFORE STARTING ANY TASK.
 - [x] 2.4 — Build rating/review modal — "Rate this hall" button in stations view, modal with 5 tappable stars + optional 200-char review, pre-fills existing rating, upserts via rateHall(), toast on success, refreshes averages
 - [x] 3.4 — Add open/closed badges to browse hall cards — green "Open · Lunch" / gray "Closed · Opens 5:00 PM" badges via getAllHallStatuses(), open halls sorted to top
 - [x] 3.5 — Add Open Now row to dashboard — horizontal scroll row of open halls with name, current meal badge, closing time; tapping navigates to browse; hidden when no halls open
-- [ ] 4.4 — Add date selector to browse tab
+- [x] 4.4 — Add date selector to browse tab — horizontal date picker with Today, Tomorrow, +2, +3 days; selecting reloads halls/items for that date; getDayLabel helper for friendly labels
 - [ ] 4.5 — Add Plan this button to browse items (future dates only)
 
 ## Phase 4: Integration (Bandhip)

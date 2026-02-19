@@ -38,6 +38,16 @@ function autoMeal(): string {
   return getCurrentMealPeriod();
 }
 
+function getDayLabel(offset: number): string {
+  if (offset === 0) return 'Today';
+  if (offset === 1) return 'Tomorrow';
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+const DATE_OPTIONS = [0, 1, 2, 3];
+
 const STATION_EMOJI_RULES: [string[], string][] = [
   [['grill', 'burger', 'chop'], '🔥'],
   [['salad', 'eden'], '🥗'],
@@ -577,7 +587,7 @@ export default function BrowseScreen() {
         {view === 'stations' && (
           <>
             <Text style={[st.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{selectedHall?.name}</Text>
-            <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{meal} · {dayOffset === 0 ? 'Today' : 'Tomorrow'}</Text>
+            <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{meal} · {getDayLabel(dayOffset)}</Text>
           </>
         )}
         {view === 'items' && (
@@ -589,17 +599,17 @@ export default function BrowseScreen() {
         {view === 'detail' && <Text style={[st.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]} numberOfLines={1}>{selectedItem?.name}</Text>}
       </View>
       {view === 'halls' && (
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          {[{ label: 'Today', val: 0 }, { label: 'Tomorrow', val: 1 }].map((d) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          {DATE_OPTIONS.map((offset) => (
             <TouchableOpacity
-              key={d.val}
-              style={[st.chip, { backgroundColor: dayOffset === d.val ? colors.maroon : colors.card, borderColor: dayOffset === d.val ? colors.maroon : colors.border, borderWidth: 1 }]}
-              onPress={() => setDayOffset(d.val)}
+              key={offset}
+              style={[st.chip, { backgroundColor: dayOffset === offset ? colors.maroon : colors.card, borderColor: dayOffset === offset ? colors.maroon : colors.border, borderWidth: 1 }]}
+              onPress={() => setDayOffset(offset)}
             >
-              <Text style={[st.chipText, { color: dayOffset === d.val ? '#fff' : colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{d.label}</Text>
+              <Text style={[st.chipText, { color: dayOffset === offset ? '#fff' : colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{getDayLabel(offset)}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );

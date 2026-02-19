@@ -48,7 +48,7 @@ READ THIS FILE BEFORE STARTING ANY TASK.
 
 ## Phase 4: Integration (Bandhip)
 
-- [ ] 5.1 — Create src/utils/recommendations.ts
+- [x] 5.1 — Create src/utils/recommendations.ts — getFavoritesToday (delegates to favorites.ts), getFitsYourMacros (goal-based: moderate_cut→<400cal, lean_bulk→>25g protein, maintain→300-600cal+>15g protein, max 10), getTopRatedHalls (sorted by avg, with open status, max 5), getTrySomethingNew (home hall items not in meal_logs by rec_num, max 8), getQuickAndLight (<300cal from open halls, deduped, max 10)
 - [ ] 5.2 — Replace static For You with dynamic collections on dashboard
 - [ ] 5.3 — Add loading skeletons for For You
 - [ ] 1.4 — Add Favorites Today collection to For You

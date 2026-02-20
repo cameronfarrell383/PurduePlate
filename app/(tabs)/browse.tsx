@@ -1288,7 +1288,7 @@ export default function BrowseScreen() {
 
 const st = StyleSheet.create({
   safe: { flex: 1 },
-  pad: { padding: 20, paddingBottom: 40 },
+  pad: { padding: 20, paddingBottom: 100 },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
   title: { fontSize: 26 },

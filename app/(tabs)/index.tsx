@@ -745,7 +745,7 @@ export default function HomeScreen() {
 
 const st = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: 100 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   dateText: { fontSize: 13, marginBottom: 4 },
   greeting: { fontSize: 26 },

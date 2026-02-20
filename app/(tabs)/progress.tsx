@@ -270,7 +270,7 @@ export default function ProgressScreen() {
 
 const st = StyleSheet.create({
   safe: { flex: 1 },
-  pad: { padding: 20, paddingBottom: 40 },
+  pad: { padding: 20, paddingBottom: 100 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 26, marginBottom: 20 },
   card: { borderRadius: 14, padding: 16 },

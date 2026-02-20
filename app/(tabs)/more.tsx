@@ -407,7 +407,7 @@ export default function MoreScreen() {
 
 const st = StyleSheet.create({
   safe: { flex: 1 },
-  pad: { padding: 20, paddingBottom: 40 },
+  pad: { padding: 20, paddingBottom: 100 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   profileHeader: { alignItems: 'center', marginBottom: 28 },
   avatar: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },

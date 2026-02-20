@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -49,6 +49,13 @@ function getLocalDate(d = new Date()) {
 
 function formatDate(d = new Date()) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 interface NutritionData {
@@ -150,18 +157,14 @@ export default function HomeScreen() {
   }, []);
 
   // ─── Entry stagger animations ───
-  // 0: greeting, 1: calorie ring, 2-4: macro cards, 5: collections, 6: meals
+  // 0: header, 1: multi-ring, 2: legend row, 3-4: unused, 5: collections, 6: meals
   const { anims: entryAnims, play: playEntry } = useStaggerAnimation(7, { staggerMs: 80, durationMs: 350, delayMs: 0 });
 
-  // ─── Calorie ring fill animation ───
-  const ringAnim = useRef(new Animated.Value(0)).current;
-  const prevCalPercent = useRef(0);
-
-  // ─── Macro bar animations (animate scaleX) ───
-  const macroProAnim = useRef(new Animated.Value(0)).current;
-  const macroCarbAnim = useRef(new Animated.Value(0)).current;
-  const macroFatAnim = useRef(new Animated.Value(0)).current;
-  const macroAnims = [macroProAnim, macroCarbAnim, macroFatAnim];
+  // ─── Multi-ring fill animations (4 concentric rings) ───
+  const calRingAnim = useRef(new Animated.Value(0)).current;
+  const proRingAnim = useRef(new Animated.Value(0)).current;
+  const carbRingAnim = useRef(new Animated.Value(0)).current;
+  const fatRingAnim = useRef(new Animated.Value(0)).current;
 
   const loadOpenHalls = async (): Promise<OpenHall[]> => {
     try {
@@ -298,35 +301,20 @@ export default function HomeScreen() {
     }, [loadData])
   );
 
-  // ─── Animate ring + macros when data changes ───
+  // ─── Animate multi-ring fills when data changes ───
   useEffect(() => {
     if (loading) return;
 
-    const goalCal = profile?.goal_calories || 2000;
-    const goalPro = profile?.goal_protein_g || 150;
-    const goalCarb = profile?.goal_carbs_g || 200;
-    const goalFat = profile?.goal_fat_g || 65;
-
-    const newCalPercent = Math.min(totalCal / goalCal, 1);
+    const calPercent = Math.min(totalCal / goalCal, 1);
     const proPercent = Math.min(totalPro / goalPro, 1);
     const carbPercent = Math.min(totalCarb / goalCarb, 1);
     const fatPercent = Math.min(totalFat / goalFat, 1);
 
-    // Animate ring from old to new
-    Animated.timing(ringAnim, {
-      toValue: newCalPercent,
-      duration: prevCalPercent.current === 0 ? 800 : 600,
-      easing: prevCalPercent.current === 0 ? Easing.out(Easing.cubic) : Easing.inOut(Easing.cubic),
-      useNativeDriver: false, // strokeDashoffset is not natively animatable
-    }).start();
-    prevCalPercent.current = newCalPercent;
-
-    // Animate macro bars
-    const macroDuration = prevCalPercent.current === 0 ? 600 : 600;
     Animated.parallel([
-      Animated.timing(macroProAnim, { toValue: proPercent, duration: macroDuration, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(macroCarbAnim, { toValue: carbPercent, duration: macroDuration, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(macroFatAnim, { toValue: fatPercent, duration: macroDuration, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(calRingAnim, { toValue: calPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(proRingAnim, { toValue: proPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(carbRingAnim, { toValue: carbPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      Animated.timing(fatRingAnim, { toValue: fatPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
     ]).start();
 
     // Play entry stagger on first load
@@ -422,17 +410,26 @@ export default function HomeScreen() {
     waterGoal
   );
 
-  // SVG ring
-  const ringSize = 170;
-  const strokeWidth = 12;
-  const radius = (ringSize - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
+  // Multi-ring SVG setup (Apple Watch style)
+  const ringSize = 180;
+  const ringStroke = 8;
+  const ringGap = 6;
+  // Radii: outer→inner: calories, protein, carbs, fat
+  const calRadius = (ringSize - ringStroke) / 2; // 86
+  const proRadius = calRadius - ringStroke - ringGap; // 72
+  const carbRadius = proRadius - ringStroke - ringGap; // 58
+  const fatRadius = carbRadius - ringStroke - ringGap; // 44
 
-  // Animated strokeDashoffset
-  const animatedStrokeDashoffset = ringAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [circumference, 0],
-  });
+  const calCircum = 2 * Math.PI * calRadius;
+  const proCircum = 2 * Math.PI * proRadius;
+  const carbCircum = 2 * Math.PI * carbRadius;
+  const fatCircum = 2 * Math.PI * fatRadius;
+
+  // Animated strokeDashoffsets for each ring
+  const calDashOffset = calRingAnim.interpolate({ inputRange: [0, 1], outputRange: [calCircum, 0] });
+  const proDashOffset = proRingAnim.interpolate({ inputRange: [0, 1], outputRange: [proCircum, 0] });
+  const carbDashOffset = carbRingAnim.interpolate({ inputRange: [0, 1], outputRange: [carbCircum, 0] });
+  const fatDashOffset = fatRingAnim.interpolate({ inputRange: [0, 1], outputRange: [fatCircum, 0] });
 
   const getMealName = (log: MealLog): string => {
     const mi = log.menu_items as any;
@@ -543,20 +540,21 @@ export default function HomeScreen() {
           {/* Greeting skeleton */}
           <View style={st.header}>
             <View>
-              <Skeleton width={120} height={14} borderRadius={7} />
-              <Skeleton width={200} height={26} borderRadius={8} style={{ marginTop: 8 }} />
+              <Skeleton width={100} height={14} borderRadius={7} />
+              <Skeleton width={160} height={28} borderRadius={8} style={{ marginTop: 6 }} />
             </View>
-            <Skeleton width={42} height={42} borderRadius={21} />
+            <Skeleton width={44} height={28} borderRadius={12} />
           </View>
-          {/* Ring skeleton */}
-          <View style={{ alignItems: 'center', marginBottom: 24 }}>
-            <Skeleton width={170} height={170} borderRadius={85} />
+          {/* Multi-ring skeleton */}
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <Skeleton width={180} height={180} borderRadius={90} />
           </View>
-          {/* Macro cards skeleton */}
-          <View style={st.macroRow}>
-            <Skeleton width={'100%' as any} height={90} borderRadius={14} style={{ flex: 1 }} />
-            <Skeleton width={'100%' as any} height={90} borderRadius={14} style={{ flex: 1 }} />
-            <Skeleton width={'100%' as any} height={90} borderRadius={14} style={{ flex: 1 }} />
+          {/* Legend row skeleton */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Skeleton width={70} height={12} borderRadius={6} />
+            <Skeleton width={70} height={12} borderRadius={6} />
+            <Skeleton width={70} height={12} borderRadius={6} />
+            <Skeleton width={70} height={12} borderRadius={6} />
           </View>
           {/* Meals skeleton */}
           <View style={{ marginTop: 28 }}>
@@ -568,12 +566,6 @@ export default function HomeScreen() {
       </SafeAreaView>
     );
   }
-
-  const macroData = [
-    { label: 'Protein', val: totalPro, goal: goalPro, color: colors.blue },
-    { label: 'Carbs', val: totalCarb, goal: goalCarb, color: colors.orange },
-    { label: 'Fat', val: totalFat, goal: goalFat, color: colors.yellow },
-  ];
 
   const AnimatedCircleComponent = Animated.createAnimatedComponent(Circle);
 
@@ -597,86 +589,81 @@ export default function HomeScreen() {
           transform: [{ translateY: entryAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }],
         }]}>
           <View>
-            <Text style={[st.dateText, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-              {formatDate()}
+            <Text style={[st.greetingLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
+              {getGreeting()}
             </Text>
             <Text style={[st.greeting, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
-              Hey {profile?.name || 'there'} 👋
+              {profile?.name || 'there'}
             </Text>
           </View>
-          <View style={[st.avatar, { backgroundColor: colors.maroon }]}>
-            <Text style={[st.avatarText, { fontFamily: 'Outfit_700Bold' }]}>
-              {(profile?.name || 'U')[0].toUpperCase()}
+          <View style={[st.gradePill, { backgroundColor: dailyScore.gradeColor + '26' }]}>
+            <Text style={[st.gradePillText, { color: dailyScore.gradeColor, fontFamily: 'DMSans_700Bold' }]}>
+              {dailyScore.grade}
             </Text>
           </View>
         </Animated.View>
 
-        {/* Calorie Ring — fade in + scale */}
+        {/* Multi-Ring (Apple Watch style) — fade in + scale */}
         <Animated.View style={[st.ringWrap, {
           opacity: entryAnims[1],
           transform: [{ scale: entryAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
         }]}>
           <Svg width={ringSize} height={ringSize}>
-            <Circle
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              stroke="rgba(139,30,63,0.12)"
-              strokeWidth={strokeWidth}
-              fill="none"
-            />
-            <AnimatedCircleComponent
-              cx={ringSize / 2}
-              cy={ringSize / 2}
-              r={radius}
-              stroke={colors.maroon}
-              strokeWidth={strokeWidth}
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={animatedStrokeDashoffset}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
-            />
+            <Defs>
+              <SvgLinearGradient id="calGradient" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={colors.maroon} />
+                <Stop offset="1" stopColor="#C62368" />
+              </SvgLinearGradient>
+            </Defs>
+
+            {/* Calories ring (outermost) */}
+            <Circle cx={ringSize / 2} cy={ringSize / 2} r={calRadius} stroke="rgba(139,30,63,0.1)" strokeWidth={ringStroke} fill="none" />
+            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={calRadius} stroke="url(#calGradient)" strokeWidth={ringStroke} fill="none" strokeDasharray={calCircum} strokeDashoffset={calDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
+
+            {/* Protein ring */}
+            <Circle cx={ringSize / 2} cy={ringSize / 2} r={proRadius} stroke="rgba(91,127,255,0.1)" strokeWidth={ringStroke} fill="none" />
+            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={proRadius} stroke={colors.blue} strokeWidth={ringStroke} fill="none" strokeDasharray={proCircum} strokeDashoffset={proDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
+
+            {/* Carbs ring */}
+            <Circle cx={ringSize / 2} cy={ringSize / 2} r={carbRadius} stroke="rgba(232,119,34,0.1)" strokeWidth={ringStroke} fill="none" />
+            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={carbRadius} stroke={colors.orange} strokeWidth={ringStroke} fill="none" strokeDasharray={carbCircum} strokeDashoffset={carbDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
+
+            {/* Fat ring (innermost) */}
+            <Circle cx={ringSize / 2} cy={ringSize / 2} r={fatRadius} stroke="rgba(255,214,10,0.1)" strokeWidth={ringStroke} fill="none" />
+            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={fatRadius} stroke={colors.yellow} strokeWidth={ringStroke} fill="none" strokeDasharray={fatCircum} strokeDashoffset={fatDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
           </Svg>
           <View style={st.ringCenter}>
-            <Text style={[st.ringNumber, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
-              {totalCal}
+            <Text style={[st.ringNumber, { color: colors.text, fontFamily: 'Outfit_800ExtraBold' }]}>
+              {totalCal.toLocaleString()}
             </Text>
             <Text style={[st.ringLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-              of {goalCal} cal
+              of {goalCal.toLocaleString()} cal
             </Text>
           </View>
         </Animated.View>
 
-        {/* Macro Cards — fade in + slide up, staggered */}
-        <View style={st.macroRow}>
-          {macroData.map((m, i) => (
-            <Animated.View key={m.label} style={[
-              st.macroCard,
-              { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-              {
-                opacity: entryAnims[2 + i],
-                transform: [{ translateY: entryAnims[2 + i].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-              },
-            ]}>
-              <Text style={[st.macroVal, { color: m.color, fontFamily: 'Outfit_700Bold' }]}>{m.val}g</Text>
-              <Text style={[st.macroLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{m.label}</Text>
-              <View style={[st.macroTrack, { backgroundColor: colors.border }]}>
-                <Animated.View
-                  style={[
-                    st.macroFill,
-                    {
-                      backgroundColor: m.color,
-                      width: '100%',
-                      transform: [{ scaleX: macroAnims[i] }],
-                      transformOrigin: 'left',
-                    },
-                  ]}
-                />
-              </View>
-            </Animated.View>
-          ))}
-        </View>
+        {/* Legend Row — replaces macro cards */}
+        <Animated.View style={[st.legendRow, {
+          opacity: entryAnims[2],
+          transform: [{ translateY: entryAnims[2].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+        }]}>
+          <View style={st.legendItem}>
+            <View style={[st.legendDot, { backgroundColor: colors.maroon }]} />
+            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalCal.toLocaleString()} / {goalCal.toLocaleString()}</Text>
+          </View>
+          <View style={st.legendItem}>
+            <View style={[st.legendDot, { backgroundColor: colors.blue }]} />
+            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalPro} / {goalPro}g</Text>
+          </View>
+          <View style={st.legendItem}>
+            <View style={[st.legendDot, { backgroundColor: colors.orange }]} />
+            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalCarb} / {goalCarb}g</Text>
+          </View>
+          <View style={st.legendItem}>
+            <View style={[st.legendDot, { backgroundColor: colors.yellow }]} />
+            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalFat} / {goalFat}g</Text>
+          </View>
+        </Animated.View>
 
         {/* Streak + Score Cards */}
         <View style={st.streakScoreRow}>
@@ -847,21 +834,19 @@ export default function HomeScreen() {
 const st = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: 20, paddingBottom: 100 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  dateText: { fontSize: 13, marginBottom: 4 },
-  greeting: { fontSize: 26 },
-  avatar: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: '#fff', fontSize: 18 },
-  ringWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  greetingLabel: { fontSize: 14, marginBottom: 2 },
+  greeting: { fontSize: 28 },
+  gradePill: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  gradePillText: { fontSize: 14 },
+  ringWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   ringCenter: { position: 'absolute', alignItems: 'center' },
-  ringNumber: { fontSize: 34 },
+  ringNumber: { fontSize: 36 },
   ringLabel: { fontSize: 13, marginTop: 2 },
-  macroRow: { flexDirection: 'row', gap: 10 },
-  macroCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: 'center' },
-  macroVal: { fontSize: 22, marginBottom: 2 },
-  macroLabel: { fontSize: 11, marginBottom: 8 },
-  macroTrack: { width: '100%', height: 4, borderRadius: 2, overflow: 'hidden' },
-  macroFill: { height: 4, borderRadius: 2 },
+  legendRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 12, fontFamily: 'DMSans_500Medium' },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 20 },
   forYouSubtitle: { fontSize: 15, marginBottom: 10 },

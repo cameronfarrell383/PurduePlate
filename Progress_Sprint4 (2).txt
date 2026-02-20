@@ -47,7 +47,7 @@ PHASE 4 — Polish (UI/UX bug fixes)
 [x] 10.6 Date strip scroll-to-selected animation
 
 PHASE 5 — Visual Restyle (apply AFTER all features integrated)
-[ ] 11.1 Restyle Dashboard — Header + Multi-Ring Calorie Display + Legend
+[x] 11.1 Restyle Dashboard — Header + Multi-Ring Calorie Display + Legend
 [ ] 11.2 Restyle Dashboard — Glass Cards + Compact Water + Open Now + For You + Meals
 [ ] 11.3 Restyle Browse — Glass Cards + Vector Icons + Detail View
 [ ] 11.4 Restyle AI Chat — Empty State + Bubbles + Input Bar + Suggestion Cards
@@ -55,5 +55,5 @@ PHASE 5 — Visual Restyle (apply AFTER all features integrated)
 [ ] 11.6 Global Polish Pass — Consistency Check Across All Screens
 
 ================================================================================
-TOTAL: 33 / 46 complete
+TOTAL: 34 / 46 complete
 ================================================================================

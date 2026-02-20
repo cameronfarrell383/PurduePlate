@@ -21,22 +21,22 @@ PHASE 1 — BROWSE FLOW (Highest Priority — this is the core loop)
 
 Task  Description                                                          Owner  Status  Notes
 ----  -------------------------------------------------------------------  -----  ------  -----
-1.1   Smart default meal period — auto-select breakfast/lunch/dinner       Cam    TODO
+1.1   Smart default meal period — auto-select breakfast/lunch/dinner       Cam    DONE    Fixed Lunch/Dinner cutoff to 4:00 PM (was 4:30). autoMeal() already wired.
       based on time of day
-1.2   Hall cards — show open/closed status, demote item count, remove      Cam    TODO    Uses dining_hall_hours table
+1.2   Hall cards — show open/closed status, demote item count, remove      Cam    DONE    Open/Closed/Closing Soon badges, "X stations · Y items" subtitle, no chevron, closed at 0.5 opacity
       chevron, dim closed halls and sort to bottom
-1.3   Station grid — switch to compact list layout, sort by relevance      Cam    TODO
-1.4   Food item list — scanability polish (name emphasis, heart tap        Cam    TODO    Test alternating rows on device
+1.3   Station grid — switch to compact list layout, sort by relevance      Cam    DONE    Compact list rows (emoji, name bold, count, chevron). Sort by item count desc. Rate moved to Reviews header.
+1.4   Food item list — scanability polish (name emphasis, heart tap        Cam    DONE    Name: 700Bold 15px. Heart: 22px icon, 44x44 tap target. Alternating row bg with offWhite.
       target 44px, optional alternating row bg)
-1.5   Nutrition detail — sticky "Log This Item · XXX cal" button,          Cam    TODO    Most important button in app
+1.5   Nutrition detail — sticky "Log This Item · XXX cal" button,          Cam    DONE    Absolute positioned sticky btn. "Log This Item · XXX cal" with live servings. Green check + haptic success for 1.5s.
       dynamic cal with serving selector, post-log green check + haptic
-1.6   Post-log feedback loop — success toast in Browse, haptic medium,     Cam    TODO    Don't auto-navigate away
+1.6   Post-log feedback loop — success toast in Browse, haptic medium,     Cam    DONE    Toast shows "Logged! [name] · [cal] cal". Haptic medium+success. Stays in Browse. Rings animate via useFocusEffect on Dashboard return.
       stay in Browse, animate rings on Dashboard return
-1.7   Search improvements — food items across all halls, recent            Cam    TODO    AsyncStorage for recent searches
+1.7   Search improvements — food items across all halls, recent            Cam    DONE    Global food search across all halls (name+cal+hall). Recent searches in AsyncStorage (last 5). Filter-as-you-type with 300ms debounce.
       searches, popular items on empty focus, filter-as-you-type
 1.8   CHECKPOINT: Browse flow device test — full flow end to end           Cam    TODO    MUST PASS before Phase 2
 
-Phase 1 Status: NOT STARTED
+Phase 1 Status: 1.1-1.7 DONE — awaiting 1.8 device checkpoint
 
 
 ================================================================================
@@ -146,13 +146,13 @@ SUMMARY TABLE
 
 Phase                           Tasks   Done   Blocked
 ------------------------------  -----   ----   -------
-1 — Browse Flow                   8       0       0
+1 — Browse Flow                   8       7       0
 2 — Dashboard                     7       0       0
 3 — Progress                      5       0       0
 4 — AI Chat                       4       0       0
 5 — Global UX Polish              9       0       0
 6 — Final Details                 4       0       0
-TOTAL                            37       0       0
+TOTAL                            37       7       0
 
 
 ================================================================================

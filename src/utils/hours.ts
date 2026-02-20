@@ -11,6 +11,7 @@ export interface HallHourRow {
 
 export interface HallStatus {
   isOpen: boolean;
+  closingSoon?: boolean;  // within 30 min of closing
   currentMeal?: string;
   closingTime?: string;   // human-readable, e.g. "9:00 PM"
   nextOpen?: string;      // human-readable, e.g. "5:00 PM"
@@ -150,6 +151,7 @@ function computeStatus(
     if (nowMinutes >= open && nowMinutes < close) {
       return {
         isOpen: true,
+        closingSoon: (close - nowMinutes) <= 30,
         currentMeal: row.meal,
         closingTime: formatTime12h(row.close_time),
       };

@@ -29,7 +29,7 @@ export function getCurrentMealPeriod(): string {
   const h = new Date().getHours();
   const m = new Date().getMinutes();
   if (h < 10 || (h === 10 && m < 30)) return 'Breakfast';
-  if (h < 16 || (h === 16 && m < 30)) return 'Lunch';
+  if (h < 16) return 'Lunch';
   return 'Dinner';
 }
 

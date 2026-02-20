@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -39,6 +39,7 @@ import { getHallAverages, HallAverage, rateHall, getUserRating, getHallReviews, 
 import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
 import { getFavoritesToday, getFitsYourMacros, getTrySomethingNew, getQuickAndLight } from '@/src/utils/recommendations';
 import { triggerHaptic } from '@/src/utils/haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -170,6 +171,12 @@ export default function BrowseScreen() {
 
   const [showMicros, setShowMicros] = useState(false);
 
+  const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [usingFallback, setUsingFallback] = useState(false);
   const [effectiveDate, setEffectiveDate] = useState(getLocalDate());
 
@@ -213,14 +220,21 @@ export default function BrowseScreen() {
       if (!hallData) { setHalls([]); return; }
       const { data: itemCounts } = await supabase
         .from('menu_items')
-        .select('dining_hall_id, id')
+        .select('dining_hall_id, id, station')
         .eq('date', menuDate)
         .in('meal', getMealQueryValues(meal));
       const counts: Record<number, number> = {};
+      const stationSets: Record<number, Set<string>> = {};
       (itemCounts || []).forEach((i: any) => {
         counts[i.dining_hall_id] = (counts[i.dining_hall_id] || 0) + 1;
+        if (!stationSets[i.dining_hall_id]) stationSets[i.dining_hall_id] = new Set();
+        if (i.station) stationSets[i.dining_hall_id].add(i.station);
       });
-      setHalls(hallData.map((h: any) => ({ ...h, count: counts[h.id] || 0 })));
+      setHalls(hallData.map((h: any) => ({
+        ...h,
+        count: counts[h.id] || 0,
+        stationCount: stationSets[h.id]?.size || 0,
+      })));
       setUsingFallback(fallback);
       setEffectiveDate(menuDate);
     } catch (e) {
@@ -291,6 +305,77 @@ export default function BrowseScreen() {
     } catch {}
   }, []);
 
+  const RECENT_SEARCHES_KEY = 'campusplate_recent_searches';
+
+  const loadRecentSearches = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const saveRecentSearch = useCallback(async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    try {
+      const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      let searches: string[] = stored ? JSON.parse(stored) : [];
+      searches = searches.filter((s) => s.toLowerCase() !== trimmed.toLowerCase());
+      searches.unshift(trimmed);
+      searches = searches.slice(0, 5);
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+      setRecentSearches(searches);
+    } catch {}
+  }, []);
+
+  const searchGlobalFood = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setGlobalSearchResults([]);
+      return;
+    }
+    setGlobalSearchLoading(true);
+    try {
+      const menuDate = await getEffectiveMenuDate();
+      const { data: hallsData } = await supabase.from('dining_halls').select('id, name');
+      const hallMap: Record<number, string> = {};
+      (hallsData || []).forEach((h: any) => { hallMap[h.id] = h.name; });
+
+      const { data } = await supabase
+        .from('menu_items')
+        .select('id, name, rec_num, station, dining_hall_id, dietary_flags, nutrition(*)')
+        .eq('date', menuDate)
+        .in('meal', getMealQueryValues(meal))
+        .ilike('name', `%${query.trim()}%`)
+        .order('name')
+        .limit(30);
+
+      const results = (data || []).map((item: any) => ({
+        ...item,
+        hall_name: hallMap[item.dining_hall_id] || 'Unknown',
+      }));
+      setGlobalSearchResults(results);
+      if (results.length > 0) saveRecentSearch(query.trim());
+    } catch (e) {
+      console.error('Global search error:', e);
+      setGlobalSearchResults([]);
+    } finally {
+      setGlobalSearchLoading(false);
+    }
+  }, [meal, saveRecentSearch]);
+
+  // Debounced search: filter-as-you-type with 300ms debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (hallSearch.trim().length >= 2) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchGlobalFood(hallSearch);
+      }, 300);
+    } else {
+      setGlobalSearchResults([]);
+    }
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
+  }, [hallSearch, searchGlobalFood]);
+
   useFocusEffect(useCallback(() => {
     setView('halls');
     setHallSearch('');
@@ -310,7 +395,8 @@ export default function BrowseScreen() {
     loadFavorites();
     loadRatings();
     loadHallStatuses();
-  }, [params.filter, params.meal, loadHalls, loadFavorites, loadRatings, loadHallStatuses]));
+    loadRecentSearches();
+  }, [params.filter, params.meal, loadHalls, loadFavorites, loadRatings, loadHallStatuses, loadRecentSearches]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -470,14 +556,15 @@ export default function BrowseScreen() {
       });
       if (error) { console.error('Log meal failed:', error.message); Alert.alert('Error', 'Failed to save. Please try again.'); return; }
       setLogSuccess(true);
+      triggerHaptic('success');
       const n = getNutr(selectedItem);
-      showToastMessage(`Logged! +${Math.round(n.cal * servings)} cal`);
+      showToastMessage(`Logged! ${selectedItem.name} · ${Math.round(n.cal * servings)} cal`);
       setTimeout(() => {
         animateTransition('back', () => {
           setView('items');
           setLogSuccess(false);
         });
-      }, 800);
+      }, 1500);
     } catch (e) {
       console.error('Log error:', e);
     } finally {
@@ -539,7 +626,7 @@ export default function BrowseScreen() {
     });
     return Object.entries(map)
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => b.count - a.count);
   })();
 
   const stationItems = allHallItems.filter((item) => item.station === selectedStation);
@@ -621,7 +708,7 @@ export default function BrowseScreen() {
     );
   };
 
-  const renderSearchBar = (value: string, onChangeText: (t: string) => void, placeholder: string) => (
+  const renderSearchBar = (value: string, onChangeText: (t: string) => void, placeholder: string, onFocus?: () => void, onBlur?: () => void) => (
     <Box
       flexDirection="row"
       alignItems="center"
@@ -636,6 +723,8 @@ export default function BrowseScreen() {
         placeholderTextColor={C.textDim}
         value={value}
         onChangeText={onChangeText}
+        onFocus={onFocus}
+        onBlur={onBlur}
         returnKeyType="search"
       />
       {value.length > 0 && (
@@ -720,7 +809,14 @@ export default function BrowseScreen() {
     const isFav = !!item.rec_num && favRecNums.has(item.rec_num);
     return (
       <TouchableOpacity key={item.id} onPress={() => openDetail(item)}>
-        <Box flexDirection="row" alignItems="center" style={{ paddingVertical: 14 }}>
+        <Box
+          flexDirection="row"
+          alignItems="center"
+          style={{
+            paddingVertical: 14,
+            backgroundColor: i % 2 === 1 ? C.offWhite : 'transparent',
+          }}
+        >
           {/* Green availability dot */}
           <Box
             style={{
@@ -732,7 +828,7 @@ export default function BrowseScreen() {
             <Box flexDirection="row" alignItems="center">
               <Text
                 variant="body"
-                style={{ fontFamily: 'DMSans_600SemiBold', flexShrink: 1 }}
+                style={{ fontFamily: 'DMSans_700Bold', fontSize: 15, flexShrink: 1 }}
                 numberOfLines={1}
               >
                 {item.name}
@@ -752,13 +848,12 @@ export default function BrowseScreen() {
               P: {n.pro}g · C: {n.carb}g · F: {n.fat}g
             </Text>
           </Box>
-          {/* Heart: silver unfavorited, maroon favorited */}
+          {/* Heart: 44x44 minimum tap target */}
           <TouchableOpacity
             onPress={() => handleToggleFavorite(item)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={{ paddingHorizontal: 8 }}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Feather name="heart" size={18} color={isFav ? C.maroon : C.silver} />
+            <Feather name="heart" size={22} color={isFav ? C.maroon : C.silver} />
           </TouchableOpacity>
           {/* Calorie: statValue maroon */}
           <Box style={{ alignItems: 'flex-end', minWidth: 40 }}>
@@ -945,7 +1040,13 @@ export default function BrowseScreen() {
             keyboardShouldPersistTaps="handled"
           >
             {renderHeader()}
-            {renderSearchBar(hallSearch, setHallSearch, 'Search halls or food items...')}
+            {renderSearchBar(
+              hallSearch,
+              setHallSearch,
+              'Search for food...',
+              () => setSearchFocused(true),
+              () => setTimeout(() => setSearchFocused(false), 200),
+            )}
             {renderMealFilter()}
 
             {usingFallback && (
@@ -962,71 +1063,181 @@ export default function BrowseScreen() {
               </Box>
             )}
 
-            {loading ? (
-              <Box style={{ gap: 12 }}>
-                <Skeleton width={'100%'} height={80} borderRadius={8} />
-                <Skeleton width={'100%'} height={80} borderRadius={8} />
-                <Skeleton width={'100%'} height={80} borderRadius={8} />
-                <Skeleton width={'100%'} height={80} borderRadius={8} />
-              </Box>
-            ) : filteredHalls.length === 0 ? (
-              <Box alignItems="center" style={{ paddingTop: 40 }}>
-                <Feather name="home" size={32} color={C.silver} />
-                <Text variant="muted" style={{ marginTop: 8 }}>
-                  {hallSearch ? `No dining halls match "${hallSearch}"` : 'No halls found'}
-                </Text>
-              </Box>
-            ) : (
-              filteredHalls.map((hall) => {
-                const rating = hallRatings[hall.id];
-                const status = hallStatuses[hall.id];
-                return (
-                  <AnimatedCard
-                    key={hall.id}
-                    onPress={() => openHall(hall)}
-                    haptic
-                    padding="m"
-                    marginBottom="s"
-                    flexDirection="row"
-                    alignItems="center"
+            {/* Recent searches — shown when focused but empty */}
+            {searchFocused && !hallSearch && recentSearches.length > 0 && (
+              <Box style={{ marginBottom: 16 }}>
+                <Text variant="sectionHeader" style={{ marginBottom: 10 }}>RECENT SEARCHES</Text>
+                {recentSearches.map((term, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setHallSearch(term)}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}
                   >
-                    <Box flex={1}>
-                      <Text variant="cardTitle">{hall.name}</Text>
-                      <Box flexDirection="row" alignItems="center" style={{ gap: 6, marginTop: 6 }}>
-                        {rating ? (
-                          <>
-                            <Feather name="star" size={12} color={C.gold} />
-                            <Text variant="body" style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 14 }}>{rating.avg.toFixed(1)}</Text>
-                            <Text variant="muted" style={{ fontSize: 14 }}>·</Text>
-                          </>
-                        ) : null}
-                        <Text variant="muted" style={{ fontSize: 14 }}>{hall.count} items</Text>
-                      </Box>
-                      {status?.isOpen ? (
-                        <Box style={{
-                          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4,
-                          backgroundColor: C.successTint, marginTop: 8, alignSelf: 'flex-start',
-                        }}>
-                          <Text style={{ fontSize: 11, color: C.success, fontFamily: 'DMSans_700Bold' }}>
-                            Open{status.currentMeal ? ` until ${status.currentMeal}` : ''}
-                          </Text>
-                        </Box>
-                      ) : status ? (
-                        <Box style={{
-                          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4,
-                          backgroundColor: C.errorTint, marginTop: 8, alignSelf: 'flex-start',
-                        }}>
-                          <Text style={{ fontSize: 11, color: C.error, fontFamily: 'DMSans_700Bold' }}>
-                            Closed{status.nextOpen ? ` · Opens ${status.nextOpen}` : ''}
-                          </Text>
-                        </Box>
-                      ) : null}
-                    </Box>
-                    <Feather name="chevron-right" size={18} color={C.silver} />
-                  </AnimatedCard>
-                );
-              })
+                    <Feather name="clock" size={16} color={C.silver} />
+                    <Text variant="body" style={{ flex: 1, fontSize: 15 }}>{term}</Text>
+                    <Feather name="arrow-up-left" size={14} color={C.silver} />
+                  </TouchableOpacity>
+                ))}
+              </Box>
             )}
+
+            {/* Global food search results */}
+            {hallSearch.trim().length >= 2 ? (
+              globalSearchLoading ? (
+                <Box style={{ gap: 12 }}>
+                  <Skeleton width={'100%'} height={60} borderRadius={8} />
+                  <Skeleton width={'100%'} height={60} borderRadius={8} />
+                  <Skeleton width={'100%'} height={60} borderRadius={8} />
+                </Box>
+              ) : globalSearchResults.length > 0 ? (
+                <>
+                  <Text variant="sectionHeader" style={{ marginBottom: 10 }}>
+                    FOOD ITEMS ({globalSearchResults.length})
+                  </Text>
+                  <Box
+                    borderRadius="m"
+                    style={{ borderWidth: 1, borderColor: C.border, backgroundColor: C.white, overflow: 'hidden' }}
+                  >
+                    {globalSearchResults.map((item, i) => {
+                      const n = getNutr(item);
+                      const isFav = !!item.rec_num && favRecNums.has(item.rec_num);
+                      return (
+                        <TouchableOpacity key={item.id} onPress={() => {
+                          setSelectedHall({ id: item.dining_hall_id, name: item.hall_name });
+                          setSelectedItem(item);
+                          setServings(1);
+                          setLogSuccess(false);
+                          setView('detail');
+                        }}>
+                          <Box
+                            flexDirection="row"
+                            alignItems="center"
+                            style={{
+                              paddingVertical: 12, paddingHorizontal: 16,
+                              backgroundColor: i % 2 === 1 ? C.offWhite : 'transparent',
+                            }}
+                          >
+                            <Box flex={1}>
+                              <Text variant="body" style={{ fontFamily: 'DMSans_700Bold', fontSize: 15 }} numberOfLines={1}>
+                                {item.name}
+                              </Text>
+                              <Text variant="dim" style={{ marginTop: 2, fontSize: 12 }}>
+                                {item.hall_name} · {item.station || ''}
+                              </Text>
+                            </Box>
+                            <TouchableOpacity
+                              onPress={() => handleToggleFavorite(item)}
+                              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              <Feather name="heart" size={20} color={isFav ? C.maroon : C.silver} />
+                            </TouchableOpacity>
+                            <Box style={{ alignItems: 'flex-end', minWidth: 40 }}>
+                              <Text style={{ fontSize: 20, color: C.maroon, fontFamily: 'DMSans_700Bold' }}>{n.cal}</Text>
+                              <Text variant="dim">cal</Text>
+                            </Box>
+                          </Box>
+                          {i < globalSearchResults.length - 1 && <Box style={{ height: 1, marginLeft: 16, backgroundColor: C.borderLight }} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </Box>
+
+                  {/* Also show matching halls below */}
+                  {filteredHalls.length > 0 && (
+                    <>
+                      <Text variant="sectionHeader" style={{ marginTop: 20, marginBottom: 10 }}>DINING HALLS</Text>
+                      {filteredHalls.map((hall) => {
+                        const status = hallStatuses[hall.id];
+                        const isClosed = status && !status.isOpen;
+                        return (
+                          <AnimatedCard
+                            key={hall.id}
+                            onPress={() => openHall(hall)}
+                            haptic
+                            padding="m"
+                            marginBottom="s"
+                            style={{ opacity: isClosed ? 0.5 : 1 }}
+                          >
+                            <Text variant="cardTitle">{hall.name}</Text>
+                            <Text variant="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                              {hall.stationCount} station{hall.stationCount !== 1 ? 's' : ''} · {hall.count} items
+                            </Text>
+                          </AnimatedCard>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              ) : (
+                <Box alignItems="center" style={{ paddingTop: 40 }}>
+                  <Feather name="search" size={32} color={C.silver} />
+                  <Text variant="muted" style={{ marginTop: 8, textAlign: 'center' }}>
+                    No food items match "{hallSearch}"
+                  </Text>
+                </Box>
+              )
+            ) : !searchFocused || hallSearch ? (
+              /* Normal halls list */
+              loading ? (
+                <Box style={{ gap: 12 }}>
+                  <Skeleton width={'100%'} height={80} borderRadius={8} />
+                  <Skeleton width={'100%'} height={80} borderRadius={8} />
+                  <Skeleton width={'100%'} height={80} borderRadius={8} />
+                  <Skeleton width={'100%'} height={80} borderRadius={8} />
+                </Box>
+              ) : filteredHalls.length === 0 ? (
+                <Box alignItems="center" style={{ paddingTop: 40 }}>
+                  <Feather name="home" size={32} color={C.silver} />
+                  <Text variant="muted" style={{ marginTop: 8 }}>No halls found</Text>
+                </Box>
+              ) : (
+                filteredHalls.map((hall) => {
+                  const status = hallStatuses[hall.id];
+                  const isClosed = status && !status.isOpen;
+                  return (
+                    <AnimatedCard
+                      key={hall.id}
+                      onPress={() => openHall(hall)}
+                      haptic
+                      padding="m"
+                      marginBottom="s"
+                      style={{ opacity: isClosed ? 0.5 : 1 }}
+                    >
+                      <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+                        <Text variant="cardTitle" style={{ flexShrink: 1 }}>{hall.name}</Text>
+                        {status?.isOpen && status.closingSoon ? (
+                          <Box style={{
+                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4,
+                            backgroundColor: C.goldMuted,
+                          }}>
+                            <Text style={{ fontSize: 11, color: C.gold, fontFamily: 'DMSans_700Bold' }}>
+                              Closes {status.closingTime}
+                            </Text>
+                          </Box>
+                        ) : status?.isOpen ? (
+                          <Box style={{
+                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4,
+                            backgroundColor: C.successTint,
+                          }}>
+                            <Text style={{ fontSize: 11, color: C.success, fontFamily: 'DMSans_700Bold' }}>Open</Text>
+                          </Box>
+                        ) : status && !status.isOpen ? (
+                          <Box style={{
+                            paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4,
+                            backgroundColor: 'rgba(168,169,173,0.12)',
+                          }}>
+                            <Text style={{ fontSize: 11, color: C.silver, fontFamily: 'DMSans_700Bold' }}>Closed</Text>
+                          </Box>
+                        ) : null}
+                      </Box>
+                      <Text variant="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                        {hall.stationCount} station{hall.stationCount !== 1 ? 's' : ''} · {hall.count} items
+                      </Text>
+                    </AnimatedCard>
+                  );
+                })
+              )
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -1045,19 +1256,6 @@ export default function BrowseScreen() {
         {wrapAnimated(
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {renderHeader()}
-
-            {/* Rate this hall */}
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-                paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6,
-                borderWidth: 1, borderColor: C.silver, marginBottom: 16,
-              }}
-              onPress={openRatingModal}
-            >
-              <Feather name="star" size={16} color={C.gold} />
-              <Text variant="body" style={{ fontSize: 13, fontFamily: 'DMSans_600SemiBold' }}>Rate This Hall</Text>
-            </TouchableOpacity>
 
             {renderSearchBar(itemSearch, setItemSearch, 'Search items...')}
 
@@ -1087,13 +1285,13 @@ export default function BrowseScreen() {
                 ))
               )
             ) : (
-              /* Normal: 2-column station grid */
+              /* Compact station list */
               hallItemsLoading ? (
-                <Box flexDirection="row" flexWrap="wrap" style={{ gap: 10, marginTop: 8 }}>
-                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={8} />
-                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={8} />
-                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={8} />
-                  <Skeleton width={(SCREEN_WIDTH - 40 - 10) / 2} height={100} borderRadius={8} />
+                <Box style={{ gap: 0 }}>
+                  <Skeleton width={'100%'} height={52} borderRadius={0} />
+                  <Skeleton width={'100%'} height={52} borderRadius={0} />
+                  <Skeleton width={'100%'} height={52} borderRadius={0} />
+                  <Skeleton width={'100%'} height={52} borderRadius={0} />
                 </Box>
               ) : derivedStations.length === 0 ? (
                 <Box alignItems="center" style={{ paddingTop: 40 }}>
@@ -1101,46 +1299,52 @@ export default function BrowseScreen() {
                   <Text variant="muted" style={{ marginTop: 8 }}>No stations for this meal</Text>
                 </Box>
               ) : (
-                <Box flexDirection="row" flexWrap="wrap" style={{ gap: 10, marginTop: 8 }}>
-                  {derivedStations.map((s) => {
+                <Box borderRadius="m" style={{ backgroundColor: C.white, borderWidth: 1, borderColor: C.border, overflow: 'hidden' }}>
+                  {derivedStations.map((s, i) => {
                     const emoji = getStationEmoji(s.name);
                     return (
-                      <AnimatedCard
+                      <TouchableOpacity
                         key={s.name}
                         onPress={() => openStation(s.name)}
-                        haptic
-                        alignItems="center"
-                        justifyContent="center"
-                        padding="s"
                         style={{
-                          width: (SCREEN_WIDTH - 40 - 10) / 2,
-                          height: 100,
+                          flexDirection: 'row', alignItems: 'center',
+                          paddingVertical: 14, paddingHorizontal: 16,
+                          borderBottomWidth: i < derivedStations.length - 1 ? 1 : 0,
+                          borderBottomColor: C.borderLight,
                         }}
                       >
-                        {emoji ? (
-                          <Text style={{ fontSize: 26 }}>{emoji}</Text>
-                        ) : (
-                          <Feather name="grid" size={22} color={C.silver} />
-                        )}
-                        <Text
-                          variant="body"
-                          style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 12, textAlign: 'center', marginTop: 4 }}
-                          numberOfLines={2}
-                        >
+                        <Box style={{ width: 28, alignItems: 'center', marginRight: 12 }}>
+                          {emoji ? (
+                            <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                          ) : (
+                            <Feather name="grid" size={18} color={C.silver} />
+                          )}
+                        </Box>
+                        <Text variant="body" style={{ flex: 1, fontFamily: 'DMSans_600SemiBold', fontSize: 15 }} numberOfLines={1}>
                           {s.name}
                         </Text>
-                        <Text variant="dim" style={{ position: 'absolute', bottom: 8 }}>{s.count} items</Text>
-                      </AnimatedCard>
+                        <Text variant="muted" style={{ fontSize: 13, marginRight: 8 }}>{s.count} items</Text>
+                        <Feather name="chevron-right" size={16} color={C.silver} />
+                      </TouchableOpacity>
                     );
                   })}
                 </Box>
               )
             )}
 
-            {/* Recent Reviews — hidden during search */}
+            {/* Rate & Reviews — hidden during search */}
             {itemSearch.length === 0 && (
               <Box style={{ marginTop: 28 }}>
-                <Text variant="cardTitle" style={{ fontSize: 18, fontFamily: 'Outfit_700Bold', marginBottom: 12 }}>Recent Reviews</Text>
+                <Box flexDirection="row" alignItems="center" justifyContent="space-between" style={{ marginBottom: 12 }}>
+                  <Text variant="cardTitle" style={{ fontSize: 18, fontFamily: 'Outfit_700Bold' }}>Reviews</Text>
+                  <TouchableOpacity
+                    onPress={openRatingModal}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Feather name="star" size={14} color={C.gold} />
+                    <Text variant="body" style={{ fontSize: 13, color: C.maroon, fontFamily: 'DMSans_600SemiBold' }}>Rate</Text>
+                  </TouchableOpacity>
+                </Box>
                 {reviewsLoading ? (
                   <Box style={{ gap: 10 }}>
                     <Skeleton width={'100%'} height={80} borderRadius={8} />
@@ -1402,25 +1606,25 @@ export default function BrowseScreen() {
               )}
             </ScrollView>
 
-            {/* Task 4.4: Full-width maroon log button with press-scale + haptic */}
+            {/* Sticky log button — fixed above tab bar */}
             <Box style={{
-              paddingHorizontal: 20, paddingTop: 12, paddingBottom: 120,
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              paddingHorizontal: 20, paddingTop: 12, paddingBottom: 100,
               borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.offWhite,
             }}>
-              <Text variant="muted" style={{ textAlign: 'center', marginBottom: 10 }}>
-                {adjCal} cal · {servings} serving{servings !== 1 ? 's' : ''}
-              </Text>
               <PressScaleButton
                 onPress={logMeal}
                 disabled={logging || logSuccess}
                 style={{
-                  height: 52, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
+                  height: 54, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+                  flexDirection: 'row', gap: 8,
                   backgroundColor: logSuccess ? C.success : C.maroon,
                   opacity: logging ? 0.6 : 1,
                 }}
               >
+                {logSuccess && <Feather name="check-circle" size={20} color={C.white} />}
                 <Text variant="body" style={{ color: C.white, fontFamily: 'DMSans_700Bold', fontSize: 16 }}>
-                  {logging ? 'Logging...' : logSuccess ? 'Logged!' : 'Log This Item'}
+                  {logging ? 'Logging...' : logSuccess ? 'Logged!' : `Log This Item · ${adjCal.toLocaleString()} cal`}
                 </Text>
               </PressScaleButton>
             </Box>

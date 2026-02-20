@@ -70,9 +70,7 @@ export default function StreakBadge({ badge, size = 'small' }: Props) {
                 height: circleSize,
               }}
             />
-            <Text style={{ fontSize: emojiSize, textAlign: 'center' }}>
-              {badge.emoji}
-            </Text>
+            <Feather name={(badge.icon || 'award') as any} size={emojiSize} color="#FFFFFF" />
             <MetallicShimmer
               width={circleSize}
               height={circleSize}

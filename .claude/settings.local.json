@@ -31,7 +31,12 @@
       "WebFetch(domain:)",
       "Bash(cat:*)",
       "Bash(npm uninstall:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(find:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(while read file)",
+      "Bash(do if grep -P \"[^\\\\x00-\\\\x7F]\" \"$file\")"
     ]
   }
 }

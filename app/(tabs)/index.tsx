@@ -122,6 +122,7 @@ export default function HomeScreen() {
   const [bannerVisible, setBannerVisible] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerColor, setBannerColor] = useState<string | undefined>(undefined);
+  const [bannerVariant, setBannerVariant] = useState<'goal' | 'streak' | 'water' | undefined>(undefined);
 
   // ─── Celebration refs ───
   const calorieGoalCelebrated = useRef(false);
@@ -257,6 +258,7 @@ export default function HomeScreen() {
         if (MILESTONES.includes(streakResult.currentStreak) && streakResult.currentStreak > lastCelebratedMilestone.current) {
           setShowConfetti(true);
           setBannerMessage(`${streakResult.currentStreak}-day streak! Amazing!`);
+          setBannerVariant('streak');
           setBannerColor(undefined);
           setBannerVisible(true);
           lastCelebratedMilestone.current = streakResult.currentStreak;
@@ -293,6 +295,7 @@ export default function HomeScreen() {
           calorieGoalCelebrated.current = true;
           setShowConfetti(true);
           setBannerMessage('Daily calorie goal reached!');
+          setBannerVariant('goal');
           setBannerColor(undefined);
           setBannerVisible(true);
         }
@@ -304,6 +307,7 @@ export default function HomeScreen() {
         calorieGoalCelebrated.current = true;
         setShowConfetti(true);
         setBannerMessage('Daily calorie goal reached!');
+        setBannerVariant('goal');
         setBannerColor(undefined);
         setBannerVisible(true);
         triggerHaptic('success');
@@ -339,6 +343,7 @@ export default function HomeScreen() {
       if (newTotal >= waterGoal && !waterGoalCelebrated.current) {
         waterGoalCelebrated.current = true;
         setBannerMessage('Hydration goal hit!');
+        setBannerVariant('water');
         setBannerColor('#4A7FC5');
         setBannerVisible(true);
       }
@@ -467,6 +472,7 @@ export default function HomeScreen() {
       <GoalHitBanner
         visible={bannerVisible}
         message={bannerMessage}
+        variant={bannerVariant}
         color={bannerColor}
         onDismiss={() => setBannerVisible(false)}
       />
@@ -596,8 +602,12 @@ export default function HomeScreen() {
         onRequestClose={() => setShowHistory(false)}
       >
         <Box flex={1} backgroundColor="background">
-          <Box flexDirection="row" justifyContent="flex-end" paddingHorizontal="m" paddingTop="m" paddingBottom="s">
-            <Text variant="body" color="textMuted" onPress={() => setShowHistory(false)}>Close</Text>
+          {/* Modal handle */}
+          <Box alignItems="center" style={{ paddingTop: 8, paddingBottom: 4 }}>
+            <Box style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: '#A8A9AD' }} />
+          </Box>
+          <Box flexDirection="row" justifyContent="flex-end" paddingHorizontal="m" paddingTop="s" paddingBottom="s">
+            <Text variant="body" style={{ color: '#A8A9AD', fontFamily: 'DMSans_500Medium' }} onPress={() => setShowHistory(false)}>Close</Text>
           </Box>
           <HistoryScreen />
         </Box>

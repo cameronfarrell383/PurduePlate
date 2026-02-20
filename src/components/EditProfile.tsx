@@ -6,14 +6,12 @@ import {
   Modal,
   Platform,
   ScrollView,
-  StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/src/context/ThemeContext';
+import { Text } from '@/src/theme/restyleTheme';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { recalculateGoals } from '@/src/utils/goals';
@@ -47,12 +45,9 @@ interface DiningHall {
   name: string;
 }
 
-// ── Sub-components defined outside to prevent TextInput remount on re-render ──
-
 function SectionHeader({ title }: { title: string }) {
-  const { colors } = useTheme();
   return (
-    <Text style={[st.sectionHeader, { color: colors.textMuted, fontFamily: 'DMSans_600SemiBold' }]}>
+    <Text style={{ fontSize: 11, fontFamily: 'DMSans_600SemiBold', textTransform: 'uppercase', letterSpacing: 1.5, color: '#A8A9AD', marginBottom: 8, marginTop: 20 }}>
       {title}
     </Text>
   );
@@ -63,25 +58,20 @@ function PillRow({ options, selected, onSelect }: {
   selected: string;
   onSelect: (v: string) => void;
 }) {
-  const { colors } = useTheme();
   return (
-    <View style={st.pillRow}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {options.map((opt) => (
         <TouchableOpacity
           key={opt}
-          style={[st.pill, {
-            backgroundColor: selected === opt ? colors.maroon : colors.cardAlt,
-            borderColor: selected === opt ? colors.maroon : colors.border,
-          }]}
+          style={{
+            paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6, borderWidth: 1,
+            backgroundColor: selected === opt ? '#861F41' : '#FAFAFA',
+            borderColor: selected === opt ? '#861F41' : '#E8E8EA',
+          }}
           onPress={() => onSelect(opt)}
           activeOpacity={0.7}
         >
-          <Text style={[st.pillText, {
-            color: selected === opt ? '#fff' : colors.textMuted,
-            fontFamily: 'DMSans_600SemiBold',
-          }]}>
-            {opt}
-          </Text>
+          <Text style={{ fontSize: 13, color: selected === opt ? '#FFFFFF' : '#6B6B6F', fontFamily: 'DMSans_600SemiBold' }}>{opt}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -89,47 +79,32 @@ function PillRow({ options, selected, onSelect }: {
 }
 
 export default function EditProfile({ visible, onClose, onSaved }: EditProfileProps) {
-  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [diningHalls, setDiningHalls] = useState<DiningHall[]>([]);
 
-  // Personal Info
   const [name, setName] = useState('');
   const [year, setYear] = useState('');
   const [dorm, setDorm] = useState('');
-
-  // Body Stats
   const [weightLbs, setWeightLbs] = useState('');
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
   const [age, setAge] = useState('');
   const [isMale, setIsMale] = useState(true);
-
-  // Preferences
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('light');
   const [goal, setGoal] = useState<GoalType>('maintain');
   const [homeHallId, setHomeHallId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (visible) {
-      loadProfile();
-    }
-  }, [visible]);
+  useEffect(() => { if (visible) loadProfile(); }, [visible]);
 
   const loadProfile = async () => {
     setLoading(true);
     try {
       const userId = await requireUserId();
       const [{ data: profile }, { data: halls }] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('name, year, dorm, weight, height, age, is_male, activity_level, goal, home_hall_id')
-          .eq('id', userId)
-          .single(),
+        supabase.from('profiles').select('name, year, dorm, weight, height, age, is_male, activity_level, goal, home_hall_id').eq('id', userId).single(),
         supabase.from('dining_halls').select('id, name').order('name'),
       ]);
-
       if (profile) {
         setName(profile.name || '');
         setYear(profile.year || '');
@@ -139,10 +114,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
           const totalInches = profile.height / 2.54;
           setHeightFt(String(Math.floor(totalInches / 12)));
           setHeightIn(String(Math.round(totalInches % 12)));
-        } else {
-          setHeightFt('');
-          setHeightIn('');
-        }
+        } else { setHeightFt(''); setHeightIn(''); }
         setAge(profile.age ? String(profile.age) : '');
         setIsMale(profile.is_male ?? true);
         setActivityLevel((profile.activity_level as ActivityLevel) || 'light');
@@ -150,11 +122,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
         setHomeHallId(profile.home_hall_id ?? null);
       }
       setDiningHalls(halls || []);
-    } catch {
-      // silently ignore
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silently ignore */ } finally { setLoading(false); }
   };
 
   const handleSave = async () => {
@@ -166,277 +134,173 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
       const heightCm = Math.round((ft * 12 + inc) * 2.54);
 
       const { error } = await supabase.from('profiles').update({
-        name: name.trim() || 'Student',
-        year,
-        dorm: dorm.trim(),
-        weight: parseFloat(weightLbs) || 0,
-        height: heightCm,
-        age: parseInt(age) || 0,
-        is_male: isMale,
-        activity_level: activityLevel,
-        goal,
-        home_hall_id: homeHallId,
+        name: name.trim() || 'Student', year, dorm: dorm.trim(),
+        weight: parseFloat(weightLbs) || 0, height: heightCm,
+        age: parseInt(age) || 0, is_male: isMale,
+        activity_level: activityLevel, goal, home_hall_id: homeHallId,
       }).eq('id', userId);
       if (error) { console.error('Save profile failed:', error.message); Alert.alert('Error', 'Failed to save profile. Please try again.'); return; }
 
-      Alert.alert(
-        'Profile Saved',
-        'Recalculate your nutrition goals based on your updated body stats?',
-        [
-          {
-            text: 'No thanks',
-            style: 'cancel',
-            onPress: () => { onSaved(); onClose(); },
-          },
-          {
-            text: 'Recalculate',
-            onPress: async () => {
-              try {
-                await recalculateGoals(userId);
-              } catch { /* ignore */ }
-              onSaved();
-              onClose();
-            },
-          },
-        ],
-      );
-    } catch {
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+      Alert.alert('Profile Saved', 'Recalculate your nutrition goals based on your updated body stats?', [
+        { text: 'No thanks', style: 'cancel', onPress: () => { onSaved(); onClose(); } },
+        { text: 'Recalculate', onPress: async () => { try { await recalculateGoals(userId); } catch { /* ignore */ } onSaved(); onClose(); } },
+      ]);
+    } catch { Alert.alert('Error', 'Failed to save profile. Please try again.'); } finally { setSaving(false); }
   };
 
   const activityLabel = ACTIVITY_OPTIONS.find(o => o.key === activityLevel)?.label || '';
   const goalLabel = GOAL_OPTIONS.find(o => o.key === goal)?.label || '';
 
+  const inputStyle = {
+    flex: 1, borderRadius: 6, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, fontSize: 15,
+    backgroundColor: '#F5F5F7', borderColor: '#E8E8EA', color: '#1A1A1A', fontFamily: 'DMSans_400Regular',
+  };
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={[st.container, { backgroundColor: colors.background }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        {/* Modal handle */}
+        <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
+          <View style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: '#A8A9AD' }} />
+        </View>
 
         {/* Header */}
-        <View style={[st.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={st.headerSide} activeOpacity={0.6}>
-            <Text style={[{ fontSize: 15, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>Cancel</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#E8E8EA' }}>
+          <TouchableOpacity onPress={onClose} style={{ width: 64 }} activeOpacity={0.6}>
+            <Text style={{ fontSize: 15, color: '#A8A9AD', fontFamily: 'DMSans_500Medium' }}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[st.headerTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>My Profile</Text>
-          <View style={st.headerSide} />
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, color: '#1A1A1A', fontFamily: 'Outfit_700Bold' }}>My Profile</Text>
+          <View style={{ width: 64 }} />
         </View>
 
         {loading ? (
-          <View style={st.loadingWrap}>
-            <ActivityIndicator size="large" color={colors.maroon} />
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#861F41" />
           </View>
         ) : (
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <ScrollView
-              contentContainerStyle={st.content}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-              {/* ── Personal Info ── */}
+              {/* Personal Info */}
               <SectionHeader title="PERSONAL INFO" />
-              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-
-                <View style={st.fieldRow}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Name</Text>
-                  <TextInput
-                    style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="Your name"
-                    placeholderTextColor={colors.textDim}
-                    returnKeyType="done"
-                  />
+              <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FFFFFF', overflow: 'hidden', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Name</Text>
+                  <TextInput style={inputStyle} value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor="#9A9A9E" returnKeyType="done" />
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Year</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 14 }}>
+                  <Text style={{ fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium', marginBottom: 10 }}>Year</Text>
                   <PillRow options={YEAR_OPTIONS} selected={year} onSelect={setYear} />
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={st.fieldRow}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Dorm</Text>
-                  <TextInput
-                    style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-                    value={dorm}
-                    onChangeText={setDorm}
-                    placeholder="Slusher Hall"
-                    placeholderTextColor={colors.textDim}
-                    returnKeyType="done"
-                  />
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Dorm</Text>
+                  <TextInput style={inputStyle} value={dorm} onChangeText={setDorm} placeholder="Slusher Hall" placeholderTextColor="#9A9A9E" returnKeyType="done" />
                 </View>
-
               </View>
 
-              {/* ── Body Stats ── */}
+              {/* Body Stats */}
               <SectionHeader title="BODY STATS" />
-              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-
-                <View style={st.fieldRow}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Weight</Text>
-                  <TextInput
-                    style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-                    value={weightLbs}
-                    onChangeText={setWeightLbs}
-                    placeholder="165"
-                    placeholderTextColor={colors.textDim}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                  />
-                  <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>lbs</Text>
+              <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FFFFFF', overflow: 'hidden', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Weight</Text>
+                  <TextInput style={inputStyle} value={weightLbs} onChangeText={setWeightLbs} placeholder="165" placeholderTextColor="#9A9A9E" keyboardType="numeric" returnKeyType="done" />
+                  <Text style={{ fontSize: 13, width: 30, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>lbs</Text>
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={st.fieldRow}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Height</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Height</Text>
                   <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
                     <View style={{ flex: 1, alignItems: 'center' }}>
-                      <TextInput
-                        style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular', width: '100%' }]}
-                        value={heightFt}
-                        onChangeText={setHeightFt}
-                        placeholder="5"
-                        placeholderTextColor={colors.textDim}
-                        keyboardType="numeric"
-                        returnKeyType="done"
-                      />
-                      <Text style={[{ fontSize: 11, color: colors.textDim, marginTop: 3, fontFamily: 'DMSans_400Regular' }]}>ft</Text>
+                      <TextInput style={{ ...inputStyle, width: '100%' }} value={heightFt} onChangeText={setHeightFt} placeholder="5" placeholderTextColor="#9A9A9E" keyboardType="numeric" returnKeyType="done" />
+                      <Text style={{ fontSize: 11, color: '#9A9A9E', marginTop: 3, fontFamily: 'DMSans_400Regular' }}>ft</Text>
                     </View>
                     <View style={{ flex: 1, alignItems: 'center' }}>
-                      <TextInput
-                        style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular', width: '100%' }]}
-                        value={heightIn}
-                        onChangeText={setHeightIn}
-                        placeholder="10"
-                        placeholderTextColor={colors.textDim}
-                        keyboardType="numeric"
-                        returnKeyType="done"
-                      />
-                      <Text style={[{ fontSize: 11, color: colors.textDim, marginTop: 3, fontFamily: 'DMSans_400Regular' }]}>in</Text>
+                      <TextInput style={{ ...inputStyle, width: '100%' }} value={heightIn} onChangeText={setHeightIn} placeholder="10" placeholderTextColor="#9A9A9E" keyboardType="numeric" returnKeyType="done" />
+                      <Text style={{ fontSize: 11, color: '#9A9A9E', marginTop: 3, fontFamily: 'DMSans_400Regular' }}>in</Text>
                     </View>
                   </View>
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={st.fieldRow}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Age</Text>
-                  <TextInput
-                    style={[st.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-                    value={age}
-                    onChangeText={setAge}
-                    placeholder="20"
-                    placeholderTextColor={colors.textDim}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                  />
-                  <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>yrs</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Age</Text>
+                  <TextInput style={inputStyle} value={age} onChangeText={setAge} placeholder="20" placeholderTextColor="#9A9A9E" keyboardType="numeric" returnKeyType="done" />
+                  <Text style={{ fontSize: 13, width: 30, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>yrs</Text>
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Gender</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 14 }}>
+                  <Text style={{ fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium', marginBottom: 10 }}>Gender</Text>
                   <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
                     {[{ label: 'Male', val: true }, { label: 'Female', val: false }].map((g) => (
                       <TouchableOpacity
                         key={g.label}
-                        style={[st.genderBtn, {
-                          flex: 1,
-                          backgroundColor: isMale === g.val ? colors.maroon : colors.cardAlt,
-                          borderColor: isMale === g.val ? colors.maroon : colors.border,
-                        }]}
+                        style={{
+                          flex: 1, padding: 12, borderRadius: 6, borderWidth: 1, alignItems: 'center',
+                          backgroundColor: isMale === g.val ? '#861F41' : '#FAFAFA',
+                          borderColor: isMale === g.val ? '#861F41' : '#E8E8EA',
+                        }}
                         onPress={() => setIsMale(g.val)}
                         activeOpacity={0.7}
                       >
-                        <Text style={[{ fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: isMale === g.val ? '#fff' : colors.textMuted }]}>
-                          {g.label}
-                        </Text>
+                        <Text style={{ fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: isMale === g.val ? '#FFFFFF' : '#6B6B6F' }}>{g.label}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                 </View>
-
               </View>
 
-              {/* ── Preferences ── */}
+              {/* Preferences */}
               <SectionHeader title="PREFERENCES" />
-              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-
-                <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Activity Level</Text>
+              <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FFFFFF', overflow: 'hidden', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 14 }}>
+                  <Text style={{ fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium', marginBottom: 10 }}>Activity Level</Text>
                   <PillRow
                     options={ACTIVITY_OPTIONS.map(o => o.label)}
                     selected={activityLabel}
-                    onSelect={(label) => {
-                      const found = ACTIVITY_OPTIONS.find(o => o.label === label);
-                      if (found) setActivityLevel(found.key);
-                    }}
+                    onSelect={(label) => { const found = ACTIVITY_OPTIONS.find(o => o.label === label); if (found) setActivityLevel(found.key); }}
                   />
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Goal</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 14 }}>
+                  <Text style={{ fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium', marginBottom: 10 }}>Goal</Text>
                   <PillRow
                     options={GOAL_OPTIONS.map(o => o.label)}
                     selected={goalLabel}
-                    onSelect={(label) => {
-                      const found = GOAL_OPTIONS.find(o => o.label === label);
-                      if (found) setGoal(found.key);
-                    }}
+                    onSelect={(label) => { const found = GOAL_OPTIONS.find(o => o.label === label); if (found) setGoal(found.key); }}
                   />
                 </View>
-
-                <View style={[st.sep, { backgroundColor: colors.border }]} />
-
-                <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
-                  <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Home Dining Hall</Text>
+                <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
+                <View style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 14 }}>
+                  <Text style={{ fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium', marginBottom: 10 }}>Home Dining Hall</Text>
                   {diningHalls.map((hall) => (
                     <TouchableOpacity
                       key={hall.id}
-                      style={[st.hallRow, {
-                        backgroundColor: homeHallId === hall.id ? colors.maroon + '22' : colors.cardAlt,
-                        borderColor: homeHallId === hall.id ? colors.maroon : colors.border,
-                      }]}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1, marginBottom: 8, width: '100%',
+                        backgroundColor: homeHallId === hall.id ? 'rgba(134,31,65,0.08)' : '#FAFAFA',
+                        borderColor: homeHallId === hall.id ? '#861F41' : '#E8E8EA',
+                      }}
                       onPress={() => setHomeHallId(hall.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[{ fontSize: 14, fontFamily: 'DMSans_500Medium', color: homeHallId === hall.id ? colors.maroon : colors.text, flex: 1 }]}>
-                        {hall.name}
-                      </Text>
-                      {homeHallId === hall.id && (
-                        <Feather name="check" size={14} color={colors.maroon} />
-                      )}
+                      <Text style={{ fontSize: 14, fontFamily: 'DMSans_500Medium', color: homeHallId === hall.id ? '#861F41' : '#1A1A1A', flex: 1 }}>{hall.name}</Text>
+                      {homeHallId === hall.id && <Feather name="check" size={14} color="#861F41" />}
                     </TouchableOpacity>
                   ))}
                 </View>
-
               </View>
 
-              {/* ── Save ── */}
+              {/* Save — maroon accent */}
               <TouchableOpacity
-                style={[st.saveBtn, { backgroundColor: colors.maroon, opacity: saving ? 0.6 : 1 }]}
+                style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginTop: 24, backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
                 onPress={handleSave}
                 disabled={saving}
                 activeOpacity={0.85}
               >
                 {saving
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={[st.saveBtnText, { fontFamily: 'DMSans_700Bold' }]}>Save Profile</Text>
+                  ? <ActivityIndicator color="#FFFFFF" />
+                  : <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'DMSans_700Bold' }}>Save Profile</Text>
                 }
               </TouchableOpacity>
 
@@ -447,53 +311,3 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
     </Modal>
   );
 }
-
-const st = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  headerSide: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17 },
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 20, paddingBottom: 48 },
-  sectionHeader: {
-    fontSize: 12,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    marginTop: 20,
-    opacity: 0.7,
-  },
-  card: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
-  label: { fontSize: 14, width: 80 },
-  input: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 15,
-  },
-  unit: { fontSize: 13, width: 30, textAlign: 'right' },
-  sep: { height: 1, marginHorizontal: 14 },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 24, borderWidth: 1 },
-  pillText: { fontSize: 13 },
-  genderBtn: { padding: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center' },
-  hallRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 8,
-    width: '100%',
-  },
-  saveBtn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 24 },
-  saveBtnText: { color: '#fff', fontSize: 16 },
-});

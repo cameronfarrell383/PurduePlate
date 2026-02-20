@@ -466,6 +466,8 @@ export default function SettingsRestyle() {
       >
         <Box flex={1} justifyContent="center" alignItems="center" padding="l" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <Box backgroundColor="background" width="100%" style={{ borderRadius: 12, padding: 24 }}>
+            {/* Modal handle */}
+            <Box alignSelf="center" style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: '#A8A9AD', marginBottom: 16 }} />
             <Text
               style={{ fontSize: 20, fontFamily: 'Outfit_700Bold', textAlign: 'center', marginBottom: 4 }}
               color="text"
@@ -507,7 +509,7 @@ export default function SettingsRestyle() {
               onPress={() => setWaterGoalModalVisible(false)}
               style={{ marginTop: 12, alignItems: 'center' }}
             >
-              <Text style={{ fontSize: 14, fontFamily: 'DMSans_600SemiBold' }} color="textMuted">Cancel</Text>
+              <Text style={{ fontSize: 14, fontFamily: 'DMSans_600SemiBold', color: '#A8A9AD' }}>Cancel</Text>
             </TouchableOpacity>
           </Box>
         </Box>

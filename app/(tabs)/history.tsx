@@ -4,7 +4,6 @@ import {
   Dimensions,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -12,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
@@ -117,10 +117,10 @@ export default function HistoryScreen() {
     const mealCals = mealLogs.reduce((sum: number, l: any) => sum + getNutrition(l).cal, 0);
     return (
       <View key={meal} style={{ marginBottom: 20 }}>
-        <Text style={[st.mealHeader, { color: colors.text }]}>{label} — {mealCals} cal</Text>
+        <Text style={{ fontSize: 12, fontFamily: 'DMSans_700Bold', letterSpacing: 1.5, opacity: 0.3, textTransform: 'uppercase', marginBottom: 12, color: colors.text }}>{label} — {mealCals} cal</Text>
         {mealLogs.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-            <Text style={{ fontSize: 24 }}>🍽️</Text>
+            <Feather name="clipboard" size={32} color="#A8A9AD" />
             <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 4, fontFamily: 'DMSans_400Regular' }]}>
               No {label.toLowerCase()} logged
             </Text>
@@ -131,12 +131,12 @@ export default function HistoryScreen() {
             const name = log.menu_items?.name || 'Unknown item';
             return (
               <View key={log.id}>
-                <View style={st.logRow}>
-                  <View style={[st.logDot, { backgroundColor: colors.maroon }]} />
-                  <Text style={[st.logName, { color: colors.text, fontFamily: 'DMSans_500Medium' }]} numberOfLines={1}>{name}</Text>
-                  <Text style={[st.logCal, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{n.cal}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, marginRight: 12, backgroundColor: colors.maroon }} />
+                  <Text style={{ flex: 1, fontSize: 14, color: colors.text, fontFamily: 'DMSans_500Medium' }} numberOfLines={1}>{name}</Text>
+                  <Text style={{ fontSize: 14, opacity: 0.7, color: colors.text, fontFamily: 'DMSans_600SemiBold' }}>{n.cal}</Text>
                 </View>
-                {i < mealLogs.length - 1 && <View style={[st.divider, { backgroundColor: colors.cardGlassBorder }]} />}
+                {i < mealLogs.length - 1 && <View style={{ height: 1, marginLeft: 20, backgroundColor: colors.cardGlassBorder }} />}
               </View>
             );
           })
@@ -146,14 +146,14 @@ export default function HistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(selectedDate).then(() => setRefreshing(false)); }} tintColor={colors.maroon} />}
       >
-        <View style={st.pad}>
-          <Text style={[st.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>History</Text>
+        <View style={{ paddingHorizontal: 20 }}>
+          <Text style={{ fontSize: 26, marginTop: 8, marginBottom: 16, color: colors.text, fontFamily: 'Outfit_700Bold' }}>History</Text>
         </View>
 
         {/* Day Strip */}
@@ -168,34 +168,34 @@ export default function HistoryScreen() {
             return (
               <TouchableOpacity
                 key={d.date}
-                style={[st.dayPill, { backgroundColor: sel ? colors.maroon : colors.cardGlass, borderColor: sel ? colors.maroon : colors.cardGlassBorder, borderWidth: 1 }]}
+                style={{ alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24, marginRight: 8, minWidth: 52, backgroundColor: sel ? colors.maroon : colors.cardGlass, borderColor: sel ? colors.maroon : colors.cardGlassBorder, borderWidth: 1 }}
                 onPress={() => selectDate(d.date)}
               >
-                <Text style={[st.dayNum, { color: sel ? '#fff' : colors.text, fontFamily: 'Outfit_700Bold' }]}>{d.dayNum}</Text>
-                <Text style={[st.dayName, { color: sel ? 'rgba(255,255,255,0.7)' : colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{d.dayName}</Text>
+                <Text style={{ fontSize: 18, marginBottom: 2, color: sel ? '#fff' : colors.text, fontFamily: 'Outfit_700Bold' }}>{d.dayNum}</Text>
+                <Text style={{ fontSize: 10, textTransform: 'uppercase', color: sel ? 'rgba(255,255,255,0.7)' : colors.textMuted, fontFamily: 'DMSans_400Regular' }}>{d.dayName}</Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
         {loading ? (
-          <View style={st.loadingWrap}><ActivityIndicator size="large" color={colors.maroon} /></View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}><ActivityIndicator size="large" color={colors.maroon} /></View>
         ) : (
-          <View style={st.pad}>
+          <View style={{ paddingHorizontal: 20 }}>
             {/* Daily Summary */}
-            <View style={[st.summaryCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
+            <View style={{ borderRadius: 14, padding: 20, backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }}>
               <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center' }]}>Total Intake</Text>
               <Text style={[{ fontSize: 36, color: colors.text, fontFamily: 'Outfit_800ExtraBold', textAlign: 'center', marginVertical: 4 }]}>{totalCal}</Text>
               <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center' }]}>
                 of {profile?.goal_calories || 2000} calories
               </Text>
-              <View style={st.statRow}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 }}>
                 {[
                   { label: 'Protein', val: totalPro, color: colors.blue },
                   { label: 'Carbs', val: totalCarb, color: colors.orange },
                   { label: 'Fat', val: totalFat, color: colors.yellow },
                 ].map((s) => (
-                  <View key={s.label} style={st.statItem}>
+                  <View key={s.label} style={{ alignItems: 'center' }}>
                     <Text style={[{ fontSize: 18, color: s.color, fontFamily: 'Outfit_700Bold' }]}>{s.val}g</Text>
                     <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{s.label}</Text>
                   </View>
@@ -216,21 +216,3 @@ export default function HistoryScreen() {
   );
 }
 
-const st = StyleSheet.create({
-  safe: { flex: 1 },
-  pad: { paddingHorizontal: 20 },
-  title: { fontSize: 26, marginTop: 8, marginBottom: 16 },
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },
-  dayPill: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24, marginRight: 8, minWidth: 52 },
-  dayNum: { fontSize: 18, marginBottom: 2 },
-  dayName: { fontSize: 10, textTransform: 'uppercase' },
-  summaryCard: { borderRadius: 14, padding: 20 },
-  statRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
-  statItem: { alignItems: 'center' },
-  mealHeader: { fontSize: 12, fontFamily: 'DMSans_700Bold', letterSpacing: 1.5, opacity: 0.3, textTransform: 'uppercase', marginBottom: 12 },
-  logRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  logDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
-  logName: { flex: 1, fontSize: 14 },
-  logCal: { fontSize: 14, opacity: 0.7 },
-  divider: { height: 1, marginLeft: 20 },
-});

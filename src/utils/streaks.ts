@@ -13,6 +13,7 @@ export interface Badge {
   id: string;
   name: string;
   emoji: string;
+  icon: string;
   description: string;
   type: 'streak' | 'water' | 'logging';
   requirement: number;
@@ -23,15 +24,15 @@ export interface Badge {
 // ── Badge Definitions ────────────────────────────────────────────────────────
 
 export const BADGE_DEFINITIONS: Omit<Badge, 'earned' | 'earnedDate'>[] = [
-  { id: 'streak_3',   name: 'Getting Started',  emoji: '🔥', description: '3-day streak',       type: 'streak',  requirement: 3   },
-  { id: 'streak_7',   name: 'One Week Strong',   emoji: '💪', description: '7-day streak',       type: 'streak',  requirement: 7   },
-  { id: 'streak_14',  name: 'Two Week Warrior',   emoji: '⚡', description: '14-day streak',      type: 'streak',  requirement: 14  },
-  { id: 'streak_30',  name: 'Monthly Master',     emoji: '🏆', description: '30-day streak',      type: 'streak',  requirement: 30  },
-  { id: 'streak_60',  name: 'Unstoppable',        emoji: '👑', description: '60-day streak',      type: 'streak',  requirement: 60  },
-  { id: 'streak_100', name: 'Century Club',       emoji: '💯', description: '100-day streak',     type: 'streak',  requirement: 100 },
-  { id: 'water_7',    name: 'Hydration Hero',     emoji: '💧', description: 'Water goal 7 days',  type: 'water',   requirement: 7   },
-  { id: 'logs_50',    name: 'Dedicated Logger',   emoji: '📝', description: '50 meals logged',    type: 'logging', requirement: 50  },
-  { id: 'logs_200',   name: 'Nutrition Nerd',     emoji: '🧠', description: '200 meals logged',   type: 'logging', requirement: 200 },
+  { id: 'streak_3',   name: 'Getting Started',  emoji: '', icon: 'zap',       description: '3-day streak',       type: 'streak',  requirement: 3   },
+  { id: 'streak_7',   name: 'One Week Strong',   emoji: '', icon: 'award',     description: '7-day streak',       type: 'streak',  requirement: 7   },
+  { id: 'streak_14',  name: 'Two Week Warrior',   emoji: '', icon: 'shield',    description: '14-day streak',      type: 'streak',  requirement: 14  },
+  { id: 'streak_30',  name: 'Monthly Master',     emoji: '', icon: 'star',      description: '30-day streak',      type: 'streak',  requirement: 30  },
+  { id: 'streak_60',  name: 'Unstoppable',        emoji: '', icon: 'sunrise',   description: '60-day streak',      type: 'streak',  requirement: 60  },
+  { id: 'streak_100', name: 'Century Club',       emoji: '', icon: 'sun',       description: '100-day streak',     type: 'streak',  requirement: 100 },
+  { id: 'water_7',    name: 'Hydration Hero',     emoji: '', icon: 'droplet',   description: 'Water goal 7 days',  type: 'water',   requirement: 7   },
+  { id: 'logs_50',    name: 'Dedicated Logger',   emoji: '', icon: 'edit-3',    description: '50 meals logged',    type: 'logging', requirement: 50  },
+  { id: 'logs_200',   name: 'Nutrition Nerd',     emoji: '', icon: 'book-open', description: '200 meals logged',   type: 'logging', requirement: 200 },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

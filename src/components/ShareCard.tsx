@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
 interface Props {
@@ -102,7 +103,10 @@ export default function ShareCard({
 
       {/* Streak */}
       {streak > 0 && (
-        <Text style={[styles.streak, { color: colors.text }]}>🔥 {streak} day streak</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Feather name="zap" size={14} color="#C5A55A" />
+          <Text style={[styles.streak, { color: colors.text }]}>{streak} day streak</Text>
+        </View>
       )}
 
       {/* User + date */}

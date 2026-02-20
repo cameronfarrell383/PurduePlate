@@ -1,15 +1,20 @@
 import React from 'react';
 import {
   View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
+  Pressable,
   Dimensions,
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useTheme } from '@/src/context/ThemeContext';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
+import { triggerHaptic } from '@/src/utils/haptics';
+import { Box, Text } from '@/src/theme/restyleTheme';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 const TAB_CONFIG: {
@@ -20,47 +25,147 @@ const TAB_CONFIG: {
 }[] = [
   { name: 'index', label: 'Home', icon: 'home', size: 22 },
   { name: 'browse', label: 'Browse', icon: 'search', size: 22 },
-  { name: 'ai', label: 'AI', icon: 'zap', size: 26 },
+  { name: 'ai', label: 'AI', icon: 'zap', size: 24 },
   { name: 'progress', label: 'Progress', icon: 'trending-up', size: 22 },
   { name: 'more', label: 'Settings', icon: 'sliders', size: 22 },
 ];
+
+const MAROON = '#861F41';
+const SILVER = '#A8A9AD';
+
+function TabItem({
+  config,
+  isFocused,
+  onPress,
+  onLongPress,
+}: {
+  config: (typeof TAB_CONFIG)[number];
+  isFocused: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const isAI = config.name === 'ai';
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withTiming(0.85, { duration: 100, easing: Easing.out(Easing.quad) });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 150 });
+  };
+
+  const iconColor = isAI ? '#FFFFFF' : isFocused ? MAROON : SILVER;
+  const labelColor = isFocused ? MAROON : SILVER;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      accessibilityLabel={config.label}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+      }}
+    >
+      <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, animatedStyle]}>
+        {isAI ? (
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 9999,
+              backgroundColor: MAROON,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: -20,
+              ...Platform.select({
+                ios: {
+                  shadowColor: MAROON,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                },
+                android: {
+                  elevation: 6,
+                },
+              }),
+            }}
+          >
+            <Feather name={config.icon} size={config.size} color="#FFFFFF" />
+          </View>
+        ) : (
+          <Feather name={config.icon} size={config.size} color={iconColor} />
+        )}
+        {!isAI && (
+          <Text
+            style={{
+              fontSize: 10,
+              fontFamily: 'DMSans_500Medium',
+              marginTop: 2,
+              color: labelColor,
+            }}
+            numberOfLines={1}
+          >
+            {config.label}
+          </Text>
+        )}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export default function FloatingTabBar({
   state,
   descriptors,
   navigation,
 }: BottomTabBarProps) {
-  const { colors } = useTheme();
   const screenWidth = Dimensions.get('window').width;
 
   return (
     <View
-      style={[
-        styles.container,
-        {
-          width: screenWidth - 32,
-          backgroundColor: colors.tabBarBg,
-          borderColor: colors.cardGlassBorder,
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.15,
-              shadowRadius: 16,
-            },
-            android: {
-              elevation: 12,
-            },
-          }),
-        },
-      ]}
+      style={{
+        position: 'absolute',
+        bottom: 24,
+        alignSelf: 'center',
+        width: screenWidth - 32,
+        height: 64,
+        borderRadius: 28,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E8E8EA',
+        overflow: 'visible',
+        ...Platform.select({
+          ios: {
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+          },
+          android: {
+            elevation: 4,
+          },
+        }),
+      }}
     >
       {state.routes.map((route, index) => {
         const config = TAB_CONFIG.find((t) => t.name === route.name);
         if (!config) return null;
 
         const isFocused = state.index === index;
-        const isAI = config.name === 'ai';
 
         const onPress = () => {
           const event = navigation.emit({
@@ -70,7 +175,7 @@ export default function FloatingTabBar({
           });
 
           if (!isFocused && !event.defaultPrevented) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            triggerHaptic('light');
             navigation.navigate(route.name);
           }
         };
@@ -82,84 +187,16 @@ export default function FloatingTabBar({
           });
         };
 
-        const iconColor = isFocused ? colors.text : colors.textDim;
-
         return (
-          <TouchableOpacity
+          <TabItem
             key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={config.label}
+            config={config}
+            isFocused={isFocused}
             onPress={onPress}
             onLongPress={onLongPress}
-            style={styles.tab}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              {isAI && (
-                <View
-                  style={[
-                    styles.aiGlow,
-                    { backgroundColor: colors.glowMaroon },
-                  ]}
-                />
-              )}
-              <Feather
-                name={config.icon}
-                size={config.size}
-                color={iconColor}
-                style={{ opacity: isFocused ? 1 : 0.35 }}
-              />
-            </View>
-            {isFocused && (
-              <Text
-                style={[styles.label, { color: colors.text }]}
-                numberOfLines={1}
-              >
-                {config.label}
-              </Text>
-            )}
-          </TouchableOpacity>
+          />
         );
       })}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
-    height: 64,
-    borderRadius: 28,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-  },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  aiGlow: {
-    position: 'absolute',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-  },
-  label: {
-    fontSize: 10,
-    fontFamily: 'DMSans_500Medium',
-    marginTop: 2,
-  },
-});

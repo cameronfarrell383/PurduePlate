@@ -59,11 +59,11 @@ const C = {
   border: '#E8E8EA',
   borderLight: '#F0F0F2',
   inputBg: '#F5F5F7',
-  success: '#2D8A4E',
-  successTint: 'rgba(45,138,78,0.10)',
-  warning: '#D4A024',
-  error: '#C0392B',
-  errorTint: 'rgba(192,57,43,0.10)',
+  success: '#34C759',
+  successTint: 'rgba(52,199,89,0.10)',
+  warning: '#C5A55A',
+  error: '#FF453A',
+  errorTint: 'rgba(255,69,58,0.10)',
   blue: '#4A7FC5',
 };
 

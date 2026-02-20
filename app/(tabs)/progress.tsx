@@ -1,6 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
@@ -22,6 +21,7 @@ import { Box, Text } from '@/src/theme/restyleTheme';
 import StaggeredList from '@/src/components/StaggeredList';
 import AnimatedCard from '@/src/components/AnimatedCard';
 
+import Skeleton from '@/src/components/Skeleton';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getTodayWater, getWaterGoal } from '@/src/utils/water';
@@ -57,9 +57,9 @@ const C = {
   border: '#E8E8EA',
   borderLight: '#F0F0F2',
   inputBg: '#F5F5F7',
-  success: '#2D8A4E',
-  warning: '#D4A024',
-  error: '#C0392B',
+  success: '#34C759',
+  warning: '#C5A55A',
+  error: '#FF453A',
   blue: '#4A7FC5',
 };
 
@@ -232,8 +232,68 @@ export default function ProgressScreen() {
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: C.offWhite }}>
-        <Box flex={1} justifyContent="center" alignItems="center">
-          <ActivityIndicator size="large" color={C.maroon} />
+        <Box padding="m" paddingBottom="xxl">
+          {/* Title */}
+          <Skeleton width={120} height={28} borderRadius={8} style={{ marginBottom: 16 }} />
+          {/* Time tabs */}
+          <Box flexDirection="row" style={{ gap: 8 }} marginBottom="l">
+            <Skeleton width={70} height={36} borderRadius={6} />
+            <Skeleton width={70} height={36} borderRadius={6} />
+            <Skeleton width={70} height={36} borderRadius={6} />
+            <Skeleton width={70} height={36} borderRadius={6} />
+          </Box>
+          {/* Daily Score card */}
+          <Box
+            style={{ backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E8EA', padding: 16, marginBottom: 16 }}
+          >
+            <Skeleton width={100} height={12} borderRadius={6} style={{ marginBottom: 12 }} />
+            <Box alignItems="center" marginBottom="s">
+              <Skeleton width={64} height={64} borderRadius={32} />
+            </Box>
+            <Skeleton width={60} height={20} borderRadius={6} style={{ alignSelf: 'center', marginBottom: 12 }} />
+            <Skeleton width={'100%' as any} height={8} borderRadius={4} style={{ marginBottom: 8 }} />
+            <Skeleton width={'100%' as any} height={8} borderRadius={4} style={{ marginBottom: 8 }} />
+            <Skeleton width={'80%' as any} height={8} borderRadius={4} />
+          </Box>
+          {/* Streak card */}
+          <Box
+            style={{ backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E8EA', padding: 16, marginBottom: 16 }}
+          >
+            <Skeleton width={80} height={12} borderRadius={6} style={{ marginBottom: 12 }} />
+            <Box flexDirection="row" alignItems="center" style={{ gap: 12 }}>
+              <Skeleton width={48} height={48} borderRadius={24} />
+              <Box>
+                <Skeleton width={100} height={18} borderRadius={6} style={{ marginBottom: 6 }} />
+                <Skeleton width={70} height={12} borderRadius={6} />
+              </Box>
+            </Box>
+            <Box flexDirection="row" justifyContent="space-around" style={{ marginTop: 16 }}>
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} width={28} height={28} borderRadius={14} />
+              ))}
+            </Box>
+          </Box>
+          {/* Calorie Trend card */}
+          <Box
+            style={{ backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E8EA', padding: 16, marginBottom: 16 }}
+          >
+            <Skeleton width={120} height={12} borderRadius={6} style={{ marginBottom: 16 }} />
+            <Skeleton width={'100%' as any} height={140} borderRadius={8} />
+          </Box>
+          {/* Macro Breakdown card */}
+          <Box
+            style={{ backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E8E8EA', padding: 16, marginBottom: 16 }}
+          >
+            <Skeleton width={130} height={12} borderRadius={6} style={{ marginBottom: 16 }} />
+            <Box alignItems="center">
+              <Skeleton width={120} height={120} borderRadius={60} />
+            </Box>
+            <Box flexDirection="row" justifyContent="space-around" style={{ marginTop: 16 }}>
+              <Skeleton width={60} height={12} borderRadius={6} />
+              <Skeleton width={60} height={12} borderRadius={6} />
+              <Skeleton width={60} height={12} borderRadius={6} />
+            </Box>
+          </Box>
         </Box>
       </SafeAreaView>
     );

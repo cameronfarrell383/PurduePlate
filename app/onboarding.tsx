@@ -5,13 +5,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
@@ -36,25 +36,25 @@ interface DiningHall {
 
 // ─── Sub-components (defined outside to prevent TextInput remount on re-render) ──
 
-function OptionCard({ emoji, label, desc, selected, onPress }: {
-  emoji: string; label: string; desc: string; selected: boolean; onPress: () => void;
+function OptionCard({ icon, label, desc, selected, onPress }: {
+  icon: string; label: string; desc: string; selected: boolean; onPress: () => void;
 }) {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={[s.optionCard, { backgroundColor: colors.card, borderColor: selected ? colors.maroon : colors.border, borderWidth: selected ? 2 : 1 }]}
+      style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 12, backgroundColor: colors.card, borderColor: selected ? colors.maroon : colors.border, borderWidth: selected ? 2 : 1 }}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[s.optionEmoji, { backgroundColor: selected ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }]}>
-        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: selected ? 'rgba(139,30,63,0.12)' : 'rgba(168,169,173,0.10)' }}>
+        <Feather name={icon as any} size={22} color={selected ? '#861F41' : '#A8A9AD'} />
       </View>
-      <View style={s.optionText}>
-        <Text style={[s.optionLabel, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{label}</Text>
-        <Text style={[s.optionDesc, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{desc}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 16, marginBottom: 2, color: colors.text, fontFamily: 'DMSans_600SemiBold' }}>{label}</Text>
+        <Text style={{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }}>{desc}</Text>
       </View>
-      <View style={[s.radio, { borderColor: selected ? colors.maroon : colors.textDim }]}>
-        {selected && <View style={[s.radioFill, { backgroundColor: colors.maroon }]} />}
+      <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, justifyContent: 'center', alignItems: 'center', borderColor: selected ? colors.maroon : colors.textDim }}>
+        {selected && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.maroon }} />}
       </View>
     </TouchableOpacity>
   );
@@ -64,10 +64,10 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={[s.chip, { backgroundColor: selected ? colors.maroon : colors.card, borderColor: selected ? colors.maroon : colors.border, borderWidth: 1 }]}
+      style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, marginRight: 8, marginBottom: 8, backgroundColor: selected ? colors.maroon : colors.card, borderColor: selected ? colors.maroon : colors.border, borderWidth: 1 }}
       onPress={onPress}
     >
-      <Text style={[s.chipText, { color: selected ? '#fff' : colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{label}</Text>
+      <Text style={{ fontSize: 14, color: selected ? '#fff' : colors.text, fontFamily: 'DMSans_600SemiBold' }}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -76,11 +76,11 @@ function ContinueBtn({ disabled, onPress, label }: { disabled?: boolean; onPress
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      style={[s.continueBtn, { backgroundColor: colors.maroon, opacity: disabled ? 0.4 : 1 }]}
+      style={{ width: '100%', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 28, backgroundColor: colors.maroon, opacity: disabled ? 0.4 : 1 }}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text style={[s.continueBtnText, { fontFamily: 'DMSans_700Bold' }]}>{label || 'Continue'}</Text>
+      <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'DMSans_700Bold' }}>{label || 'Continue'}</Text>
     </TouchableOpacity>
   );
 }
@@ -88,14 +88,14 @@ function ContinueBtn({ disabled, onPress, label }: { disabled?: boolean; onPress
 function Title({ text }: { text: string }) {
   const { colors } = useTheme();
   return (
-    <Text style={[s.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{text}</Text>
+    <Text style={{ fontSize: 26, marginBottom: 8, color: colors.text, fontFamily: 'Outfit_700Bold' }}>{text}</Text>
   );
 }
 
 function Subtitle({ text }: { text: string }) {
   const { colors } = useTheme();
   return (
-    <Text style={[s.subtitle, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{text}</Text>
+    <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }}>{text}</Text>
   );
 }
 
@@ -106,9 +106,9 @@ function InputField({ label, value, onChangeText, placeholder, keyboardType, sty
   const { colors } = useTheme();
   return (
     <View style={[{ marginBottom: 16 }, extraStyle]}>
-      <Text style={[s.inputLabel, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>{label}</Text>
+      <Text style={{ fontSize: 13, marginBottom: 6, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>{label}</Text>
       <TextInput
-        style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+        style={{ borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1, marginBottom: 4, backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -284,12 +284,12 @@ export default function OnboardingScreen({ onComplete }: Props) {
       // ── Step 0: Welcome ──
       case 0:
         return (
-          <View style={s.centered}>
-            <Text style={{ fontSize: 64, marginBottom: 16 }}>🍽️</Text>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Feather name="coffee" size={64} color="#861F41" style={{ marginBottom: 16 }} />
             <Text style={[{ fontSize: 36, color: colors.text, fontFamily: 'Outfit_800ExtraBold', textAlign: 'center' }]}>
               CampusPlate
             </Text>
-            <Text style={[s.subtitle, { color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 12, paddingHorizontal: 20 }]}>
+            <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 12, paddingHorizontal: 20 }}>
               Track what you eat on campus. Hit your goals without the guesswork.
             </Text>
             <ContinueBtn onPress={next} label="Get Started" />
@@ -306,9 +306,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Title text="What's your goal?" />
             <Subtitle text="This helps us personalize your daily targets." />
             <View style={{ marginTop: 20 }}>
-              <OptionCard emoji="⬇️" label="Lose weight" desc="Shed fat while keeping energy up" selected={goal === 'lose'} onPress={() => setGoal('lose')} />
-              <OptionCard emoji="⚖️" label="Maintain" desc="Stay where I am, eat smarter" selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
-              <OptionCard emoji="💪" label="Build muscle" desc="Gain size and strength" selected={goal === 'build'} onPress={() => setGoal('build')} />
+              <OptionCard icon="trending-down" label="Lose weight" desc="Shed fat while keeping energy up" selected={goal === 'lose'} onPress={() => setGoal('lose')} />
+              <OptionCard icon="minus-circle" label="Maintain" desc="Stay where I am, eat smarter" selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
+              <OptionCard icon="arrow-up-circle" label="Build muscle" desc="Gain size and strength" selected={goal === 'build'} onPress={() => setGoal('build')} />
             </View>
             <ContinueBtn onPress={next} disabled={!goal} />
           </View>
@@ -318,33 +318,33 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 2: {
         let title = '';
         let sub = '';
-        let options: { emoji: string; label: string }[] = [];
+        let options: { icon: string; label: string }[] = [];
         if (goal === 'lose') {
           title = "What's held you back?";
           sub = 'No judgment — most students feel the same way.';
           options = [
-            { emoji: '⏰', label: 'Busy schedule' },
-            { emoji: '🤷', label: "Don't know what to eat" },
-            { emoji: '📊', label: 'Hard to track consistently' },
-            { emoji: '🚀', label: 'Just getting started' },
+            { icon: 'clock', label: 'Busy schedule' },
+            { icon: 'help-circle', label: "Don't know what to eat" },
+            { icon: 'bar-chart-2', label: 'Hard to track consistently' },
+            { icon: 'play', label: 'Just getting started' },
           ];
         } else if (goal === 'build') {
           title = "What's your training focus?";
           sub = '';
           options = [
-            { emoji: '🏋️', label: 'Hypertrophy' },
-            { emoji: '💪', label: 'Strength' },
-            { emoji: '⚡', label: 'Sport performance' },
-            { emoji: '🏃', label: 'General fitness' },
+            { icon: 'target', label: 'Hypertrophy' },
+            { icon: 'award', label: 'Strength' },
+            { icon: 'zap', label: 'Sport performance' },
+            { icon: 'activity', label: 'General fitness' },
           ];
         } else {
           title = 'What matters most to you?';
           sub = '';
           options = [
-            { emoji: '🧠', label: 'Eating balanced meals' },
-            { emoji: '💰', label: 'Making the most of my meal plan' },
-            { emoji: '🏃', label: 'Fueling for activity' },
-            { emoji: '😊', label: 'Just being mindful' },
+            { icon: 'heart', label: 'Eating balanced meals' },
+            { icon: 'dollar-sign', label: 'Making the most of my meal plan' },
+            { icon: 'activity', label: 'Fueling for activity' },
+            { icon: 'smile', label: 'Just being mindful' },
           ];
         }
         return (
@@ -353,7 +353,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
             {sub ? <Subtitle text={sub} /> : null}
             <View style={{ marginTop: 20 }}>
               {options.map((o, i) => (
-                <OptionCard key={i} emoji={o.emoji} label={o.label} desc="" selected={followUp === i} onPress={() => setFollowUp(i)} />
+                <OptionCard key={i} icon={o.icon} label={o.label} desc="" selected={followUp === i} onPress={() => setFollowUp(i)} />
               ))}
             </View>
             <ContinueBtn onPress={next} disabled={followUp === null} />
@@ -369,12 +369,12 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Subtitle text="Be honest — this directly affects your calorie target." />
             <View style={{ marginTop: 20 }}>
               {[
-                { emoji: '🛋️', label: 'Sedentary', desc: 'Desk all day, minimal walking' },
-                { emoji: '🚶', label: 'Lightly active', desc: 'Walk to class, light daily movement' },
-                { emoji: '🏋️', label: 'Moderately active', desc: 'Exercise 3-4 days per week' },
-                { emoji: '🔥', label: 'Very active', desc: 'Train 5+ days, athlete or heavy labor' },
+                { icon: 'monitor', label: 'Sedentary', desc: 'Desk all day, minimal walking' },
+                { icon: 'navigation', label: 'Lightly active', desc: 'Walk to class, light daily movement' },
+                { icon: 'target', label: 'Moderately active', desc: 'Exercise 3-4 days per week' },
+                { icon: 'zap', label: 'Very active', desc: 'Train 5+ days, athlete or heavy labor' },
               ].map((o, i) => (
-                <OptionCard key={i} emoji={o.emoji} label={o.label} desc={o.desc} selected={activityLevel === i} onPress={() => setActivityLevel(i)} />
+                <OptionCard key={i} icon={o.icon} label={o.label} desc={o.desc} selected={activityLevel === i} onPress={() => setActivityLevel(i)} />
               ))}
             </View>
             <ContinueBtn onPress={next} disabled={activityLevel === null} />
@@ -389,11 +389,11 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Subtitle text="Used to calculate your metabolism. We keep this private." />
             <View style={{ marginTop: 20 }}>
               <InputField label="Weight (lbs)" value={weight} onChangeText={setWeight} placeholder="165" keyboardType="numeric" />
-              <Text style={[s.inputLabel, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>Height</Text>
+              <Text style={{ fontSize: 13, marginBottom: 6, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>Height</Text>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <TextInput
-                    style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+                    style={{ borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1, marginBottom: 4, backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }}
                     value={heightFt}
                     onChangeText={setHeightFt}
                     placeholder="5"
@@ -404,7 +404,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <TextInput
-                    style={[s.input, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }]}
+                    style={{ borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1, marginBottom: 4, backgroundColor: colors.inputBg, borderColor: colors.inputBorder, color: colors.text, fontFamily: 'DMSans_400Regular' }}
                     value={heightIn}
                     onChangeText={setHeightIn}
                     placeholder="10"
@@ -427,20 +427,21 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Subtitle text="Age and sex affect your metabolic rate." />
             <View style={{ marginTop: 20 }}>
               <InputField label="Age" value={age} onChangeText={setAge} placeholder="20" keyboardType="numeric" />
-              <Text style={[s.inputLabel, { color: colors.textMuted, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Sex</Text>
+              <Text style={{ fontSize: 13, marginBottom: 10, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>Sex</Text>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 {(['Male', 'Female'] as const).map((sex) => (
                   <TouchableOpacity
                     key={sex}
-                    style={[s.genderCard, {
+                    style={{
+                      padding: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
                       flex: 1,
                       backgroundColor: colors.card,
                       borderColor: (sex === 'Male' ? isMale === true : isMale === false) ? colors.maroon : colors.border,
                       borderWidth: (sex === 'Male' ? isMale === true : isMale === false) ? 2 : 1,
-                    }]}
+                    }}
                     onPress={() => setIsMale(sex === 'Male')}
                   >
-                    <Text style={{ fontSize: 28, marginBottom: 8 }}>{sex === 'Male' ? '👨' : '👩'}</Text>
+                    <Feather name="user" size={28} color={isMale === (sex === 'Male') ? '#861F41' : '#A8A9AD'} style={{ marginBottom: 8 }} />
                     <Text style={[{ fontSize: 16, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{sex}</Text>
                   </TouchableOpacity>
                 ))}
@@ -453,18 +454,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
       // ── Step 6: Dietary needs ──
       case 6: {
         const dietaryOptions = [
-          '🌱 Vegan', '🥬 Vegetarian', '☪️ Halal', '🌾 Gluten-free',
-          '🥛 Dairy-free', '🥜 Nut allergy', '✅ No restrictions',
+          'Vegan', 'Vegetarian', 'Halal', 'Gluten-free',
+          'Dairy-free', 'Nut allergy', 'No restrictions',
         ];
         return (
           <View>
             <Title text="Any dietary needs?" />
             <Subtitle text="Select all that apply. We'll flag matching items on menus." />
-            <View style={[s.chipWrap, { marginTop: 20 }]}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 20 }}>
               {dietaryOptions.map((opt) => {
-                const key = opt.slice(2).trim();
                 return (
-                  <Chip key={opt} label={opt} selected={dietary.includes(key)} onPress={() => toggleDietary(key)} />
+                  <Chip key={opt} label={opt} selected={dietary.includes(opt)} onPress={() => toggleDietary(opt)} />
                 );
               })}
             </View>
@@ -483,25 +483,29 @@ export default function OnboardingScreen({ onComplete }: Props) {
               {hallsLoading ? (
                 <ActivityIndicator size="large" color={colors.maroon} style={{ marginTop: 40 }} />
               ) : diningHalls.length === 0 ? (
-                <Text style={[{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontFamily: 'DMSans_400Regular' }]}>
-                  🍽️ No dining halls found. Please try again later.
-                </Text>
+                <View style={{ alignItems: 'center', marginTop: 40 }}>
+                  <Feather name="alert-circle" size={32} color="#A8A9AD" />
+                  <Text style={[{ color: colors.textMuted, textAlign: 'center', marginTop: 8, fontFamily: 'DMSans_400Regular' }]}>
+                    No dining halls found. Please try again later.
+                  </Text>
+                </View>
               ) : (
                 diningHalls.map((hall) => (
                   <TouchableOpacity
                     key={hall.id}
-                    style={[s.optionCard, {
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 14, marginBottom: 12,
                       backgroundColor: colors.card,
                       borderColor: homeHall === hall.id ? colors.maroon : colors.border,
                       borderWidth: homeHall === hall.id ? 2 : 1,
-                    }]}
+                    }}
                     onPress={() => setHomeHall(hall.id)}
                   >
-                    <View style={[s.optionEmoji, { backgroundColor: homeHall === hall.id ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }]}>
-                      <Text style={{ fontSize: 22 }}>🍽️</Text>
+                    <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: homeHall === hall.id ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }}>
+                      <Feather name="coffee" size={22} color={homeHall === hall.id ? '#861F41' : '#A8A9AD'} />
                     </View>
-                    <View style={s.optionText}>
-                      <Text style={[s.optionLabel, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{hall.name}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, marginBottom: 2, color: colors.text, fontFamily: 'DMSans_600SemiBold' }}>{hall.name}</Text>
                     </View>
                   </TouchableOpacity>
                 ))
@@ -519,15 +523,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
             <Subtitle text="Just a couple quick things about your campus life." />
             <View style={{ marginTop: 20 }}>
               <InputField label="Name" value={name} onChangeText={setName} placeholder="Cameron" />
-              <Text style={[s.inputLabel, { color: colors.textMuted, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Year</Text>
-              <View style={[s.chipRow, { marginBottom: 20 }]}>
+              <Text style={{ fontSize: 13, marginBottom: 10, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>Year</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 }}>
                 {['Freshman', 'Sophomore', 'Junior', 'Senior'].map((y) => (
                   <Chip key={y} label={y} selected={year === y} onPress={() => setYear(y)} />
                 ))}
               </View>
               <InputField label="Dorm / Residence" value={dorm} onChangeText={setDorm} placeholder="Slusher Hall" />
-              <Text style={[s.inputLabel, { color: colors.textMuted, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Meals on campus per day</Text>
-              <View style={s.chipRow}>
+              <Text style={{ fontSize: 13, marginBottom: 10, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>Meals on campus per day</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {[1, 2, 3].map((n) => (
                   <Chip key={n} label={n === 3 ? '3+' : String(n)} selected={mealsPerDay === n} onPress={() => setMealsPerDay(n)} />
                 ))}
@@ -545,52 +549,52 @@ export default function OnboardingScreen({ onComplete }: Props) {
         const projection = getWeeklyProjection(goalCals, tdee);
         const hallName = diningHalls.find((h) => h.id === homeHall)?.name || 'your hall';
         return (
-          <View style={s.centered}>
-            <Title text="Your plan is ready 🎉" />
-            <View style={[s.planCard, { backgroundColor: colors.maroon }]}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Title text="Your plan is ready" />
+            <View style={{ width: '100%', padding: 28, borderRadius: 20, marginTop: 20, marginBottom: 16, backgroundColor: colors.maroon }}>
               <Text style={[{ fontSize: 52, color: '#fff', fontFamily: 'Outfit_800ExtraBold', textAlign: 'center' }]}>
                 {goalCals.toLocaleString()}
               </Text>
               <Text style={[{ fontSize: 14, color: 'rgba(255,255,255,0.7)', fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 4 }]}>
                 calories per day
               </Text>
-              <View style={s.macroRow}>
-                <View style={s.macroItem}>
-                  <Text style={[s.macroVal, { color: '#8BB8FF' }]}>{macros.proteinG}g</Text>
-                  <Text style={s.macroLabel}>Protein</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 }}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={[{ fontSize: 20, fontFamily: 'Outfit_700Bold' }, { color: '#5B7FFF' }]}>{macros.proteinG}g</Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', marginTop: 2 }}>Protein</Text>
                 </View>
-                <View style={s.macroItem}>
-                  <Text style={[s.macroVal, { color: '#FFB366' }]}>{macros.carbsG}g</Text>
-                  <Text style={s.macroLabel}>Carbs</Text>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={[{ fontSize: 20, fontFamily: 'Outfit_700Bold' }, { color: '#C5A55A' }]}>{macros.carbsG}g</Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', marginTop: 2 }}>Carbs</Text>
                 </View>
-                <View style={s.macroItem}>
-                  <Text style={[s.macroVal, { color: '#FFE066' }]}>{macros.fatG}g</Text>
-                  <Text style={s.macroLabel}>Fat</Text>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={[{ fontSize: 20, fontFamily: 'Outfit_700Bold' }, { color: '#FFD60A' }]}>{macros.fatG}g</Text>
+                  <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', marginTop: 2 }}>Fat</Text>
                 </View>
               </View>
             </View>
 
-            <View style={[s.infoCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <View style={{ width: '100%', padding: 16, borderRadius: 14, marginBottom: 10, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}>
               <Text style={[{ fontSize: 14, color: colors.text, fontFamily: 'DMSans_500Medium', textAlign: 'center' }]}>
                 {projection}
               </Text>
             </View>
 
-            <View style={[s.infoCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <View style={{ width: '100%', padding: 16, borderRadius: 14, marginBottom: 10, backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }}>
               <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center' }]}>
                 We'll highlight the best options at {hallName} every day based on your macros.
               </Text>
             </View>
 
             <TouchableOpacity
-              style={[s.continueBtn, { backgroundColor: colors.orange, opacity: saving ? 0.6 : 1, marginTop: 24 }]}
+              style={{ width: '100%', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 24, backgroundColor: colors.orange, opacity: saving ? 0.6 : 1 }}
               onPress={handleFinish}
               disabled={saving}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={[s.continueBtnText, { fontFamily: 'DMSans_700Bold' }]}>Let's Go →</Text>
+                <Text style={{ color: '#fff', fontSize: 16, fontFamily: 'DMSans_700Bold' }}>Let's Go →</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -603,17 +607,17 @@ export default function OnboardingScreen({ onComplete }: Props) {
   };
 
   return (
-    <SafeAreaView style={[s.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Progress bar */}
       {step > 0 && (
-        <View style={[s.progressTrack, { backgroundColor: colors.border }]}>
-          <View style={[s.progressFill, { width: `${progress * 100}%` }]} />
+        <View style={{ height: 3, marginHorizontal: 20, borderRadius: 2, marginTop: 8, backgroundColor: colors.border }}>
+          <View style={{ height: 3, borderRadius: 2, backgroundColor: '#861F41', width: `${progress * 100}%` }} />
         </View>
       )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={s.scrollContent}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -624,47 +628,3 @@ export default function OnboardingScreen({ onComplete }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1 },
-  progressTrack: { height: 3, marginHorizontal: 20, borderRadius: 2, marginTop: 8 },
-  progressFill: { height: 3, borderRadius: 2, backgroundColor: '#8B1E3F' },
-  scrollContent: { padding: 20, paddingBottom: 40, flexGrow: 1 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontSize: 26, marginBottom: 8 },
-  subtitle: { fontSize: 15, lineHeight: 22 },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
-  },
-  optionEmoji: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  optionText: { flex: 1 },
-  optionLabel: { fontSize: 16, marginBottom: 2 },
-  optionDesc: { fontSize: 13 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
-  radioFill: { width: 12, height: 12, borderRadius: 6 },
-  chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, marginRight: 8, marginBottom: 8 },
-  chipText: { fontSize: 14 },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  continueBtn: { width: '100%', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 28 },
-  continueBtnText: { color: '#fff', fontSize: 16 },
-  inputLabel: { fontSize: 13, marginBottom: 6 },
-  input: { borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1, marginBottom: 4 },
-  genderCard: { padding: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  planCard: { width: '100%', padding: 28, borderRadius: 20, marginTop: 20, marginBottom: 16 },
-  macroRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-  macroItem: { alignItems: 'center' },
-  macroVal: { fontSize: 20, fontFamily: 'Outfit_700Bold' },
-  macroLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: 'DMSans_400Regular', marginTop: 2 },
-  infoCard: { width: '100%', padding: 16, borderRadius: 14, marginBottom: 10 },
-});

@@ -5,19 +5,18 @@ import {
   Modal,
   Platform,
   ScrollView,
-  StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Box, Text } from '@/src/theme/restyleTheme';
 import { useTheme } from '@/src/context/ThemeContext';
 import type { Goals } from '@/src/utils/goals';
 
 // Approved accent rgba backgrounds for macro chips
-const CHIP_BG_PROTEIN = 'rgba(91,127,255,0.12)';
-const CHIP_BG_CARBS   = 'rgba(232,119,34,0.12)';
-const CHIP_BG_FAT     = 'rgba(255,214,10,0.12)';
+const CHIP_BG_PROTEIN = 'rgba(74,127,197,0.12)';
+const CHIP_BG_CARBS   = 'rgba(197,165,90,0.12)';
+const CHIP_BG_FAT     = 'rgba(168,169,173,0.12)';
 
 interface EditGoalsProps {
   visible: boolean;
@@ -44,7 +43,6 @@ export default function EditGoals({
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
-  // Sync inputs whenever the modal opens with fresh goal data
   useEffect(() => {
     if (visible) {
       setCalories(String(currentGoals.goalCalories));
@@ -59,15 +57,19 @@ export default function EditGoals({
 
   const isEditable = mode === 'custom';
 
-  // Returns style array for each TextInput — called during render, does NOT create new components
-  const getInputStyle = (accent: string) => [
-    st.fieldInput,
-    {
-      backgroundColor: isEditable ? colors.inputBg : colors.cardAlt,
-      borderColor: isEditable ? accent : colors.border,
-      color: isEditable ? colors.text : colors.textMuted,
-    },
-  ];
+  const getInputStyle = (accent: string) => ({
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 20,
+    textAlign: 'center' as const,
+    fontFamily: 'Outfit_700Bold',
+    backgroundColor: isEditable ? '#F5F5F7' : '#FAFAFA',
+    borderColor: isEditable ? accent : '#E8E8EA',
+    color: isEditable ? '#1A1A1A' : '#6B6B6F',
+  });
 
   const handleSave = async () => {
     const cal = parseInt(calories, 10);
@@ -94,13 +96,12 @@ export default function EditGoals({
       setCarbs(String(newGoals.goalCarbs));
       setFat(String(newGoals.goalFat));
     } catch {
-      // parent already logs; swallow here
+      // parent already logs
     } finally {
       setRecalculating(false);
     }
   };
 
-  // Macro calorie breakdown — derived, no extra state needed
   const pCal = (parseInt(calories, 10) > 0 ? (parseInt(protein, 10) || 0) * 4 : 0);
   const cCal = (parseInt(calories, 10) > 0 ? (parseInt(carbs, 10) || 0) * 4 : 0);
   const fCal = (parseInt(calories, 10) > 0 ? (parseInt(fat, 10) || 0) * 9 : 0);
@@ -113,77 +114,65 @@ export default function EditGoals({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[st.container, { backgroundColor: colors.background }]}>
-
-        {/* ── Header ── */}
-        <View style={[st.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={st.headerSide} activeOpacity={0.6}>
-            <Text style={[st.cancelText, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>
-              Cancel
-            </Text>
-          </TouchableOpacity>
-          <Text style={[st.headerTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
-            Nutrition Goals
-          </Text>
-          {/* Spacer keeps title centred */}
-          <View style={st.headerSide} />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        {/* Modal handle */}
+        <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
+          <View style={{ width: 36, height: 4, borderRadius: 9999, backgroundColor: '#A8A9AD' }} />
         </View>
 
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#E8E8EA' }}>
+          <TouchableOpacity onPress={onClose} style={{ width: 64 }} activeOpacity={0.6}>
+            <Text style={{ fontSize: 15, color: '#A8A9AD', fontFamily: 'DMSans_500Medium' }}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: 17, color: '#1A1A1A', fontFamily: 'Outfit_700Bold' }}>
+            Nutrition Goals
+          </Text>
+          <View style={{ width: 64 }} />
+        </View>
+
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView
-            contentContainerStyle={st.content}
+            contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-
-            {/* ── Mode toggle: Custom | Calculated ── */}
-            <View style={[st.toggleWrap, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+            {/* Mode toggle */}
+            <View style={{ flexDirection: 'row', borderRadius: 6, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FAFAFA', padding: 4, marginBottom: 16 }}>
               <TouchableOpacity
-                style={[st.toggleBtn, mode === 'custom' && { backgroundColor: colors.maroon }]}
+                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'custom' ? '#861F41' : 'transparent' }}
                 onPress={() => setMode('custom')}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  st.toggleText,
-                  { color: mode === 'custom' ? '#fff' : colors.textMuted, fontFamily: 'DMSans_600SemiBold' },
-                ]}>
+                <Text style={{ fontSize: 14, color: mode === 'custom' ? '#FFFFFF' : '#6B6B6F', fontFamily: 'DMSans_600SemiBold' }}>
                   Custom
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[st.toggleBtn, mode === 'calculated' && { backgroundColor: colors.maroon }]}
+                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'calculated' ? '#861F41' : 'transparent' }}
                 onPress={() => setMode('calculated')}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  st.toggleText,
-                  { color: mode === 'calculated' ? '#fff' : colors.textMuted, fontFamily: 'DMSans_600SemiBold' },
-                ]}>
+                <Text style={{ fontSize: 14, color: mode === 'calculated' ? '#FFFFFF' : '#6B6B6F', fontFamily: 'DMSans_600SemiBold' }}>
                   Calculated
                 </Text>
               </TouchableOpacity>
             </View>
 
             {mode === 'calculated' && (
-              <Text style={[st.hintText, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
+              <Text style={{ fontSize: 12, lineHeight: 18, marginTop: -8, marginBottom: 16, color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>
                 Goals are computed from your body stats and fitness goal. Tap "Recalculate" below to refresh, then Save.
               </Text>
             )}
 
-            {/* ── Goal fields — each TextInput defined explicitly, NOT in .map() ── */}
-            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-
+            {/* Goal fields */}
+            <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FFFFFF', overflow: 'hidden', marginBottom: 12 }}>
               {/* Calories */}
-              <View style={st.fieldRow}>
-                <View style={[st.dot, { backgroundColor: colors.maroon }]} />
-                <Text style={[st.fieldLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-                  Calories
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#861F41' }} />
+                <Text style={{ width: 64, fontSize: 15, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Calories</Text>
                 <TextInput
-                  style={getInputStyle(colors.maroon)}
+                  style={getInputStyle('#861F41')}
                   value={calories}
                   onChangeText={setCalories}
                   keyboardType="number-pad"
@@ -192,21 +181,17 @@ export default function EditGoals({
                   maxLength={5}
                   selectTextOnFocus
                 />
-                <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                  kcal
-                </Text>
+                <Text style={{ width: 36, fontSize: 13, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>kcal</Text>
               </View>
 
-              <View style={[st.sep, { backgroundColor: colors.border }]} />
+              <View style={{ height: 1, marginLeft: 38, backgroundColor: '#F0F0F2' }} />
 
               {/* Protein */}
-              <View style={st.fieldRow}>
-                <View style={[st.dot, { backgroundColor: colors.blue }]} />
-                <Text style={[st.fieldLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-                  Protein
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4A7FC5' }} />
+                <Text style={{ width: 64, fontSize: 15, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Protein</Text>
                 <TextInput
-                  style={getInputStyle(colors.blue)}
+                  style={getInputStyle('#4A7FC5')}
                   value={protein}
                   onChangeText={setProtein}
                   keyboardType="number-pad"
@@ -215,21 +200,17 @@ export default function EditGoals({
                   maxLength={4}
                   selectTextOnFocus
                 />
-                <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                  g
-                </Text>
+                <Text style={{ width: 36, fontSize: 13, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>g</Text>
               </View>
 
-              <View style={[st.sep, { backgroundColor: colors.border }]} />
+              <View style={{ height: 1, marginLeft: 38, backgroundColor: '#F0F0F2' }} />
 
               {/* Carbs */}
-              <View style={st.fieldRow}>
-                <View style={[st.dot, { backgroundColor: colors.orange }]} />
-                <Text style={[st.fieldLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-                  Carbs
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#C5A55A' }} />
+                <Text style={{ width: 64, fontSize: 15, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Carbs</Text>
                 <TextInput
-                  style={getInputStyle(colors.orange)}
+                  style={getInputStyle('#C5A55A')}
                   value={carbs}
                   onChangeText={setCarbs}
                   keyboardType="number-pad"
@@ -238,21 +219,17 @@ export default function EditGoals({
                   maxLength={4}
                   selectTextOnFocus
                 />
-                <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                  g
-                </Text>
+                <Text style={{ width: 36, fontSize: 13, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>g</Text>
               </View>
 
-              <View style={[st.sep, { backgroundColor: colors.border }]} />
+              <View style={{ height: 1, marginLeft: 38, backgroundColor: '#F0F0F2' }} />
 
               {/* Fat */}
-              <View style={st.fieldRow}>
-                <View style={[st.dot, { backgroundColor: colors.yellow }]} />
-                <Text style={[st.fieldLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-                  Fat
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#A8A9AD' }} />
+                <Text style={{ width: 64, fontSize: 15, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Fat</Text>
                 <TextInput
-                  style={getInputStyle(colors.yellow)}
+                  style={getInputStyle('#A8A9AD')}
                   value={fat}
                   onChangeText={setFat}
                   keyboardType="number-pad"
@@ -261,76 +238,53 @@ export default function EditGoals({
                   maxLength={4}
                   selectTextOnFocus
                 />
-                <Text style={[st.unit, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                  g
-                </Text>
-              </View>
-
-            </View>
-
-            {/* ── Macro calorie breakdown chips ── */}
-            <View style={st.macroRow}>
-              <View style={[st.macroChip, { backgroundColor: CHIP_BG_PROTEIN }]}>
-                <Text style={[st.macroChipVal, { color: colors.blue, fontFamily: 'Outfit_700Bold' }]}>
-                  {pCal}
-                </Text>
-                <Text style={[st.macroChipLabel, { color: colors.blue, fontFamily: 'DMSans_400Regular' }]}>
-                  P kcal
-                </Text>
-              </View>
-              <View style={[st.macroChip, { backgroundColor: CHIP_BG_CARBS }]}>
-                <Text style={[st.macroChipVal, { color: colors.orange, fontFamily: 'Outfit_700Bold' }]}>
-                  {cCal}
-                </Text>
-                <Text style={[st.macroChipLabel, { color: colors.orange, fontFamily: 'DMSans_400Regular' }]}>
-                  C kcal
-                </Text>
-              </View>
-              <View style={[st.macroChip, { backgroundColor: CHIP_BG_FAT }]}>
-                <Text style={[st.macroChipVal, { color: colors.yellow, fontFamily: 'Outfit_700Bold' }]}>
-                  {fCal}
-                </Text>
-                <Text style={[st.macroChipLabel, { color: colors.yellow, fontFamily: 'DMSans_400Regular' }]}>
-                  F kcal
-                </Text>
-              </View>
-              <View style={[st.macroChip, { backgroundColor: colors.cardAlt }]}>
-                <Text style={[st.macroChipVal, { color: colors.textMuted, fontFamily: 'Outfit_700Bold' }]}>
-                  {totalMacroCal}
-                </Text>
-                <Text style={[st.macroChipLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                  total
-                </Text>
+                <Text style={{ width: 36, fontSize: 13, textAlign: 'right', color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>g</Text>
               </View>
             </View>
 
-            {/* ── Save button ── */}
+            {/* Macro calorie breakdown chips */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+              <View style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: CHIP_BG_PROTEIN }}>
+                <Text style={{ fontSize: 13, color: '#4A7FC5', fontFamily: 'Outfit_700Bold' }}>{pCal}</Text>
+                <Text style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: '#4A7FC5', fontFamily: 'DMSans_400Regular' }}>P kcal</Text>
+              </View>
+              <View style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: CHIP_BG_CARBS }}>
+                <Text style={{ fontSize: 13, color: '#C5A55A', fontFamily: 'Outfit_700Bold' }}>{cCal}</Text>
+                <Text style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: '#C5A55A', fontFamily: 'DMSans_400Regular' }}>C kcal</Text>
+              </View>
+              <View style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: CHIP_BG_FAT }}>
+                <Text style={{ fontSize: 13, color: '#A8A9AD', fontFamily: 'Outfit_700Bold' }}>{fCal}</Text>
+                <Text style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: '#A8A9AD', fontFamily: 'DMSans_400Regular' }}>F kcal</Text>
+              </View>
+              <View style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: '#FAFAFA' }}>
+                <Text style={{ fontSize: 13, color: '#6B6B6F', fontFamily: 'Outfit_700Bold' }}>{totalMacroCal}</Text>
+                <Text style={{ fontSize: 10, marginTop: 2, opacity: 0.8, color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>total</Text>
+              </View>
+            </View>
+
+            {/* Save button — maroon accent */}
             <TouchableOpacity
-              style={[st.saveBtn, { backgroundColor: colors.maroon, opacity: saving ? 0.6 : 1 }]}
+              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginBottom: 12, backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
               onPress={handleSave}
               disabled={saving || recalculating}
               activeOpacity={0.85}
             >
               {saving
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={[st.saveBtnText, { fontFamily: 'DMSans_700Bold' }]}>Save Goals</Text>
+                ? <ActivityIndicator color="#FFFFFF" />
+                : <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'DMSans_700Bold' }}>Save Goals</Text>
               }
             </TouchableOpacity>
 
-            {/* ── Recalculate from Profile (subtle) ── */}
+            {/* Recalculate — flat silver secondary */}
             <TouchableOpacity
-              style={st.recalcBtn}
+              style={{ alignItems: 'center', paddingVertical: 12 }}
               onPress={handleRecalculate}
               disabled={recalculating || saving}
               activeOpacity={0.7}
             >
               {recalculating
-                ? <ActivityIndicator size="small" color={colors.textMuted} />
-                : (
-                  <Text style={[st.recalcText, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>
-                    ↺  Recalculate from Profile
-                  </Text>
-                )
+                ? <ActivityIndicator size="small" color="#A8A9AD" />
+                : <Text style={{ fontSize: 14, color: '#A8A9AD', fontFamily: 'DMSans_500Medium' }}>Recalculate from Profile</Text>
               }
             </TouchableOpacity>
 
@@ -340,99 +294,3 @@ export default function EditGoals({
     </Modal>
   );
 }
-
-const st = StyleSheet.create({
-  container: { flex: 1 },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  headerSide: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17 },
-  cancelText: { fontSize: 15 },
-
-  // Content
-  content: { padding: 20, paddingBottom: 48 },
-
-  // Toggle
-  toggleWrap: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 4,
-    marginBottom: 16,
-  },
-  toggleBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  toggleText: { fontSize: 14 },
-
-  hintText: {
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -8,
-    marginBottom: 16,
-  },
-
-  // Fields card
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  fieldLabel: { width: 64, fontSize: 15 },
-  fieldInput: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 20,
-    textAlign: 'center',
-    fontFamily: 'Outfit_700Bold',
-  },
-  unit: { width: 36, fontSize: 13, textAlign: 'right' },
-  sep: { height: 1, marginLeft: 38 },
-
-  // Macro chips
-  macroRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  macroChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  macroChipVal: { fontSize: 13 },
-  macroChipLabel: { fontSize: 10, marginTop: 2, opacity: 0.8 },
-
-  // Buttons
-  saveBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  saveBtnText: { color: '#fff', fontSize: 16 },
-  recalcBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  recalcText: { fontSize: 14 },
-});

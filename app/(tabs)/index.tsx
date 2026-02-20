@@ -1,33 +1,39 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
   Alert,
   Modal,
   RefreshControl,
   ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import { useTheme } from '@/src/context/ThemeContext';
+
+// Restyle primitives
+import { Box, Text } from '@/src/theme/restyleTheme';
+
+// Sprint 5 components
+import SpiralRings from '@/src/components/SpiralRings';
+import MacroLegend from '@/src/components/MacroLegend';
+import DashboardStatsRow from '@/src/components/DashboardStatsRow';
+import WaterTracker from '@/src/components/WaterTracker';
+import ForYouSection, { ForYouSubSection } from '@/src/components/ForYouSection';
+import MealLogSection from '@/src/components/MealLogSection';
+import StaggeredList from '@/src/components/StaggeredList';
+import Confetti from '@/src/components/Confetti';
+import GoalHitBanner from '@/src/components/GoalHitBanner';
+import Skeleton from '@/src/components/Skeleton';
+
+// Data utilities
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getStreakData, StreakData } from '@/src/utils/streaks';
-import { calculateDailyScore, DailyScore } from '@/src/utils/dailyScore';
-import DailyScoreCard from '@/src/components/DailyScoreCard';
-import Confetti from '@/src/components/Confetti';
-import GoalHitBanner from '@/src/components/GoalHitBanner';
+import { calculateDailyScore } from '@/src/utils/dailyScore';
 import { logBelongsToMealGroup, getCurrentMealPeriod, getEffectiveMenuDate } from '@/src/utils/meals';
 import { getTodayWater, addWater, getWaterGoal } from '@/src/utils/water';
-import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
+import { getAllHallStatuses } from '@/src/utils/hours';
+import { triggerHaptic } from '@/src/utils/haptics';
 import {
   getFavoritesToday,
   getFitsYourMacros,
@@ -38,17 +44,12 @@ import {
   TopRatedHallItem,
 } from '@/src/utils/recommendations';
 import { FavoriteMenuItem } from '@/src/utils/favorites';
-import { Feather } from '@expo/vector-icons';
-import Skeleton from '@/src/components/Skeleton';
 import HistoryScreen from './history';
-import { useStaggerAnimation } from '@/src/hooks/useStaggerAnimation';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getLocalDate(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function formatDate(d = new Date()) {
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
 function getGreeting(): string {
@@ -57,6 +58,8 @@ function getGreeting(): string {
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface NutritionData {
   calories: number;
@@ -93,30 +96,9 @@ interface OpenHall {
   closingTime: string;
 }
 
-// ─── Animated empty-state emoji bounce ───
-function BouncingEmoji({ emoji }: { emoji: string }) {
-  const bounce = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bounce, { toValue: -6, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(bounce, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [bounce]);
-
-  return (
-    <Animated.Text style={{ fontSize: 24, transform: [{ translateY: bounce }] }}>
-      {emoji}
-    </Animated.Text>
-  );
-}
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [logs, setLogs] = useState<MealLog[]>([]);
@@ -133,7 +115,6 @@ export default function HomeScreen() {
   const [openHalls, setOpenHalls] = useState<OpenHall[]>([]);
   const [forYouLoading, setForYouLoading] = useState(true);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
-
   const [showHistory, setShowHistory] = useState(false);
 
   // ─── Celebration state ───
@@ -142,28 +123,25 @@ export default function HomeScreen() {
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerColor, setBannerColor] = useState<string | undefined>(undefined);
 
-  // ─── Celebration refs (prevent re-triggering) ───
+  // ─── Celebration refs ───
   const calorieGoalCelebrated = useRef(false);
   const waterGoalCelebrated = useRef(false);
   const lastCelebratedMilestone = useRef(0);
   const currentDateRef = useRef(getLocalDate());
 
-  // Load persisted streak milestone on mount
+  // Key to force SpiralRings remount on refresh (re-triggers fill animation)
+  const [ringsKey, setRingsKey] = useState(0);
+
+  // Track previous log count to detect new meal logs (for success haptic)
+  const prevLogCount = useRef(0);
+
   useEffect(() => {
     AsyncStorage.getItem('lastStreakMilestone').then((val) => {
       if (val) lastCelebratedMilestone.current = parseInt(val, 10) || 0;
     });
   }, []);
 
-  // ─── Entry stagger animations ───
-  // 0: header, 1: multi-ring, 2: legend row, 3-4: unused, 5: collections, 6: meals
-  const { anims: entryAnims, play: playEntry } = useStaggerAnimation(7, { staggerMs: 80, durationMs: 350, delayMs: 0 });
-
-  // ─── Multi-ring fill animations (4 concentric rings) ───
-  const calRingAnim = useRef(new Animated.Value(0)).current;
-  const proRingAnim = useRef(new Animated.Value(0)).current;
-  const carbRingAnim = useRef(new Animated.Value(0)).current;
-  const fatRingAnim = useRef(new Animated.Value(0)).current;
+  // ─── Data loading (preserved from Sprint 4) ───
 
   const loadOpenHalls = async (): Promise<OpenHall[]> => {
     try {
@@ -173,7 +151,6 @@ export default function HomeScreen() {
         .select('id', { count: 'exact', head: true })
         .eq('date', today);
 
-      // If no hours for today, use yesterday's schedule with current time
       let statusDate = new Date();
       if (!hoursCount || hoursCount === 0) {
         statusDate = new Date();
@@ -187,9 +164,9 @@ export default function HomeScreen() {
 
       if (hallsRes.error || !hallsRes.data) return [];
 
-      const hallNames: Record<number, string> = {};
+      const names: Record<number, string> = {};
       for (const h of hallsRes.data) {
-        hallNames[h.id] = h.name;
+        names[h.id] = h.name;
       }
 
       const open: OpenHall[] = [];
@@ -197,7 +174,7 @@ export default function HomeScreen() {
         if (status.isOpen) {
           open.push({
             id: Number(idStr),
-            name: hallNames[Number(idStr)] || 'Unknown',
+            name: names[Number(idStr)] || 'Unknown',
             currentMeal: status.currentMeal || '',
             closingTime: status.closingTime || '',
           });
@@ -279,7 +256,7 @@ export default function HomeScreen() {
         const MILESTONES = [7, 14, 30, 60, 100];
         if (MILESTONES.includes(streakResult.currentStreak) && streakResult.currentStreak > lastCelebratedMilestone.current) {
           setShowConfetti(true);
-          setBannerMessage(`🔥 ${streakResult.currentStreak}-day streak! Amazing!`);
+          setBannerMessage(`${streakResult.currentStreak}-day streak! Amazing!`);
           setBannerColor(undefined);
           setBannerVisible(true);
           lastCelebratedMilestone.current = streakResult.currentStreak;
@@ -299,42 +276,46 @@ export default function HomeScreen() {
     }, [loadData])
   );
 
-  // ─── Animate multi-ring fills when data changes ───
+  // ─── Meal logging success animation ───
+  // Fires haptic + celebration when new logs detected (returning from Browse)
   useEffect(() => {
-    if (loading) return;
+    if (loading || logs.length === 0) return;
 
-    const calPercent = Math.min(totalCal / goalCal, 1);
-    const proPercent = Math.min(totalPro / goalPro, 1);
-    const carbPercent = Math.min(totalCarb / goalCarb, 1);
-    const fatPercent = Math.min(totalFat / goalFat, 1);
+    // Detect new meal log (count increased)
+    if (logs.length > prevLogCount.current && prevLogCount.current > 0) {
+      // Haptic success on new meal logged
+      triggerHaptic('success');
 
-    Animated.parallel([
-      Animated.timing(calRingAnim, { toValue: calPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      Animated.timing(proRingAnim, { toValue: proPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      Animated.timing(carbRingAnim, { toValue: carbPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      Animated.timing(fatRingAnim, { toValue: fatPercent, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-    ]).start();
-
-    // Play entry stagger on first load
-    playEntry();
-  }, [loading, logs]);
-
-  // ─── Calorie goal celebration ───
-  useEffect(() => {
-    if (loading || !profile || logs.length === 0) return;
-    const goal = profile.goal_calories || 2000;
-    if (totalCal >= goal && !calorieGoalCelebrated.current) {
-      calorieGoalCelebrated.current = true;
-      setShowConfetti(true);
-      setBannerMessage('Daily calorie goal reached! 🎯');
-      setBannerColor(undefined);
-      setBannerVisible(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Check each macro goal for celebration
+      if (profile) {
+        const goal = profile.goal_calories || 2000;
+        if (totalCal >= goal && !calorieGoalCelebrated.current) {
+          calorieGoalCelebrated.current = true;
+          setShowConfetti(true);
+          setBannerMessage('Daily calorie goal reached!');
+          setBannerColor(undefined);
+          setBannerVisible(true);
+        }
+      }
+    } else if (prevLogCount.current === 0 && profile) {
+      // First load — check calorie goal without haptic
+      const goal = profile.goal_calories || 2000;
+      if (totalCal >= goal && !calorieGoalCelebrated.current) {
+        calorieGoalCelebrated.current = true;
+        setShowConfetti(true);
+        setBannerMessage('Daily calorie goal reached!');
+        setBannerColor(undefined);
+        setBannerVisible(true);
+        triggerHaptic('success');
+      }
     }
+
+    prevLogCount.current = logs.length;
   }, [logs]);
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setRingsKey((k) => k + 1);
     await loadData();
     setRefreshing(false);
   };
@@ -355,11 +336,10 @@ export default function HomeScreen() {
       const userId = await requireUserId();
       const newTotal = await addWater(userId, oz);
       setWaterOz(newTotal);
-      // Water goal celebration
       if (newTotal >= waterGoal && !waterGoalCelebrated.current) {
         waterGoalCelebrated.current = true;
-        setBannerMessage('Hydration goal hit! 💧');
-        setBannerColor(colors.blue);
+        setBannerMessage('Hydration goal hit!');
+        setBannerColor('#4A7FC5');
         setBannerVisible(true);
       }
     } catch (error) {
@@ -367,7 +347,8 @@ export default function HomeScreen() {
     }
   };
 
-  // Calculate totals from logs
+  // ─── Computed values ───
+
   const getNutrition = (log: MealLog) => {
     const raw = log.menu_items?.nutrition;
     const n = Array.isArray(raw) ? raw[0] : raw;
@@ -389,7 +370,6 @@ export default function HomeScreen() {
   const goalCarb = profile?.goal_carbs_g || 200;
   const goalFat = profile?.goal_fat_g || 65;
 
-  // Daily score
   const dailyScore = calculateDailyScore(
     { calories: totalCal, protein: totalPro, carbs: totalCarb, fat: totalFat },
     { calories: goalCal, protein: goalPro, carbs: goalCarb, fat: goalFat },
@@ -398,167 +378,91 @@ export default function HomeScreen() {
     waterGoal
   );
 
-  // Multi-ring SVG setup (Apple Watch style)
-  const ringSize = 180;
-  const ringStroke = 8;
-  const ringGap = 6;
-  // Radii: outer→inner: calories, protein, carbs, fat
-  const calRadius = (ringSize - ringStroke) / 2; // 86
-  const proRadius = calRadius - ringStroke - ringGap; // 72
-  const carbRadius = proRadius - ringStroke - ringGap; // 58
-  const fatRadius = carbRadius - ringStroke - ringGap; // 44
+  // ─── Build ForYou sections ───
 
-  const calCircum = 2 * Math.PI * calRadius;
-  const proCircum = 2 * Math.PI * proRadius;
-  const carbCircum = 2 * Math.PI * carbRadius;
-  const fatCircum = 2 * Math.PI * fatRadius;
-
-  // Animated strokeDashoffsets for each ring
-  const calDashOffset = calRingAnim.interpolate({ inputRange: [0, 1], outputRange: [calCircum, 0] });
-  const proDashOffset = proRingAnim.interpolate({ inputRange: [0, 1], outputRange: [proCircum, 0] });
-  const carbDashOffset = carbRingAnim.interpolate({ inputRange: [0, 1], outputRange: [carbCircum, 0] });
-  const fatDashOffset = fatRingAnim.interpolate({ inputRange: [0, 1], outputRange: [fatCircum, 0] });
-
-  const getMealName = (log: MealLog): string => {
-    const mi = log.menu_items as any;
-    if (typeof mi === 'string') return mi;
-    if (mi?.name) return mi.name;
-    return 'Unknown item';
-  };
-
-  const renderMealGroup = (meal: string, label: string) => {
-    const mealLogs = logs.filter((l) => logBelongsToMealGroup(l.meal, meal));
-    const mealCals = mealLogs.reduce((sum, l) => sum + getNutrition(l).cal, 0);
-    return (
-      <View key={meal} style={{ marginBottom: 20 }}>
-        <Text style={[st.mealHeader, { color: colors.textDim, fontFamily: 'DMSans_600SemiBold' }]}>
-          {label} — {mealCals} cal
-        </Text>
-        {mealLogs.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-            <BouncingEmoji emoji="🍽️" />
-            <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 4, fontFamily: 'DMSans_400Regular' }]}>
-              No {label.toLowerCase()} logged yet
-            </Text>
-          </View>
-        ) : (
-          mealLogs.map((log, i) => {
-            const n = getNutrition(log);
-            return (
-              <View key={log.id}>
-                <View style={st.logRow}>
-                  <Text style={[st.logName, { color: colors.text, fontFamily: 'DMSans_500Medium' }]} numberOfLines={1}>
-                    {getMealName(log)}
-                  </Text>
-                  <Text style={[st.logCal, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                    {n.cal} cal
-                  </Text>
-                  <TouchableOpacity onPress={() => deleteLog(log.id)} style={st.deleteBtn}>
-                    <Feather name="x" size={16} color={colors.textDim} />
-                  </TouchableOpacity>
-                </View>
-                {i < mealLogs.length - 1 && <View style={[st.divider, { backgroundColor: colors.cardGlassBorder }]} />}
-              </View>
-            );
-          })
-        )}
-      </View>
-    );
-  };
-
-  const hasForYouItems = forYouFavs.length > 0 || forYouMacros.length > 0 || forYouTopHalls.length > 0 || forYouNew.length > 0 || forYouLight.length > 0;
-  const hasForYou = forYouLoading || hasForYouItems;
-
-  const renderForYouSkeletonRow = () => (
-    <View style={{ marginBottom: 16 }}>
-      <Skeleton width={130} height={15} borderRadius={7} style={{ marginBottom: 10 }} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={[st.forYouCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
-            <Skeleton width={100} height={13} borderRadius={6} />
-            <Skeleton width={60} height={12} borderRadius={6} style={{ marginTop: 6 }} />
-            <Skeleton width={80} height={11} borderRadius={6} style={{ marginTop: 4 }} />
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
-  const renderForYouItemRow = (title: string, iconName: string, items: { id: number; name: string; calories: number; hallName: string }[], filter?: string) => {
-    if (items.length === 0) return null;
-    return (
-      <View style={{ marginBottom: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 0 }]}>{title}</Text>
-          {filter && (
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: '/(tabs)/browse', params: { filter } })}
-              activeOpacity={0.7}
-            >
-              <Text style={[{ fontSize: 13, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>See All →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-          {items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[st.forYouCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
-              onPress={() => router.push({ pathname: '/(tabs)/browse', params: filter ? { filter } : {} })}
-              activeOpacity={0.7}
-            >
-              <View style={{ position: 'absolute', top: 10, right: 10 }}>
-                <Feather name={iconName as any} size={14} color={colors.textDim} />
-              </View>
-              <Text style={[st.forYouName, { color: colors.text, marginTop: 0 }]} numberOfLines={1}>{item.name}</Text>
-              <Text style={[st.forYouDetail, { color: colors.textMuted }]}>{item.calories} cal</Text>
-              {item.hallName ? <Text style={[st.forYouHall, { color: colors.textMuted }]} numberOfLines={1}>{item.hallName}</Text> : null}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
+  const forYouSections: ForYouSubSection[] = [
+    {
+      title: 'Your Favorites Today',
+      iconName: 'heart',
+      items: forYouFavs.map((f) => ({
+        id: f.id,
+        name: f.name,
+        calories: f.nutrition?.calories ?? 0,
+        hallName: hallNames[f.dining_hall_id] ?? '',
+      })),
+      filter: 'favorites',
+    },
+    {
+      title: 'Fits Your Macros',
+      iconName: 'target',
+      items: forYouMacros.map((i) => ({
+        id: i.id,
+        name: i.name,
+        calories: i.calories,
+        hallName: i.hall_name,
+      })),
+      filter: 'macros',
+    },
+    {
+      title: 'Try Something New',
+      iconName: 'zap',
+      items: forYouNew.map((i) => ({
+        id: i.id,
+        name: i.name,
+        calories: i.calories,
+        hallName: i.hall_name,
+      })),
+      filter: 'new',
+    },
+    {
+      title: 'Quick & Light',
+      iconName: 'feather',
+      items: forYouLight.map((i) => ({
+        id: i.id,
+        name: i.name,
+        calories: i.calories,
+        hallName: i.hall_name,
+      })),
+      filter: 'light',
+    },
+  ];
 
   // ─── Loading skeleton ───
+
   if (loading) {
     return (
-      <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
-        <View style={st.scroll}>
-          {/* Greeting skeleton */}
-          <View style={st.header}>
-            <View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+        <Box padding="m" paddingBottom="xxl">
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="m">
+            <Box>
               <Skeleton width={100} height={14} borderRadius={7} />
               <Skeleton width={160} height={28} borderRadius={8} style={{ marginTop: 6 }} />
-            </View>
-            <Skeleton width={44} height={28} borderRadius={12} />
-          </View>
-          {/* Multi-ring skeleton */}
-          <View style={{ alignItems: 'center', marginBottom: 20 }}>
-            <Skeleton width={180} height={180} borderRadius={90} />
-          </View>
-          {/* Legend row skeleton */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            </Box>
+            <Skeleton width={40} height={40} borderRadius={9999} />
+          </Box>
+          <Box alignItems="center" marginBottom="m">
+            <Skeleton width={280} height={280} borderRadius={140} />
+          </Box>
+          <Box flexDirection="row" justifyContent="space-between" marginBottom="s">
             <Skeleton width={70} height={12} borderRadius={6} />
             <Skeleton width={70} height={12} borderRadius={6} />
             <Skeleton width={70} height={12} borderRadius={6} />
             <Skeleton width={70} height={12} borderRadius={6} />
-          </View>
-          {/* Meals skeleton */}
-          <View style={{ marginTop: 28 }}>
+          </Box>
+          <Box marginTop="l">
             <Skeleton width={120} height={12} borderRadius={6} />
             <Skeleton width={'100%' as any} height={44} borderRadius={8} style={{ marginTop: 12 }} />
             <Skeleton width={'100%' as any} height={44} borderRadius={8} style={{ marginTop: 8 }} />
-          </View>
-        </View>
+          </Box>
+        </Box>
       </SafeAreaView>
     );
   }
 
-  const AnimatedCircleComponent = Animated.createAnimatedComponent(Circle);
+  // ─── Main render ───
 
   return (
-    <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
       <GoalHitBanner
         visible={bannerVisible}
@@ -567,255 +471,121 @@ export default function HomeScreen() {
         onDismiss={() => setBannerVisible(false)}
       />
       <ScrollView
-        contentContainerStyle={st.scroll}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.maroon} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#861F41" />
+        }
       >
-        {/* Header — fade in + slide down */}
-        <Animated.View style={[st.header, {
-          opacity: entryAnims[0],
-          transform: [{ translateY: entryAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }],
-        }]}>
-          <View>
-            <Text style={[st.greetingLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-              {getGreeting()}
+        {/* 1. Greeting + Avatar row */}
+        <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="m">
+          <Box>
+            <Text variant="muted">{getGreeting()}</Text>
+            <Text variant="pageTitle">{profile?.name || 'there'}</Text>
+          </Box>
+          <Box
+            width={40}
+            height={40}
+            borderRadius="full"
+            alignItems="center"
+            justifyContent="center"
+            style={{ backgroundColor: '#861F41' }}
+          >
+            <Text variant="body" style={{ color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16 }}>
+              {profile?.name?.charAt(0)?.toUpperCase() || '?'}
             </Text>
-            <Text style={[st.greeting, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
-              {profile?.name || 'there'}
-            </Text>
-          </View>
-          <View style={[st.gradePill, { backgroundColor: dailyScore.gradeColor + '26' }]}>
-            <Text style={[st.gradePillText, { color: dailyScore.gradeColor, fontFamily: 'DMSans_700Bold' }]}>
-              {dailyScore.grade}
-            </Text>
-          </View>
-        </Animated.View>
+          </Box>
+        </Box>
 
-        {/* Multi-Ring (Apple Watch style) — fade in + scale */}
-        <Animated.View style={[st.ringWrap, {
-          opacity: entryAnims[1],
-          transform: [{ scale: entryAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
-        }]}>
-          <Svg width={ringSize} height={ringSize}>
-            <Defs>
-              <SvgLinearGradient id="calGradient" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor={colors.maroon} />
-                <Stop offset="1" stopColor="#C62368" />
-              </SvgLinearGradient>
-            </Defs>
-
-            {/* Calories ring (outermost) */}
-            <Circle cx={ringSize / 2} cy={ringSize / 2} r={calRadius} stroke="rgba(139,30,63,0.1)" strokeWidth={ringStroke} fill="none" />
-            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={calRadius} stroke="url(#calGradient)" strokeWidth={ringStroke} fill="none" strokeDasharray={calCircum} strokeDashoffset={calDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
-
-            {/* Protein ring */}
-            <Circle cx={ringSize / 2} cy={ringSize / 2} r={proRadius} stroke="rgba(91,127,255,0.1)" strokeWidth={ringStroke} fill="none" />
-            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={proRadius} stroke={colors.blue} strokeWidth={ringStroke} fill="none" strokeDasharray={proCircum} strokeDashoffset={proDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
-
-            {/* Carbs ring */}
-            <Circle cx={ringSize / 2} cy={ringSize / 2} r={carbRadius} stroke="rgba(232,119,34,0.1)" strokeWidth={ringStroke} fill="none" />
-            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={carbRadius} stroke={colors.orange} strokeWidth={ringStroke} fill="none" strokeDasharray={carbCircum} strokeDashoffset={carbDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
-
-            {/* Fat ring (innermost) */}
-            <Circle cx={ringSize / 2} cy={ringSize / 2} r={fatRadius} stroke="rgba(255,214,10,0.1)" strokeWidth={ringStroke} fill="none" />
-            <AnimatedCircleComponent cx={ringSize / 2} cy={ringSize / 2} r={fatRadius} stroke={colors.yellow} strokeWidth={ringStroke} fill="none" strokeDasharray={fatCircum} strokeDashoffset={fatDashOffset} strokeLinecap="round" transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`} />
-          </Svg>
-          <View style={st.ringCenter}>
-            <Text style={[st.ringNumber, { color: colors.text, fontFamily: 'Outfit_800ExtraBold' }]}>
-              {totalCal.toLocaleString()}
-            </Text>
-            <Text style={[st.ringLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-              of {goalCal.toLocaleString()} cal
-            </Text>
-          </View>
-        </Animated.View>
-
-        {/* Legend Row — replaces macro cards */}
-        <Animated.View style={[st.legendRow, {
-          opacity: entryAnims[2],
-          transform: [{ translateY: entryAnims[2].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        }]}>
-          <View style={st.legendItem}>
-            <View style={[st.legendDot, { backgroundColor: colors.maroon }]} />
-            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalCal.toLocaleString()} / {goalCal.toLocaleString()}</Text>
-          </View>
-          <View style={st.legendItem}>
-            <View style={[st.legendDot, { backgroundColor: colors.blue }]} />
-            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalPro} / {goalPro}g</Text>
-          </View>
-          <View style={st.legendItem}>
-            <View style={[st.legendDot, { backgroundColor: colors.orange }]} />
-            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalCarb} / {goalCarb}g</Text>
-          </View>
-          <View style={st.legendItem}>
-            <View style={[st.legendDot, { backgroundColor: colors.yellow }]} />
-            <Text style={[st.legendText, { color: colors.textMuted }]}>{totalFat} / {goalFat}g</Text>
-          </View>
-        </Animated.View>
-
-        {/* Streak + Score Cards — glass style */}
-        <View style={st.streakScoreRow}>
-          {/* LEFT — Streak */}
-          <View style={[st.streakCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-            <Text style={[st.streakCardHeader, { color: colors.textDim }]}>CURRENT STREAK</Text>
-            <Text style={[st.streakCardNumber, { color: colors.text, fontFamily: 'Outfit_800ExtraBold' }]}>
-              {streakData?.currentStreak ?? 0}
-            </Text>
-            <Text style={[st.streakCardLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>days</Text>
-            <View style={[st.streakCardAccent, { backgroundColor: colors.maroon }]} />
-          </View>
-          {/* RIGHT — Score */}
-          <DailyScoreCard
-            compact
-            score={dailyScore.score}
-            grade={dailyScore.grade}
-            gradeColor={dailyScore.gradeColor}
-            breakdown={dailyScore.breakdown}
+        {/* 2. SpiralRings hero (has its own animation — NOT in StaggeredList) */}
+        <Box alignItems="center" marginBottom="m">
+          <SpiralRings
+            key={ringsKey}
+            calories={{ current: totalCal, goal: goalCal }}
+            protein={{ current: totalPro, goal: goalPro }}
+            carbs={{ current: totalCarb, goal: goalCarb }}
+            fat={{ current: totalFat, goal: goalFat }}
           />
-        </View>
+        </Box>
 
-        {/* Water — compact inline card */}
-        <View style={[st.waterCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-          <Text style={[st.waterLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Water</Text>
-          <View style={[st.waterBarTrack, { backgroundColor: colors.barTrack }]}>
-            <View style={[st.waterBarFill, { backgroundColor: colors.blue, width: `${Math.min((waterOz / waterGoal) * 100, 100)}%` }]} />
-          </View>
-          <Text style={[st.waterAmount, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-            {waterOz} / {waterGoal} oz
-          </Text>
-          <TouchableOpacity
-            style={[st.waterPill, { borderColor: colors.cardGlassBorder }]}
-            onPress={() => handleAddWater(8)}
-            activeOpacity={0.7}
-          >
-            <Text style={[st.waterPillText, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>+8 oz</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[st.waterPill, { borderColor: colors.cardGlassBorder }]}
-            onPress={() => handleAddWater(16)}
-            activeOpacity={0.7}
-          >
-            <Text style={[st.waterPillText, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>+16 oz</Text>
-          </TouchableOpacity>
-        </View>
+        {/* StaggeredList wraps MacroLegend downward */}
+        <StaggeredList staggerDelay={50} initialDelay={200}>
+          {/* 3. MacroLegend */}
+          <Box marginBottom="m">
+            <MacroLegend
+              calories={{ current: totalCal, goal: goalCal }}
+              protein={{ current: totalPro, goal: goalPro }}
+              carbs={{ current: totalCarb, goal: goalCarb }}
+              fat={{ current: totalFat, goal: goalFat }}
+            />
+          </Box>
 
-        {/* Open Now — glass cards, no emojis */}
-        {openHalls.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <View style={st.sectionHead}>
-              <Text style={[st.sectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>Open Now</Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-              {openHalls.map((hall) => (
-                <TouchableOpacity
-                  key={hall.id}
-                  style={[st.openHallCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}
-                  onPress={() => router.push('/(tabs)/browse')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[{ fontSize: 14, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]} numberOfLines={1}>{hall.name}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green }} />
-                    <Text style={[{ fontSize: 12, color: colors.green, fontFamily: 'DMSans_500Medium' }]}>Open</Text>
-                    <Text style={[{ fontSize: 12, color: colors.textDim }]}> · </Text>
-                    <Feather name="star" size={10} color={colors.yellow} />
-                    <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>4.2</Text>
-                  </View>
-                  <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 4 }]}>
-                    {hall.currentMeal} · Closes {hall.closingTime}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+          {/* 4. DashboardStatsRow */}
+          <Box marginBottom="m">
+            <DashboardStatsRow
+              streak={streakData?.currentStreak ?? 0}
+              score={dailyScore.score}
+              grade={dailyScore.grade}
+            />
+          </Box>
 
-        {/* For You — dynamic collections */}
-        {hasForYou && (
-          <Animated.View style={[{ marginTop: 24 }, {
-            opacity: entryAnims[5],
-            transform: [{ translateY: entryAnims[5].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-          }]}>
-            <View style={st.sectionHead}>
-              <Text style={[st.sectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>For You</Text>
-            </View>
+          {/* 5. WaterTracker */}
+          <Box marginBottom="m">
+            <WaterTracker
+              waterOz={waterOz}
+              waterGoal={waterGoal}
+              onAddWater={handleAddWater}
+            />
+          </Box>
 
+          {/* 6. ForYouSection */}
+          <Box marginBottom="m">
             {forYouLoading ? (
-              <>
-                {renderForYouSkeletonRow()}
-                {renderForYouSkeletonRow()}
-                {renderForYouSkeletonRow()}
-              </>
-            ) : !hasForYouItems ? (
-              <View style={[st.forYouEmptyCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-                <Text style={{ fontSize: 28 }}>🍽️</Text>
-                <Text style={[{ fontSize: 14, color: colors.textMuted, fontFamily: 'DMSans_500Medium', marginTop: 8, textAlign: 'center' }]}>
-                  Check back after logging a few meals
-                </Text>
-              </View>
-            ) : (
-              <>
-                {renderForYouItemRow('Your Favorites Today', 'heart', forYouFavs.map((f) => ({
-                  id: f.id, name: f.name, calories: f.nutrition?.calories ?? 0, hallName: hallNames[f.dining_hall_id] ?? '',
-                })), 'favorites')}
-
-                {renderForYouItemRow('Fits Your Macros', 'target', forYouMacros.map((i) => ({
-                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })), 'macros')}
-
-                {forYouTopHalls.length > 0 && (
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={[st.forYouSubtitle, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Top Rated Halls</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-                      {forYouTopHalls.map((hall) => (
-                        <TouchableOpacity
-                          key={hall.id}
-                          style={[st.forYouCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
-                          onPress={() => router.push('/(tabs)/browse')}
-                          activeOpacity={0.7}
+              <Box>
+                <Text variant="cardTitle" marginBottom="m">For You</Text>
+                {[0, 1, 2].map((rowIdx) => (
+                  <Box key={rowIdx} marginBottom="m">
+                    <Skeleton width={130} height={15} borderRadius={7} style={{ marginBottom: 10 }} />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {[0, 1, 2].map((i) => (
+                        <Box
+                          key={i}
+                          width={140}
+                          padding="m"
+                          borderRadius="m"
+                          backgroundColor="card"
+                          borderColor="border"
+                          borderWidth={1}
+                          marginRight="s"
                         >
-                          <Text style={[st.forYouName, { color: colors.text, marginTop: 0 }]} numberOfLines={1}>{hall.name}</Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                            <Feather name="star" size={12} color={colors.yellow} />
-                            <Text style={[st.forYouDetail, { color: colors.textMuted, marginTop: 0 }]}>{hall.avg} ({hall.count})</Text>
-                          </View>
-                          <View style={[st.forYouBadge, { backgroundColor: hall.status.isOpen ? colors.green + '22' : colors.border }]}>
-                            <Text style={{ fontSize: 10, color: hall.status.isOpen ? colors.green : colors.textMuted, fontFamily: 'DMSans_600SemiBold' }}>
-                              {hall.status.isOpen ? `Open · ${hall.status.currentMeal}` : 'Closed'}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
+                          <Skeleton width={100} height={13} borderRadius={6} />
+                          <Skeleton width={60} height={12} borderRadius={6} style={{ marginTop: 6 }} />
+                          <Skeleton width={80} height={11} borderRadius={6} style={{ marginTop: 4 }} />
+                        </Box>
                       ))}
                     </ScrollView>
-                  </View>
-                )}
-
-                {renderForYouItemRow('Try Something New', 'zap', forYouNew.map((i) => ({
-                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })), 'new')}
-
-                {renderForYouItemRow('Quick & Light', 'feather', forYouLight.map((i) => ({
-                  id: i.id, name: i.name, calories: i.calories, hallName: i.hall_name,
-                })), 'light')}
-              </>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <ForYouSection
+                sections={forYouSections}
+                onSeeAll={(filter) => router.push({ pathname: '/(tabs)/browse', params: { filter } })}
+                onItemPress={() => router.push('/(tabs)/browse')}
+              />
             )}
-          </Animated.View>
-        )}
+          </Box>
 
-        {/* Today's Meals — fade in */}
-        <Animated.View style={[{ marginTop: 28 }, {
-          opacity: entryAnims[6],
-        }]}>
-          <View style={st.sectionHead}>
-            <Text style={[st.sectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>Today's Meals</Text>
-            <TouchableOpacity onPress={() => setShowHistory(true)} activeOpacity={0.7}>
-              <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>History →</Text>
-            </TouchableOpacity>
-          </View>
-          {renderMealGroup('Breakfast', 'BREAKFAST')}
-          {renderMealGroup('Lunch', 'LUNCH')}
-          {renderMealGroup('Dinner', 'DINNER')}
-        </Animated.View>
+          {/* 7. MealLogSection */}
+          <Box marginBottom="xxl">
+            <MealLogSection
+              logs={logs}
+              onHistoryPress={() => setShowHistory(true)}
+              onDeleteLog={deleteLog}
+              logBelongsToMealGroup={logBelongsToMealGroup}
+            />
+          </Box>
+        </StaggeredList>
       </ScrollView>
 
       {/* History Modal */}
@@ -825,63 +595,111 @@ export default function HomeScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowHistory(false)}
       >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-          <View style={st.historyModalHeader}>
-            <TouchableOpacity onPress={() => setShowHistory(false)} activeOpacity={0.6}>
-              <Text style={[{ fontSize: 15, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>Close</Text>
-            </TouchableOpacity>
-          </View>
+        <Box flex={1} backgroundColor="background">
+          <Box flexDirection="row" justifyContent="flex-end" paddingHorizontal="m" paddingTop="m" paddingBottom="s">
+            <Text variant="body" color="textMuted" onPress={() => setShowHistory(false)}>Close</Text>
+          </Box>
           <HistoryScreen />
-        </View>
+        </Box>
       </Modal>
     </SafeAreaView>
   );
 }
 
-const st = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: { padding: 20, paddingBottom: 100 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greetingLabel: { fontSize: 14, marginBottom: 2 },
-  greeting: { fontSize: 28 },
-  gradePill: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  gradePillText: { fontSize: 14 },
-  ringWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  ringCenter: { position: 'absolute', alignItems: 'center' },
-  ringNumber: { fontSize: 36 },
-  ringLabel: { fontSize: 13, marginTop: 2 },
-  legendRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, fontFamily: 'DMSans_500Medium' },
-  waterCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 14, marginTop: 16 },
-  waterLabel: { fontSize: 14 },
-  waterBarTrack: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden', marginHorizontal: 12 },
-  waterBarFill: { height: 4, borderRadius: 2 },
-  waterAmount: { fontSize: 14, marginRight: 8 },
-  waterPill: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, marginLeft: 4 },
-  waterPillText: { fontSize: 12 },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 20 },
-  forYouSubtitle: { fontSize: 15, marginBottom: 10 },
-  forYouCard: { width: 140, padding: 12, borderRadius: 14, marginRight: 10 },
-  forYouName: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', marginTop: 8 },
-  forYouDetail: { fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: 2 },
-  forYouHall: { fontSize: 11, fontFamily: 'DMSans_400Regular', marginTop: 2 },
-  forYouBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, marginTop: 6, alignSelf: 'flex-start' as const },
-  openHallCard: { width: 140, padding: 12, borderRadius: 14, marginRight: 10, borderWidth: 1, alignItems: 'flex-start' as const },
-  mealHeader: { fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 },
-  logRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  logName: { flex: 1, fontSize: 15 },
-  logCal: { fontSize: 14, marginRight: 8 },
-  deleteBtn: { padding: 4 },
-  divider: { height: 1 },
-  historyModalHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  streakScoreRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  streakCard: { flex: 1, borderRadius: 14, padding: 16, borderWidth: 1, overflow: 'hidden' },
-  streakCardHeader: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, fontFamily: 'DMSans_500Medium' },
-  streakCardNumber: { fontSize: 32, marginTop: 6 },
-  streakCardLabel: { fontSize: 13, marginTop: 2 },
-  streakCardAccent: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 },
-  forYouEmptyCard: { borderRadius: 14, borderWidth: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
-});
+// ═══════════════════════════════════════════════════════════════════════════════
+// OLD SPRINT 4 DASHBOARD CODE — COMMENTED OUT (DO NOT DELETE)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Removed imports:
+//   import { Animated, Easing, StyleSheet, Text as RNText, TouchableOpacity, View } from 'react-native';
+//   import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+//   import * as Haptics from 'expo-haptics';
+//   import { useTheme } from '@/src/context/ThemeContext';
+//   import DailyScoreCard from '@/src/components/DailyScoreCard';
+//   import { Feather } from '@expo/vector-icons';
+//   import { useStaggerAnimation } from '@/src/hooks/useStaggerAnimation';
+//
+// Removed: BouncingEmoji component, useStaggerAnimation hook, RN Animated ring
+// animation refs (calRingAnim, proRingAnim, carbRingAnim, fatRingAnim),
+// ring SVG math (ringSize, ringStroke, ringGap, radii, circumferences,
+// animated strokeDashoffsets), renderMealGroup(), renderForYouSkeletonRow(),
+// renderForYouItemRow(), AnimatedCircleComponent.
+//
+// Old render return JSX and StyleSheet preserved below for reference:
+//
+/*
+  return (
+    <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
+      <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <GoalHitBanner visible={bannerVisible} message={bannerMessage} color={bannerColor} onDismiss={() => setBannerVisible(false)} />
+      <ScrollView contentContainerStyle={st.scroll} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.maroon} />}>
+        <Animated.View style={[st.header, { opacity: entryAnims[0], transform: [{ translateY: entryAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }]}>
+          <View>
+            <Text style={[st.greetingLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{getGreeting()}</Text>
+            <Text style={[st.greeting, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{profile?.name || 'there'}</Text>
+          </View>
+          <View style={[st.gradePill, { backgroundColor: dailyScore.gradeColor + '26' }]}>
+            <Text style={[st.gradePillText, { color: dailyScore.gradeColor, fontFamily: 'DMSans_700Bold' }]}>{dailyScore.grade}</Text>
+          </View>
+        </Animated.View>
+        <Animated.View style={[st.ringWrap, { opacity: entryAnims[1], transform: [{ scale: entryAnims[1].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }] }]}>
+          <Svg width={ringSize} height={ringSize}>...</Svg>
+          <View style={st.ringCenter}>
+            <Text style={[st.ringNumber, { color: colors.text, fontFamily: 'Outfit_800ExtraBold' }]}>{totalCal.toLocaleString()}</Text>
+            <Text style={[st.ringLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>of {goalCal.toLocaleString()} cal</Text>
+          </View>
+        </Animated.View>
+        ...full old render continues with legendRow, streakScoreRow, waterCard, openHalls, forYou, meals, historyModal...
+      </ScrollView>
+    </SafeAreaView>
+  );
+
+  const st = StyleSheet.create({
+    safe: { flex: 1 },
+    scroll: { padding: 20, paddingBottom: 100 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    greetingLabel: { fontSize: 14, marginBottom: 2 },
+    greeting: { fontSize: 28 },
+    gradePill: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+    gradePillText: { fontSize: 14 },
+    ringWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    ringCenter: { position: 'absolute', alignItems: 'center' },
+    ringNumber: { fontSize: 36 },
+    ringLabel: { fontSize: 13, marginTop: 2 },
+    legendRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    legendDot: { width: 8, height: 8, borderRadius: 4 },
+    legendText: { fontSize: 12, fontFamily: 'DMSans_500Medium' },
+    waterCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 14, marginTop: 16 },
+    waterLabel: { fontSize: 14 },
+    waterBarTrack: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden', marginHorizontal: 12 },
+    waterBarFill: { height: 4, borderRadius: 2 },
+    waterAmount: { fontSize: 14, marginRight: 8 },
+    waterPill: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, marginLeft: 4 },
+    waterPillText: { fontSize: 12 },
+    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    sectionTitle: { fontSize: 20 },
+    forYouSubtitle: { fontSize: 15, marginBottom: 10 },
+    forYouCard: { width: 140, padding: 12, borderRadius: 14, marginRight: 10 },
+    forYouName: { fontSize: 13, fontFamily: 'DMSans_600SemiBold', marginTop: 8 },
+    forYouDetail: { fontSize: 12, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+    forYouHall: { fontSize: 11, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+    forYouBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, marginTop: 6, alignSelf: 'flex-start' },
+    openHallCard: { width: 140, padding: 12, borderRadius: 14, marginRight: 10, borderWidth: 1, alignItems: 'flex-start' },
+    mealHeader: { fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 },
+    logRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+    logName: { flex: 1, fontSize: 15 },
+    logCal: { fontSize: 14, marginRight: 8 },
+    deleteBtn: { padding: 4 },
+    divider: { height: 1 },
+    historyModalHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+    streakScoreRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    streakCard: { flex: 1, borderRadius: 14, padding: 16, borderWidth: 1, overflow: 'hidden' },
+    streakCardHeader: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, fontFamily: 'DMSans_500Medium' },
+    streakCardNumber: { fontSize: 32, marginTop: 6 },
+    streakCardLabel: { fontSize: 13, marginTop: 2 },
+    streakCardAccent: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 },
+    forYouEmptyCard: { borderRadius: 14, borderWidth: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
+  });
+*/

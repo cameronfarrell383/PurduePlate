@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
@@ -541,7 +542,6 @@ export default function BrowseScreen() {
     return 'transparent';
   };
 
-  const hallEmojis = ['🏛️', '🍔', '🍗', '🌮', '🎓', '🏢'];
 
   // ─── Derived: stations from allHallItems ───
   const derivedStations: { name: string; count: number }[] = (() => {
@@ -615,7 +615,7 @@ export default function BrowseScreen() {
       onRequestClose={() => setRatingModalVisible(false)}
     >
       <View style={st.modalOverlay}>
-        <View style={[st.modalContent, { backgroundColor: colors.card }]}>
+        <View style={[st.modalContent, { backgroundColor: colors.background }]}>
           <Text style={[{ fontSize: 20, color: colors.text, fontFamily: 'Outfit_700Bold', textAlign: 'center', marginBottom: 4 }]}>
             Rate {selectedHall?.name}
           </Text>
@@ -636,7 +636,7 @@ export default function BrowseScreen() {
                       Haptics.selectionAsync();
                     }}
                   >
-                    <Text style={{ fontSize: 36 }}>{star <= ratingStars ? '⭐' : '☆'}</Text>
+                    <Feather name="star" size={36} color={star <= ratingStars ? colors.yellow : colors.textDim} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -713,7 +713,7 @@ export default function BrowseScreen() {
       {['Breakfast', 'Lunch', 'Dinner'].map((m) => (
         <TouchableOpacity
           key={m}
-          style={[st.filterChip, { backgroundColor: meal === m ? colors.maroon : colors.card, borderColor: meal === m ? colors.maroon : colors.border, borderWidth: 1 }]}
+          style={[st.filterChip, { backgroundColor: meal === m ? colors.maroon : colors.cardGlass, borderColor: meal === m ? colors.maroon : colors.cardGlassBorder, borderWidth: 1 }]}
           onPress={() => {
             Haptics.selectionAsync();
             setMeal(m);
@@ -782,7 +782,7 @@ export default function BrowseScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={{ paddingHorizontal: 8 }}
           >
-            <Text style={{ fontSize: 18 }}>{isFav ? '❤️' : '🤍'}</Text>
+            <Feather name="heart" size={18} color={isFav ? colors.red : colors.textDim} />
           </TouchableOpacity>
           <View style={{ alignItems: 'flex-end', minWidth: 40 }}>
             <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{n.cal}</Text>
@@ -816,7 +816,7 @@ export default function BrowseScreen() {
 
             <TouchableOpacity
               onPress={clearFilter}
-              style={[st.clearFilterBtn, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+              style={[st.clearFilterBtn, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
             >
               <Text style={[{ fontSize: 13, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>✕ Clear Filter</Text>
             </TouchableOpacity>
@@ -836,7 +836,7 @@ export default function BrowseScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={[st.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[st.groupCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
                 {filterItems.map((item, i) => {
                   const isFav = !!item.rec_num && favRecNums.has(item.rec_num);
                   return (
@@ -854,7 +854,7 @@ export default function BrowseScreen() {
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             style={{ paddingHorizontal: 8 }}
                           >
-                            <Text style={{ fontSize: 18 }}>{isFav ? '❤️' : '🤍'}</Text>
+                            <Feather name="heart" size={18} color={isFav ? colors.red : colors.textDim} />
                           </TouchableOpacity>
                         ) : null}
                         <View style={{ alignItems: 'flex-end', minWidth: 40 }}>
@@ -886,10 +886,11 @@ export default function BrowseScreen() {
             {renderHeader()}
 
             {/* Hall-level search bar — filters hall names only */}
-            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+            <View style={[st.searchWrap, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+              <Feather name="search" size={18} color={colors.textDim} style={{ marginRight: 10 }} />
               <TextInput
                 style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
-                placeholder="Search dining halls..."
+                placeholder="Search halls or food items..."
                 placeholderTextColor={colors.textDim}
                 value={hallSearch}
                 onChangeText={setHallSearch}
@@ -927,49 +928,42 @@ export default function BrowseScreen() {
                 </Text>
               </View>
             ) : (
-              filteredHalls.map((hall, i) => {
+              filteredHalls.map((hall) => {
                 const rating = hallRatings[hall.id];
                 const status = hallStatuses[hall.id];
                 return (
                   <PressableCard
                     key={hall.id}
                     onPress={() => openHall(hall)}
-                    style={[st.hallCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+                    style={[st.hallCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
                   >
-                    <Text style={{ fontSize: 36, marginRight: 14 }}>{hallEmojis[i] || '🏛️'}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{hall.name}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        {status?.isOpen ? (
-                          <View style={[st.statusBadge, { backgroundColor: colors.green + '22' }]}>
-                            <Text style={[{ fontSize: 11, color: colors.green, fontFamily: 'DMSans_700Bold' }]}>
-                              Open · {status.currentMeal}
-                            </Text>
-                          </View>
-                        ) : status ? (
-                          <View style={[st.statusBadge, { backgroundColor: colors.textMuted + '22' }]}>
-                            <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_700Bold' }]}>
-                              Closed{status.nextOpen ? ` · Opens ${status.nextOpen}` : ''}
-                            </Text>
-                          </View>
+                      <Text style={[{ fontSize: 17, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{hall.name}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                        {rating ? (
+                          <>
+                            <Feather name="star" size={12} color={colors.yellow} />
+                            <Text style={[{ fontSize: 14, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{rating.avg.toFixed(1)}</Text>
+                            <Text style={[{ fontSize: 14, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>·</Text>
+                          </>
                         ) : null}
-                        <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{hall.count} items</Text>
+                        <Text style={[{ fontSize: 14, color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>{hall.count} items</Text>
                       </View>
-                      {rating ? (
-                        <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>
-                          ⭐ {rating.avg.toFixed(1)} · {rating.count} {rating.count === 1 ? 'rating' : 'ratings'}
-                        </Text>
-                      ) : (
-                        <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2, opacity: 0.6 }]}>
-                          No ratings yet
-                        </Text>
-                      )}
+                      {status?.isOpen ? (
+                        <View style={[st.statusBadge, { backgroundColor: 'rgba(52,199,89,0.1)', marginTop: 8 }]}>
+                          <Text style={[{ fontSize: 11, color: colors.green, fontFamily: 'DMSans_700Bold' }]}>
+                            Open{status.currentMeal ? ` until ${status.currentMeal}` : ''}
+                          </Text>
+                        </View>
+                      ) : status ? (
+                        <View style={[st.statusBadge, { backgroundColor: 'rgba(255,69,58,0.1)', marginTop: 8 }]}>
+                          <Text style={[{ fontSize: 11, color: colors.red, fontFamily: 'DMSans_700Bold' }]}>
+                            Closed{status.nextOpen ? ` · Opens ${status.nextOpen}` : ''}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                    {hall.count > 0 && (
-                      <View style={[st.countBadge, { backgroundColor: colors.maroon }]}>
-                        <Text style={[{ fontSize: 11, color: '#fff', fontFamily: 'DMSans_700Bold' }]}>{hall.count}</Text>
-                      </View>
-                    )}
+                    <Feather name="chevron-right" size={18} color={colors.textDim} style={{ opacity: 0.5 }} />
                   </PressableCard>
                 );
               })
@@ -992,15 +986,16 @@ export default function BrowseScreen() {
 
             {/* Rate this hall button */}
             <TouchableOpacity
-              style={[st.rateBtn, { borderColor: colors.border }]}
+              style={[st.rateBtn, { borderColor: colors.cardGlassBorder }]}
               onPress={openRatingModal}
             >
-              <Text style={{ fontSize: 16 }}>⭐</Text>
-              <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Rate this hall</Text>
+              <Feather name="star" size={16} color={colors.yellow} />
+              <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>Rate This Hall</Text>
             </TouchableOpacity>
 
             {/* Item-level search bar — always rendered at stable position */}
-            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+            <View style={[st.searchWrap, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+              <Feather name="search" size={18} color={colors.textDim} style={{ marginRight: 10 }} />
               <TextInput
                 style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
                 placeholder="Search items..."
@@ -1039,7 +1034,7 @@ export default function BrowseScreen() {
                     <Text style={[st.stationGroupHeader, { color: colors.textMuted, fontFamily: 'DMSans_600SemiBold' }]}>
                       {getStationEmoji(station)} {station}
                     </Text>
-                    <View style={[st.groupCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <View style={[st.groupCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
                       {items.map((item, i) => renderItemRow(item, i, items.length))}
                     </View>
                   </View>
@@ -1065,7 +1060,7 @@ export default function BrowseScreen() {
                     <PressableCard
                       key={s.name}
                       onPress={() => openStation(s.name)}
-                      style={[st.stationCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+                      style={[st.stationCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
                     >
                       <Text style={{ fontSize: 26 }}>{getStationEmoji(s.name)}</Text>
                       <Text style={[{ fontSize: 12, color: colors.text, fontFamily: 'DMSans_600SemiBold', textAlign: 'center' }]} numberOfLines={2}>{s.name}</Text>
@@ -1097,13 +1092,13 @@ export default function BrowseScreen() {
                     const [yr, mo, dy] = review.date.split('-').map(Number);
                     const dateStr = new Date(yr, mo - 1, dy).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     return (
-                      <View key={i} style={[st.reviewCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                      <View key={i} style={[st.reviewCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={{ fontSize: 14 }}>
-                              {'⭐'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                            </Text>
-                            <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Feather key={s} name="star" size={14} color={s <= review.rating ? colors.yellow : colors.textDim} />
+                            ))}
+                            <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginLeft: 4 }]}>
                               {review.user_name?.split(' ')[0] || 'Anonymous'}
                             </Text>
                           </View>
@@ -1138,7 +1133,8 @@ export default function BrowseScreen() {
             {renderHeader()}
 
             {/* Item search bar — always rendered at stable position */}
-            <View style={[st.searchWrap, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
+            <View style={[st.searchWrap, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+              <Feather name="search" size={18} color={colors.textDim} style={{ marginRight: 10 }} />
               <TextInput
                 style={[st.searchInput, { color: colors.text, fontFamily: 'DMSans_400Regular' }]}
                 placeholder="Search items..."
@@ -1214,25 +1210,27 @@ export default function BrowseScreen() {
             <ScrollView contentContainerStyle={[st.pad, { paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
               {renderHeader()}
 
-              <View style={[st.detailCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
-                <Text style={[{ fontSize: 12, color: colors.textMuted, textAlign: 'center', fontFamily: 'DMSans_400Regular' }]}>
+              <View style={[st.detailCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
+                <Text style={[{ fontSize: 24, color: colors.text, textAlign: 'center', fontFamily: 'Outfit_700Bold' }]}>
+                  {selectedItem.name}
+                </Text>
+                <Text style={[{ fontSize: 12, color: colors.textMuted, textAlign: 'center', fontFamily: 'DMSans_400Regular', marginTop: 4 }]}>
                   {selectedItem.station} · {selectedHall?.name}
                 </Text>
-                <Text style={[{ fontSize: 42, color: colors.text, textAlign: 'center', fontFamily: 'Outfit_800ExtraBold', marginVertical: 8 }]}>
+                <Text style={[{ fontSize: 32, color: colors.text, textAlign: 'center', fontFamily: 'Outfit_800ExtraBold', marginTop: 12 }]}>
                   {adjCal}
                 </Text>
-                <Text style={[{ fontSize: 13, color: colors.textMuted, textAlign: 'center', fontFamily: 'DMSans_400Regular' }]}>
+                <Text style={[{ fontSize: 14, color: colors.textMuted, textAlign: 'center', fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>
                   calories per serving
                 </Text>
                 <View style={st.macroRow}>
                   {[
-                    { label: 'Protein', val: `${Math.round(n.pro * servings)}g`, color: colors.blue },
-                    { label: 'Carbs', val: `${Math.round(n.carb * servings)}g`, color: colors.orange },
-                    { label: 'Fat', val: `${Math.round(n.fat * servings)}g`, color: colors.yellow },
+                    { label: 'protein', val: `${Math.round(n.pro * servings)}g`, color: colors.blue },
+                    { label: 'carbs', val: `${Math.round(n.carb * servings)}g`, color: colors.orange },
+                    { label: 'fat', val: `${Math.round(n.fat * servings)}g`, color: colors.yellow },
                   ].map((m) => (
-                    <View key={m.label} style={{ alignItems: 'center' }}>
-                      <Text style={[{ fontSize: 20, color: m.color, fontFamily: 'Outfit_700Bold' }]}>{m.val}</Text>
-                      <Text style={[{ fontSize: 11, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 2 }]}>{m.label}</Text>
+                    <View key={m.label} style={[st.macroPill, { borderColor: m.color }]}>
+                      <Text style={[{ fontSize: 14, color: m.color, fontFamily: 'DMSans_600SemiBold' }]}>{m.val} {m.label}</Text>
                     </View>
                   ))}
                 </View>
@@ -1244,7 +1242,7 @@ export default function BrowseScreen() {
                   {[0.5, 1, 1.5, 2].map((s) => (
                     <TouchableOpacity
                       key={s}
-                      style={[st.servingChip, { backgroundColor: servings === s ? colors.maroon : colors.card, borderColor: servings === s ? colors.maroon : colors.border, borderWidth: 1 }]}
+                      style={[st.servingChip, { backgroundColor: servings === s ? colors.maroon : colors.cardGlass, borderColor: servings === s ? colors.maroon : colors.cardGlassBorder, borderWidth: 1 }]}
                       onPress={() => {
                         Haptics.selectionAsync();
                         setServings(s);
@@ -1260,7 +1258,7 @@ export default function BrowseScreen() {
                 {nutritionGrid.map((item) => {
                   const dotColor = getIndicatorDot(item.label, item.raw);
                   return (
-                    <View key={item.label} style={[st.nutritionCell, { backgroundColor: colors.cardAlt }]}>
+                    <View key={item.label} style={[st.nutritionCell, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Text style={[{ fontSize: 18, color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{item.val}</Text>
                         {dotColor && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dotColor }} />}
@@ -1292,7 +1290,7 @@ export default function BrowseScreen() {
               )}
 
               {selectedItem.ingredients && (
-                <View style={[st.ingredientCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                <View style={[st.ingredientCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
                   <Text style={[{ fontSize: 13, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginBottom: 8 }]}>Ingredients</Text>
                   <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', lineHeight: 18 }]}>{selectedItem.ingredients}</Text>
                 </View>
@@ -1304,12 +1302,12 @@ export default function BrowseScreen() {
                 {adjCal} cal · {servings} serving{servings !== 1 ? 's' : ''}
               </Text>
               <TouchableOpacity
-                style={[st.logBtn, { backgroundColor: logSuccess ? colors.green : colors.orange, opacity: logging ? 0.6 : 1 }]}
+                style={[st.logBtn, { backgroundColor: logSuccess ? colors.green : colors.maroon, opacity: logging ? 0.6 : 1 }]}
                 onPress={logMeal}
                 disabled={logging || logSuccess}
               >
                 <Text style={[{ fontSize: 16, color: '#fff', fontFamily: 'DMSans_700Bold' }]}>
-                  {logging ? 'Logging...' : logSuccess ? 'Logged! ✓' : 'Log This Meal ✓'}
+                  {logging ? 'Logging...' : logSuccess ? 'Logged!' : 'Log This Meal'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1341,7 +1339,7 @@ const st = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 14,
     marginBottom: 16,
@@ -1349,11 +1347,10 @@ const st = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15, paddingVertical: 13 },
   clearBtn: { paddingLeft: 8, paddingVertical: 8 },
   filterRow: { flexDirection: 'row', gap: 8 },
-  filterChip: { flex: 1, paddingVertical: 10, borderRadius: 24, alignItems: 'center' },
+  filterChip: { flex: 1, paddingVertical: 10, borderRadius: 20, alignItems: 'center' },
   filterChipText: { fontSize: 13 },
-  hallCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, marginBottom: 12 },
+  hallCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 10 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, position: 'absolute', top: 12, right: 12 },
   stationGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
   stationCard: { width: (SCREEN_WIDTH - 40 - 10) / 2, height: 100, padding: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   stationItemCount: { fontSize: 11, fontFamily: 'DMSans_400Regular', position: 'absolute', bottom: 8 },
@@ -1364,15 +1361,16 @@ const st = StyleSheet.create({
   badge: { marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   divider: { height: 1, marginLeft: 20 },
   detailCard: { borderRadius: 14, padding: 24, marginTop: 8 },
-  macroRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
+  macroRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 16 },
+  macroPill: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   servingChip: { flex: 1, paddingVertical: 10, borderRadius: 24, alignItems: 'center' },
   nutritionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 },
-  nutritionCell: { width: '48%', padding: 12, borderRadius: 10 },
+  nutritionCell: { width: '48%', padding: 12, borderRadius: 12 },
   flagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   flagPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 24 },
   ingredientCard: { borderRadius: 14, padding: 16, marginTop: 16 },
   footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, borderTopWidth: 1 },
-  logBtn: { padding: 16, borderRadius: 14, alignItems: 'center' },
+  logBtn: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   toast: {
     position: 'absolute',
     top: 60,

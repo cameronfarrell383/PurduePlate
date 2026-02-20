@@ -32,11 +32,11 @@ PHASE 3 — Integration (modifies shared files)
 [x] 3.5  Add badges to Settings (more.tsx)
 [x] 4.3  Integrate daily score into Dashboard + Progress
 [x] 5.3  Wire celebrations into Dashboard
-[ ] 6.4  Rebuild app/(tabs)/progress.tsx
-[ ] 7.3  Wire WeightChart into Progress tab
-[ ] 8.3  Wire MicronutrientScreen into Progress + Browse
-[ ] 9.1  Install react-native-view-shot + expo-sharing
-[ ] 9.3  Wire share button on Progress tab
+[x] 6.4  Rebuild app/(tabs)/progress.tsx
+[x] 7.3  Wire WeightChart into Progress tab
+[x] 8.3  Wire MicronutrientScreen into Progress + Browse
+[x] 9.1  Install react-native-view-shot + expo-sharing
+[x] 9.3  Wire share button on Progress tab
 
 PHASE 4 — Polish (UI/UX bug fixes)
 [ ] 10.1 Fix pulsing + button state (skip if Feature 1 done)
@@ -55,5 +55,5 @@ PHASE 5 — Visual Restyle (apply AFTER all features integrated)
 [ ] 11.6 Global Polish Pass — Consistency Check Across All Screens
 
 ================================================================================
-TOTAL: 24 / 46 complete
+TOTAL: 29 / 46 complete
 ================================================================================

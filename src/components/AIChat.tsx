@@ -44,8 +44,9 @@ interface DisplayMessage {
 }
 
 interface AIChatProps {
-  visible: boolean;
-  onClose: () => void;
+  mode?: 'modal' | 'tab';
+  visible?: boolean;
+  onClose?: () => void;
   onLogItem?: (item: MealItem) => void;
 }
 
@@ -60,7 +61,8 @@ const SUGGESTIONS = [
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
+export default function AIChat({ mode = 'tab', visible = true, onClose, onLogItem }: AIChatProps) {
+  const isTab = mode === 'tab';
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -212,6 +214,154 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
   // ── Render ──────────────────────────────────────────────────────────────
   const showChips = messages.length === 0 && !initialLoading;
 
+  const chatContent = (
+    <View style={[styles.container, { backgroundColor: colors.background }, isTab && styles.containerTab]}>
+      {/* ── Header ── */}
+      <View style={[styles.header, { borderBottomColor: colors.border }, isTab && { paddingTop: insets.top + 8 }]}>
+        {isTab ? (
+          <View style={styles.headerSide} />
+        ) : (
+          <TouchableOpacity onPress={onClose} style={styles.headerSide} activeOpacity={0.6}>
+            <Text style={[styles.headerAction, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>
+              Close
+            </Text>
+          </TouchableOpacity>
+        )}
+        <Text style={[styles.headerTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
+          AI Assistant
+        </Text>
+        <TouchableOpacity
+          onPress={handleClear}
+          style={[styles.headerSide, { alignItems: 'flex-end' }]}
+          activeOpacity={0.6}
+        >
+          <Text style={[styles.headerAction, { color: colors.red, fontFamily: 'DMSans_500Medium' }]}>
+            Clear
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? (isTab ? 90 : 60) : 24}
+      >
+        {/* ── Messages ── */}
+        {initialLoading ? (
+          <View style={styles.centerFill}>
+            <ActivityIndicator size="large" color={colors.maroon} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            style={{ flex: 1 }}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              messages.length === 0 && styles.listEmpty,
+            ]}
+            renderItem={({ item }) => (
+              <AIChatBubble
+                role={item.role}
+                content={item.content}
+                mealItems={item.mealItems}
+                onLogItem={onLogItem}
+              />
+            )}
+            ListHeaderComponent={
+              showChips ? (
+                <View style={styles.chipsSection}>
+                  <Text style={[styles.chipsLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
+                    Ask me anything about today's dining options
+                  </Text>
+                  <View style={styles.chipsWrap}>
+                    {SUGGESTIONS.map((s) => (
+                      <Pressable
+                        key={s}
+                        style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={() => handleSend(s)}
+                      >
+                        <Text style={[styles.chipText, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
+                          {s}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null
+            }
+            ListFooterComponent={
+              <>
+                {loading && <TypingIndicator color={colors.textMuted} bgColor={colors.card} />}
+                {errorMsg && !loading && (
+                  <View style={styles.errorRow}>
+                    <Text style={[styles.errorText, { color: colors.red, fontFamily: 'DMSans_400Regular' }]}>
+                      {errorMsg}
+                    </Text>
+                    {lastFailedMessage && (
+                      <TouchableOpacity
+                        style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                        onPress={handleRetry}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.retryText, { color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>
+                          Retry
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </>
+            }
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        {/* ── Input row (TextInput is explicit, never inside .map or conditional re-create) ── */}
+        <View style={[styles.inputRow, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: isTab ? Math.max(insets.bottom, 10) + 100 : Math.max(insets.bottom, 10) }]}>
+          <TextInput
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.inputBg,
+                borderColor: colors.inputBorder,
+                color: colors.text,
+                fontFamily: 'DMSans_400Regular',
+              },
+            ]}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Ask about today's menu..."
+            placeholderTextColor={colors.textMuted}
+            multiline
+            maxLength={500}
+            returnKeyType="default"
+            editable={!loading}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendBtn,
+              { backgroundColor: input.trim() && !loading ? colors.maroon : colors.cardAlt },
+            ]}
+            onPress={() => handleSend()}
+            disabled={!input.trim() || loading}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.sendIcon}>
+              {loading ? '...' : '↑'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
+  );
+
+  if (isTab) {
+    return chatContent;
+  }
+
   return (
     <Modal
       visible={visible}
@@ -219,143 +369,7 @@ export default function AIChat({ visible, onClose, onLogItem }: AIChatProps) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* ── Header ── */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.headerSide} activeOpacity={0.6}>
-            <Text style={[styles.headerAction, { color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>
-              Close
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
-            AI Assistant
-          </Text>
-          <TouchableOpacity
-            onPress={handleClear}
-            style={[styles.headerSide, { alignItems: 'flex-end' }]}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.headerAction, { color: colors.red, fontFamily: 'DMSans_500Medium' }]}>
-              Clear
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior="padding"
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 24}
-        >
-          {/* ── Messages ── */}
-          {initialLoading ? (
-            <View style={styles.centerFill}>
-              <ActivityIndicator size="large" color={colors.maroon} />
-            </View>
-          ) : (
-            <FlatList
-              ref={flatListRef}
-              style={{ flex: 1 }}
-              data={messages}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={[
-                styles.listContent,
-                messages.length === 0 && styles.listEmpty,
-              ]}
-              renderItem={({ item }) => (
-                <AIChatBubble
-                  role={item.role}
-                  content={item.content}
-                  mealItems={item.mealItems}
-                  onLogItem={onLogItem}
-                />
-              )}
-              ListHeaderComponent={
-                showChips ? (
-                  <View style={styles.chipsSection}>
-                    <Text style={[styles.chipsLabel, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
-                      Ask me anything about today's dining options
-                    </Text>
-                    <View style={styles.chipsWrap}>
-                      {SUGGESTIONS.map((s) => (
-                        <Pressable
-                          key={s}
-                          style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
-                          onPress={() => handleSend(s)}
-                        >
-                          <Text style={[styles.chipText, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
-                            {s}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </View>
-                ) : null
-              }
-              ListFooterComponent={
-                <>
-                  {loading && <TypingIndicator color={colors.textMuted} bgColor={colors.card} />}
-                  {errorMsg && !loading && (
-                    <View style={styles.errorRow}>
-                      <Text style={[styles.errorText, { color: colors.red, fontFamily: 'DMSans_400Regular' }]}>
-                        {errorMsg}
-                      </Text>
-                      {lastFailedMessage && (
-                        <TouchableOpacity
-                          style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                          onPress={handleRetry}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.retryText, { color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>
-                            Retry
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </>
-              }
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-
-          {/* ── Input row (TextInput is explicit, never inside .map or conditional re-create) ── */}
-          <View style={[styles.inputRow, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 10) }]}>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  backgroundColor: colors.inputBg,
-                  borderColor: colors.inputBorder,
-                  color: colors.text,
-                  fontFamily: 'DMSans_400Regular',
-                },
-              ]}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask about today's menu..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              maxLength={500}
-              returnKeyType="default"
-              editable={!loading}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendBtn,
-                { backgroundColor: input.trim() && !loading ? colors.maroon : colors.cardAlt },
-              ]}
-              onPress={() => handleSend()}
-              disabled={!input.trim() || loading}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.sendIcon}>
-                {loading ? '...' : '↑'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+      {chatContent}
     </Modal>
   );
 }
@@ -404,6 +418,7 @@ function BouncingDot({ color, delay }: { color: string; delay: number }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  containerTab: { paddingBottom: 0 },
 
   // Header
   header: {

@@ -1,12 +1,32 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { useTheme } from '../context/ThemeContext';
+
+import { Box, Text } from '../theme/restyleTheme';
+import AnimatedNumber from './AnimatedNumber';
+import GradientText from './GradientText';
+import MetallicShimmer from './MetallicShimmer';
 import type { ScoreBreakdown } from '../utils/dailyScore';
+
+// ─── Direct color constants ─────────────────────────────────────────────────
+const C = {
+  white: '#FFFFFF',
+  maroon: '#861F41',
+  gold: '#C5A55A',
+  silverLight: '#C8C9CC',
+  text: '#1A1A1A',
+  textMuted: '#6B6B6F',
+  textDim: '#9A9A9E',
+  border: '#E8E8EA',
+  success: '#2D8A4E',
+  warning: '#D4A024',
+  maroonLight: '#A8325A',
+  error: '#C0392B',
+};
 
 interface Props {
   score: number;
@@ -19,14 +39,13 @@ interface Props {
 const CATEGORIES: {
   key: keyof ScoreBreakdown;
   label: string;
-  colorKey: 'maroon' | 'blue' | 'orange' | 'yellow' | 'green';
 }[] = [
-  { key: 'calories', label: 'Calories', colorKey: 'maroon' },
-  { key: 'protein',  label: 'Protein',  colorKey: 'blue' },
-  { key: 'carbs',    label: 'Carbs',    colorKey: 'orange' },
-  { key: 'fat',      label: 'Fat',      colorKey: 'yellow' },
-  { key: 'meals',    label: 'Meals',    colorKey: 'green' },
-  { key: 'water',    label: 'Water',    colorKey: 'blue' },
+  { key: 'calories', label: 'Calories' },
+  { key: 'protein',  label: 'Protein' },
+  { key: 'carbs',    label: 'Carbs' },
+  { key: 'fat',      label: 'Fat' },
+  { key: 'meals',    label: 'Meals' },
+  { key: 'water',    label: 'Water' },
 ];
 
 const TIPS: Record<string, string> = {
@@ -38,11 +57,22 @@ const TIPS: Record<string, string> = {
   water:    "Tip: Try to hit your water goal — that's 10 easy points!",
 };
 
-export default function DailyScoreCard({ score, grade, gradeColor, breakdown, compact = false }: Props) {
-  const { colors } = useTheme();
+// Grade color mapping per PRD: A=gold gradient, B=success, C=warning, D=maroonLight, F=error
+function getGradeColor(grade: string): string {
+  if (grade === 'A+' || grade === 'A') return C.gold; // Flat fallback for non-gradient contexts
+  if (grade === 'B') return C.success;
+  if (grade === 'C') return C.warning;
+  if (grade === 'D') return C.maroonLight;
+  return C.error; // F
+}
 
+function isAGrade(grade: string): boolean {
+  return grade === 'A+' || grade === 'A';
+}
+
+export default function DailyScoreCard({ score, grade, gradeColor, breakdown, compact = false }: Props) {
   if (compact) {
-    return <CompactView score={score} grade={grade} gradeColor={gradeColor} colors={colors} />;
+    return <CompactView score={score} grade={grade} />;
   }
 
   // Find lowest scoring category for tip
@@ -57,48 +87,126 @@ export default function DailyScoreCard({ score, grade, gradeColor, breakdown, co
     }
   }
 
-  return (
-    <View style={[styles.fullCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-      <View style={styles.fullHeader}>
-        <Text style={[styles.fullGrade, { color: gradeColor }]}>{grade}</Text>
-        <Text style={[styles.fullScore, { color: colors.textMuted }]}>{score} / 100</Text>
-      </View>
+  const dynamicGradeColor = getGradeColor(grade);
+  const showGoldGrade = isAGrade(grade);
+  const [shimmerPlayed, setShimmerPlayed] = useState(false);
 
-      <View style={styles.barsContainer}>
+  useEffect(() => {
+    if (showGoldGrade && !shimmerPlayed) {
+      const timer = setTimeout(() => setShimmerPlayed(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [showGoldGrade, shimmerPlayed]);
+
+  return (
+    <Box
+      backgroundColor="card"
+      borderColor="border"
+      borderWidth={1}
+      borderRadius="l"
+      padding="l"
+      style={{ overflow: 'hidden' }}
+    >
+      {/* Header: Grade + Score */}
+      <Box flexDirection="row" alignItems="baseline" style={{ gap: 10, marginBottom: 16 }}>
+        <View style={{ position: 'relative' }}>
+          {showGoldGrade ? (
+            <>
+              <GradientText
+                text={grade}
+                gradientType="gold"
+                fontSize={48}
+                fontFamily="Outfit_700Bold"
+              />
+              <MetallicShimmer
+                width={60}
+                height={56}
+                borderRadius={4}
+                play={shimmerPlayed}
+              />
+            </>
+          ) : (
+            <Text
+              style={{
+                fontSize: 48,
+                fontFamily: 'Outfit_700Bold',
+                color: dynamicGradeColor,
+              }}
+            >
+              {grade}
+            </Text>
+          )}
+        </View>
+        <AnimatedNumber
+          value={score}
+          suffix=" / 100"
+          textVariant="body"
+          color={C.textMuted}
+        />
+      </Box>
+
+      {/* Breakdown bars: silverLight track, maroon fill */}
+      <Box style={{ gap: 10 }}>
         {CATEGORIES.map((cat) => {
           const entry = breakdown[cat.key];
           const fillPct = Math.min((entry.points / entry.max) * 100, 100);
           return (
-            <View key={cat.key} style={styles.barRow}>
-              <Text style={[styles.barLabel, { color: colors.textMuted }]}>{cat.label}</Text>
-              <View style={[styles.barTrack, { backgroundColor: colors.barTrack }]}>
-                <View
-                  style={[
-                    styles.barFill,
-                    {
-                      width: `${fillPct}%`,
-                      backgroundColor: (colors as any)[cat.colorKey],
-                    },
-                  ]}
+            <Box key={cat.key} flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+              <Text
+                variant="muted"
+                style={{ width: 60 }}
+              >
+                {cat.label}
+              </Text>
+              <Box
+                flex={1}
+                style={{
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: C.silverLight,
+                  overflow: 'hidden',
+                }}
+              >
+                <Box
+                  style={{
+                    height: 6,
+                    borderRadius: 3,
+                    width: `${fillPct}%` as any,
+                    backgroundColor: C.maroon,
+                  }}
                 />
-              </View>
-              <Text style={[styles.barScore, { color: colors.text }]}>
+              </Box>
+              <Text
+                variant="muted"
+                style={{
+                  width: 40,
+                  textAlign: 'right',
+                  fontFamily: 'DMSans_500Medium',
+                  color: C.text,
+                }}
+              >
                 {entry.points}/{entry.max}
               </Text>
-            </View>
+            </Box>
           );
         })}
-      </View>
+      </Box>
 
-      <Text style={[styles.tip, { color: colors.textMuted }]}>
+      {/* Tip text */}
+      <Text
+        variant="dim"
+        style={{ fontStyle: 'italic', marginTop: 16 }}
+      >
         {TIPS[lowestKey]}
       </Text>
-    </View>
+    </Box>
   );
 }
 
-function CompactView({ score, grade, gradeColor, colors }: { score: number; grade: string; gradeColor: string; colors: any }) {
+function CompactView({ score, grade }: { score: number; grade: string }) {
   const scale = useSharedValue(0);
+  const showGoldGrade = isAGrade(grade);
+  const dynamicGradeColor = getGradeColor(grade);
 
   useEffect(() => {
     scale.value = withSpring(1, { damping: 12, stiffness: 120 });
@@ -109,91 +217,73 @@ function CompactView({ score, grade, gradeColor, colors }: { score: number; grad
   }));
 
   return (
-    <Animated.View style={[styles.compactCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }, animStyle]}>
-      <Text style={[styles.compactHeader, { color: colors.textDim }]}>TODAY'S SCORE</Text>
-      <Text style={[styles.compactGrade, { color: gradeColor }]}>{grade}</Text>
-      <Text style={[styles.compactScore, { color: colors.textMuted }]}>{score} / 100</Text>
+    <Animated.View style={animStyle}>
+      <Box
+        backgroundColor="card"
+        borderColor="border"
+        borderWidth={1}
+        borderRadius="m"
+        padding="m"
+        flex={1}
+      >
+        <Text variant="statLabel">TODAY'S SCORE</Text>
+        {showGoldGrade ? (
+          <Box style={{ marginTop: 4 }}>
+            <GradientText
+              text={grade}
+              gradientType="gold"
+              fontSize={32}
+              fontFamily="Outfit_700Bold"
+            />
+          </Box>
+        ) : (
+          <Text
+            style={{
+              fontSize: 32,
+              fontFamily: 'Outfit_700Bold',
+              color: dynamicGradeColor,
+              marginTop: 4,
+            }}
+          >
+            {grade}
+          </Text>
+        )}
+        <Text variant="muted" style={{ marginTop: 2 }}>{score} / 100</Text>
+      </Box>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  // ── Compact ──
-  compactCard: {
-    borderRadius: 14,
-    padding: 16,
-    flex: 1,
-    borderWidth: 1,
-  },
-  compactHeader: {
-    fontSize: 11,
-    fontFamily: 'DMSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  compactGrade: {
-    fontSize: 32,
-    fontFamily: 'Outfit_800ExtraBold',
-    marginTop: 4,
-  },
-  compactScore: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 2,
-  },
-  // ── Full ──
-  fullCard: {
-    borderRadius: 14,
-    padding: 20,
-    borderWidth: 1,
-  },
-  fullHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 10,
-    marginBottom: 16,
-  },
-  fullGrade: {
-    fontSize: 48,
-    fontFamily: 'Outfit_800ExtraBold',
-  },
-  fullScore: {
-    fontSize: 16,
-    fontFamily: 'DMSans_400Regular',
-  },
-  barsContainer: {
-    gap: 10,
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  barLabel: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    width: 60,
-  },
-  barTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: 6,
-    borderRadius: 3,
-  },
-  barScore: {
-    fontSize: 13,
-    fontFamily: 'DMSans_500Medium',
-    width: 40,
-    textAlign: 'right',
-  },
-  tip: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    fontStyle: 'italic',
-    marginTop: 16,
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { StyleSheet } from 'react-native';
+// import { useTheme } from '../context/ThemeContext';
+//
+// const CATEGORIES_OLD: { key: keyof ScoreBreakdown; label: string; colorKey: string }[] = [
+//   { key: 'calories', label: 'Calories', colorKey: 'maroon' },
+//   { key: 'protein',  label: 'Protein',  colorKey: 'blue' },
+//   { key: 'carbs',    label: 'Carbs',    colorKey: 'orange' },
+//   { key: 'fat',      label: 'Fat',      colorKey: 'yellow' },
+//   { key: 'meals',    label: 'Meals',    colorKey: 'green' },
+//   { key: 'water',    label: 'Water',    colorKey: 'blue' },
+// ];
+//
+// const styles = StyleSheet.create({
+//   compactCard: { borderRadius: 14, padding: 16, flex: 1, borderWidth: 1 },
+//   compactHeader: { fontSize: 11, fontFamily: 'DMSans_600SemiBold', textTransform: 'uppercase', letterSpacing: 1.5 },
+//   compactGrade: { fontSize: 32, fontFamily: 'Outfit_800ExtraBold', marginTop: 4 },
+//   compactScore: { fontSize: 13, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+//   fullCard: { borderRadius: 14, padding: 20, borderWidth: 1 },
+//   fullHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 10, marginBottom: 16 },
+//   fullGrade: { fontSize: 48, fontFamily: 'Outfit_800ExtraBold' },
+//   fullScore: { fontSize: 16, fontFamily: 'DMSans_400Regular' },
+//   barsContainer: { gap: 10 },
+//   barRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+//   barLabel: { fontSize: 13, fontFamily: 'DMSans_400Regular', width: 60 },
+//   barTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+//   barFill: { height: 6, borderRadius: 3 },
+//   barScore: { fontSize: 13, fontFamily: 'DMSans_500Medium', width: 40, textAlign: 'right' },
+//   tip: { fontSize: 13, fontFamily: 'DMSans_400Regular', fontStyle: 'italic', marginTop: 16 },
+// });

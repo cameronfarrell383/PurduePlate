@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
+import { Box, Text } from '../theme/restyleTheme';
 import { requireUserId } from '../utils/auth';
 import {
   getDailyMicronutrients,
@@ -17,6 +14,23 @@ import {
   FDA_DAILY_VALUES,
   type MicronutrientData,
 } from '../utils/micronutrients';
+
+// ─── Direct color constants ─────────────────────────────────────────────────
+const C = {
+  white: '#FFFFFF',
+  offWhite: '#FAFAFA',
+  maroon: '#861F41',
+  maroonMuted: 'rgba(134,31,65,0.08)',
+  silverLight: '#C8C9CC',
+  text: '#1A1A1A',
+  textMuted: '#6B6B6F',
+  textDim: '#9A9A9E',
+  border: '#E8E8EA',
+  borderLight: '#F0F0F2',
+  success: '#2D8A4E',
+  warning: '#D4A024',
+  error: '#C0392B',
+};
 
 interface Props {
   onClose?: () => void;
@@ -88,16 +102,15 @@ function subtractDays(dateStr: string, n: number): string {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 }
 
-function getBarColor(pct: number, isTransFat: boolean, colors: any): string {
-  if (isTransFat) return pct > 0 ? colors.red : colors.barTrack;
-  if (pct >= 150) return colors.red;
-  if (pct >= 100) return colors.green;
-  if (pct >= 50) return colors.yellow;
-  return `${colors.textDim}4D`; // ~30% opacity hex
+function getBarColor(pct: number, isTransFat: boolean): string {
+  if (isTransFat) return pct > 0 ? C.error : C.silverLight;
+  if (pct >= 150) return C.error;
+  if (pct >= 100) return C.success;
+  if (pct >= 50) return C.warning;
+  return C.maroon;
 }
 
 export default function MicronutrientScreen({ onClose }: Props) {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [range, setRange] = useState<RangeKey>('today');
   const [data, setData] = useState<MicronutrientData | null>(null);
@@ -130,52 +143,91 @@ export default function MicronutrientScreen({ onClose }: Props) {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <Box flex={1} backgroundColor="background" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View style={styles.header}>
+      <Box flexDirection="row" alignItems="center" paddingHorizontal="l" style={{ paddingVertical: 12 }}>
         {onClose && (
-          <TouchableOpacity onPress={onClose} style={styles.backBtn}>
-            <Feather name="arrow-left" size={22} color={colors.text} />
+          <TouchableOpacity onPress={onClose} style={{ marginRight: 12 }}>
+            <Feather name="arrow-left" size={22} color={C.text} />
           </TouchableOpacity>
         )}
-        <Text style={[styles.title, { color: colors.text }]}>Nutrition Details</Text>
-      </View>
+        <Text variant="pageTitle" style={{ fontSize: 20 }}>Nutrition Details</Text>
+      </Box>
 
-      {/* Range tabs */}
-      <View style={styles.tabRow}>
-        {RANGES.map((r) => (
-          <TouchableOpacity key={r.key} onPress={() => setRange(r.key)} style={styles.tab}>
-            <Text
-              style={[
-                styles.tabText,
-                { color: range === r.key ? colors.text : colors.textMuted },
-              ]}
+      {/* Range tabs — rectangular style */}
+      <Box flexDirection="row" paddingHorizontal="l" style={{ gap: 0, marginBottom: 16 }}>
+        {RANGES.map((r) => {
+          const isActive = range === r.key;
+          return (
+            <TouchableOpacity
+              key={r.key}
+              onPress={() => setRange(r.key)}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                alignItems: 'center',
+                backgroundColor: isActive ? C.maroon : 'transparent',
+                borderRadius: isActive ? 6 : 0,
+                borderBottomWidth: isActive ? 0 : 2,
+                borderBottomColor: isActive ? 'transparent' : C.borderLight,
+              }}
             >
-              {r.label}
-            </Text>
-            {range === r.key && <View style={[styles.tabIndicator, { backgroundColor: colors.text }]} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                variant="body"
+                style={{
+                  fontFamily: 'DMSans_600SemiBold',
+                  fontSize: 13,
+                  color: isActive ? C.white : C.textMuted,
+                }}
+              >
+                {r.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </Box>
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.maroon} style={styles.loader} />
+        <ActivityIndicator size="large" color={C.maroon} style={{ marginTop: 60 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
           {/* Summary banner */}
-          <View style={styles.banner}>
-            <Text style={[styles.bannerText, { color: colors.text }]}>
+          <Box
+            style={{
+              backgroundColor: C.maroonMuted,
+              borderWidth: 1,
+              borderColor: 'rgba(134,31,65,0.15)',
+              borderRadius: 8,
+              padding: 16,
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                fontFamily: 'DMSans_600SemiBold',
+                color: C.text,
+              }}
+            >
               Tracking 11 micronutrients
             </Text>
-            <Text style={[styles.bannerSub, { color: colors.textMuted }]}>
+            <Text variant="muted" style={{ marginTop: 4 }}>
               {range === 'today' ? "Today's intake" : `Daily average over ${RANGES.find((r) => r.key === range)?.label?.toLowerCase()}`}
             </Text>
-          </View>
+          </Box>
 
-          {/* Sections */}
+          {/* Sections with silverLight track + maroon fill bars */}
           {SECTIONS.map((section) => (
-            <View key={section.title} style={[styles.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textDim }]}>{section.title}</Text>
+            <Box
+              key={section.title}
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="s"
+            >
+              <Text variant="sectionHeader" style={{ marginBottom: 14 }}>{section.title}</Text>
               {section.rows.map((row, i) => {
                 const value = data?.[row.key] ?? 0;
                 const fda = FDA_DAILY_VALUES[row.fdaKey];
@@ -186,164 +238,106 @@ export default function MicronutrientScreen({ onClose }: Props) {
                 const pct = hasTarget ? (value / fda.amount) * 100 : 0;
                 const pctDisplay = hasTarget ? Math.round(pct) : null;
                 const barWidth = hasTarget ? Math.min(pct, 100) : (value > 0 ? 20 : 0);
-                const barColor = isNoTarget
-                  ? `${colors.textDim}4D`
-                  : getBarColor(pct, isTransFat, colors);
+                const barColor = isNoTarget ? C.textDim : getBarColor(pct, isTransFat);
 
                 return (
-                  <View key={row.key}>
-                    <View style={styles.nutrientRow}>
-                      <View style={styles.nutrientLeft}>
-                        <Text style={[styles.nutrientName, { color: colors.text }]}>{row.label}</Text>
-                        <Text style={[styles.nutrientValue, { color: colors.textMuted }]}>
+                  <Box key={row.key}>
+                    <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start" style={{ marginBottom: 6 }}>
+                      <Box flex={1}>
+                        <Text variant="body">{row.label}</Text>
+                        <Text variant="muted" style={{ marginTop: 2 }}>
                           {value} / {isNoTarget ? 'No Target' : `${fda.amount.toLocaleString()} ${fda.unit}`}
                         </Text>
-                      </View>
-                      <Text style={[styles.nutrientPct, { color: colors.text }]}>
+                      </Box>
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontFamily: 'DMSans_600SemiBold',
+                          color: C.text,
+                          marginLeft: 12,
+                        }}
+                      >
                         {pctDisplay != null ? `${pctDisplay}%` : '—'}
                       </Text>
-                    </View>
-                    <View style={[styles.progressTrack, { backgroundColor: colors.barTrack }]}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${barWidth}%`, backgroundColor: barColor },
-                        ]}
+                    </Box>
+                    {/* silverLight track, maroon fill */}
+                    <Box
+                      style={{
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: C.silverLight,
+                        overflow: 'hidden',
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Box
+                        style={{
+                          height: 4,
+                          borderRadius: 2,
+                          width: `${barWidth}%` as any,
+                          backgroundColor: barColor,
+                        }}
                       />
-                    </View>
+                    </Box>
                     {i < section.rows.length - 1 && (
-                      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                      <Box
+                        style={{
+                          height: 1,
+                          backgroundColor: C.borderLight,
+                          marginVertical: 12,
+                        }}
+                      />
                     )}
-                  </View>
+                  </Box>
                 );
               })}
-            </View>
+            </Box>
           ))}
 
           {/* Footer */}
-          <Text style={[styles.footer, { color: colors.textDim }]}>
+          <Text variant="dim" style={{ textAlign: 'center', marginTop: 8, paddingHorizontal: 16 }}>
             Daily targets based on FDA recommended daily values for a 2,000 calorie diet.
           </Text>
         </ScrollView>
       )}
-    </View>
+    </Box>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    marginRight: 12,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: 'Outfit_700Bold',
-  },
-  tabRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 20,
-    marginBottom: 16,
-  },
-  tab: {
-    paddingBottom: 8,
-  },
-  tabText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_500Medium',
-  },
-  tabIndicator: {
-    height: 2,
-    borderRadius: 1,
-    marginTop: 4,
-  },
-  loader: {
-    marginTop: 60,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  banner: {
-    backgroundColor: 'rgba(139,30,63,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(139,30,63,0.15)',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-  },
-  bannerText: {
-    fontSize: 15,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-  bannerSub: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 4,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: 'DMSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 14,
-  },
-  nutrientRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  nutrientLeft: {
-    flex: 1,
-  },
-  nutrientName: {
-    fontSize: 15,
-    fontFamily: 'DMSans_500Medium',
-  },
-  nutrientValue: {
-    fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 2,
-  },
-  nutrientPct: {
-    fontSize: 14,
-    fontFamily: 'DMSans_600SemiBold',
-    marginLeft: 12,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  divider: {
-    height: 1,
-    marginVertical: 12,
-  },
-  footer: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 16,
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { View, Text, StyleSheet } from 'react-native';
+// import { useTheme } from '../context/ThemeContext';
+//
+// Old: used colors.barTrack for track, dynamic getBarColor with theme colors.
+// New: silverLight track, maroon fill for standard bars. Rectangular range tabs.
+// Cards: white bg + border + borderRadius m.
+//
+// const styles = StyleSheet.create({
+//   screen: { flex: 1 },
+//   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+//   backBtn: { marginRight: 12 },
+//   title: { fontSize: 20, fontFamily: 'Outfit_700Bold' },
+//   tabRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 20, marginBottom: 16 },
+//   tab: { paddingBottom: 8 },
+//   tabText: { fontSize: 14, fontFamily: 'DMSans_500Medium' },
+//   tabIndicator: { height: 2, borderRadius: 1, marginTop: 4 },
+//   loader: { marginTop: 60 },
+//   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+//   banner: { backgroundColor: 'rgba(139,30,63,0.08)', borderWidth: 1, borderColor: 'rgba(139,30,63,0.15)', borderRadius: 14, padding: 16, marginBottom: 16 },
+//   bannerText: { fontSize: 15, fontFamily: 'DMSans_600SemiBold' },
+//   bannerSub: { fontSize: 13, fontFamily: 'DMSans_400Regular', marginTop: 4 },
+//   card: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 12 },
+//   sectionTitle: { fontSize: 12, fontFamily: 'DMSans_600SemiBold', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 14 },
+//   nutrientRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+//   nutrientLeft: { flex: 1 },
+//   nutrientName: { fontSize: 15, fontFamily: 'DMSans_500Medium' },
+//   nutrientValue: { fontSize: 14, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+//   nutrientPct: { fontSize: 14, fontFamily: 'DMSans_600SemiBold', marginLeft: 12 },
+//   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginBottom: 4 },
+//   progressFill: { height: 4, borderRadius: 2 },
+//   divider: { height: 1, marginVertical: 12 },
+//   footer: { fontSize: 12, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 8, paddingHorizontal: 16 },
+// });

@@ -1,7 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle as SvgCircle } from 'react-native-svg';
-import { useTheme } from '../context/ThemeContext';
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from 'react-native-svg';
+import { Box, Text } from '../theme/restyleTheme';
+
+// ─── Direct color constants (ring colors per PRD) ───────────────────────────
+const C = {
+  proteinRing: '#4A7FC5',  // Steel blue
+  text: '#1A1A1A',
+  textMuted: '#6B6B6F',
+  textDim: '#9A9A9E',
+  silverLight: '#C8C9CC',
+  // Gold/silver metallic flat fallbacks for dots
+  goldFlat: '#C5A55A',
+  silverFlat: '#A8A9AD',
+};
 
 interface Props {
   actual: { protein: number; carbs: number; fat: number };
@@ -14,62 +30,102 @@ const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export default function MacroBreakdown({ actual, target }: Props) {
-  const { colors } = useTheme();
-
   // Calorie contributions for stacked bar
   const protCal = actual.protein * 4;
   const carbCal = actual.carbs * 4;
   const fatCal = actual.fat * 9;
-  const totalCal = protCal + carbCal + fatCal || 1; // avoid div by 0
+  const totalCal = protCal + carbCal + fatCal || 1;
 
   const protPct = (protCal / totalCal) * 100;
   const carbPct = (carbCal / totalCal) * 100;
   const fatPct = (fatCal / totalCal) * 100;
 
   const macros = [
-    { label: 'Protein', actual: actual.protein, target: target.protein, color: colors.blue, pct: protPct },
-    { label: 'Carbs', actual: actual.carbs, target: target.carbs, color: colors.orange, pct: carbPct },
-    { label: 'Fat', actual: actual.fat, target: target.fat, color: colors.yellow, pct: fatPct },
+    { label: 'Protein', actual: actual.protein, target: target.protein, color: C.proteinRing, dotColor: C.proteinRing, pct: protPct, gradientId: null },
+    { label: 'Carbs', actual: actual.carbs, target: target.carbs, color: C.goldFlat, dotColor: C.goldFlat, pct: carbPct, gradientId: 'macroGold' },
+    { label: 'Fat', actual: actual.fat, target: target.fat, color: C.silverFlat, dotColor: C.silverFlat, pct: fatPct, gradientId: 'macroSilver' },
   ];
 
   return (
-    <View>
-      {/* Stacked bar */}
-      <View style={[styles.barTrack, { backgroundColor: colors.barTrack }]}>
-        <View style={[styles.barSegment, { width: `${protPct}%`, backgroundColor: colors.blue }]} />
-        <View style={[styles.barSegment, { width: `${carbPct}%`, backgroundColor: colors.orange }]} />
-        <View style={[styles.barSegment, { width: `${fatPct}%`, backgroundColor: colors.yellow }]} />
-      </View>
+    <Box>
+      {/* Stacked bar — ring colors: blue protein, gold carbs, silver fat */}
+      <Box
+        style={{
+          height: 12,
+          borderRadius: 6,
+          flexDirection: 'row',
+          overflow: 'hidden',
+          backgroundColor: C.silverLight,
+        }}
+      >
+        <Box style={{ width: `${protPct}%` as any, height: 12, backgroundColor: C.proteinRing }} />
+        <Box style={{ width: `${carbPct}%` as any, height: 12, backgroundColor: C.goldFlat }} />
+        <Box style={{ width: `${fatPct}%` as any, height: 12, backgroundColor: C.silverFlat }} />
+      </Box>
 
-      {/* Three columns */}
-      <View style={styles.columns}>
+      {/* Three columns with mini rings */}
+      <Box flexDirection="row" style={{ marginTop: 16, gap: 8 }}>
         {macros.map((m) => {
           const fillPct = m.target > 0 ? Math.min(m.actual / m.target, 1) : 0;
           const dashOffset = RING_CIRCUMFERENCE * (1 - fillPct);
 
           return (
-            <View key={m.label} style={styles.column}>
-              <View style={styles.columnHeader}>
-                <View style={[styles.dot, { backgroundColor: m.color }]} />
-                <Text style={[styles.macroLabel, { color: colors.textMuted }]}>{m.label}</Text>
-              </View>
-              <Text style={[styles.macroValue, { color: colors.text }]}>
+            <Box key={m.label} flex={1} alignItems="center">
+              <Box flexDirection="row" alignItems="center" style={{ gap: 4, marginBottom: 4 }}>
+                <Box
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: m.dotColor,
+                  }}
+                />
+                <Text variant="muted">{m.label}</Text>
+              </Box>
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontFamily: 'DMSans_600SemiBold',
+                  color: C.text,
+                  marginBottom: 6,
+                }}
+              >
                 {Math.round(m.actual)}g / {Math.round(m.target)}g
               </Text>
-              <Svg width={RING_SIZE} height={RING_SIZE} style={styles.ring}>
+              <Svg width={RING_SIZE} height={RING_SIZE}>
+                <Defs>
+                  {/* Gold metallic gradient for carbs ring */}
+                  <SvgLinearGradient id="macroGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#8B6914" />
+                    <Stop offset="30%" stopColor="#C5A55A" />
+                    <Stop offset="50%" stopColor="#E8D5A3" />
+                    <Stop offset="70%" stopColor="#C5A55A" />
+                    <Stop offset="100%" stopColor="#8B6914" />
+                  </SvgLinearGradient>
+                  {/* Silver metallic gradient for fat ring */}
+                  <SvgLinearGradient id="macroSilver" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#6B6B6F" />
+                    <Stop offset="30%" stopColor="#A8A9AD" />
+                    <Stop offset="50%" stopColor="#D8D8DC" />
+                    <Stop offset="70%" stopColor="#A8A9AD" />
+                    <Stop offset="100%" stopColor="#6B6B6F" />
+                  </SvgLinearGradient>
+                </Defs>
+                {/* Track */}
                 <SvgCircle
                   cx={RING_SIZE / 2}
                   cy={RING_SIZE / 2}
                   r={RING_RADIUS}
-                  stroke={colors.barTrack}
+                  stroke={C.silverLight}
                   strokeWidth={RING_STROKE}
                   fill="none"
                 />
+                {/* Fill */}
                 <SvgCircle
                   cx={RING_SIZE / 2}
                   cy={RING_SIZE / 2}
                   r={RING_RADIUS}
-                  stroke={m.color}
+                  stroke={m.gradientId ? `url(#${m.gradientId})` : m.color}
                   strokeWidth={RING_STROKE}
                   fill="none"
                   strokeDasharray={`${RING_CIRCUMFERENCE}`}
@@ -79,65 +135,39 @@ export default function MacroBreakdown({ actual, target }: Props) {
                   origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
                 />
               </Svg>
-            </View>
+            </Box>
           );
         })}
-      </View>
+      </Box>
 
       {/* Split label */}
-      <Text style={[styles.splitText, { color: colors.textDim }]}>
+      <Text variant="dim" style={{ textAlign: 'center', marginTop: 14 }}>
         Your split: {Math.round(protPct)}% P / {Math.round(carbPct)}% C / {Math.round(fatPct)}% F
       </Text>
-    </View>
+    </Box>
   );
 }
 
-const styles = StyleSheet.create({
-  barTrack: {
-    height: 12,
-    borderRadius: 6,
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  barSegment: {
-    height: 12,
-  },
-  columns: {
-    flexDirection: 'row',
-    marginTop: 16,
-    gap: 8,
-  },
-  column: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  columnHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  macroLabel: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-  },
-  macroValue: {
-    fontSize: 15,
-    fontFamily: 'DMSans_600SemiBold',
-    marginBottom: 6,
-  },
-  ring: {
-    marginTop: 2,
-  },
-  splitText: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
-    textAlign: 'center',
-    marginTop: 14,
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { View, Text, StyleSheet } from 'react-native';
+// import { useTheme } from '../context/ThemeContext';
+//
+// Old colors used colors.blue, colors.orange, colors.yellow for ring strokes.
+// New: steel blue protein, gold metallic carbs (SVG gradient), silver metallic fat.
+// Bar track changed from barTrack to silverLight.
+//
+// const styles = StyleSheet.create({
+//   barTrack: { height: 12, borderRadius: 6, flexDirection: 'row', overflow: 'hidden' },
+//   barSegment: { height: 12 },
+//   columns: { flexDirection: 'row', marginTop: 16, gap: 8 },
+//   column: { flex: 1, alignItems: 'center' },
+//   columnHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+//   dot: { width: 8, height: 8, borderRadius: 4 },
+//   macroLabel: { fontSize: 13, fontFamily: 'DMSans_400Regular' },
+//   macroValue: { fontSize: 15, fontFamily: 'DMSans_600SemiBold', marginBottom: 6 },
+//   ring: { marginTop: 2 },
+//   splitText: { fontSize: 12, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 14 },
+// });

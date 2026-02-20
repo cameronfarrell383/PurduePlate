@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import Svg, {
   Path,
   Circle as SvgCircle,
@@ -7,8 +7,22 @@ import Svg, {
   LinearGradient,
   Stop,
 } from 'react-native-svg';
-import { useTheme } from '../context/ThemeContext';
+import { Box, Text } from '../theme/restyleTheme';
 import type { WeightEntry, WeightTrend } from '../utils/weightData';
+
+// ─── Direct color constants ─────────────────────────────────────────────────
+const C = {
+  maroon: '#861F41',
+  silver: '#A8A9AD',
+  silverLight: '#C8C9CC',
+  text: '#1A1A1A',
+  textMuted: '#6B6B6F',
+  textDim: '#9A9A9E',
+  success: '#2D8A4E',
+  error: '#C0392B',
+  border: '#E8E8EA',
+  offWhite: '#FAFAFA',
+};
 
 interface Props {
   entries: WeightEntry[];
@@ -25,7 +39,6 @@ function buildPath(points: { x: number; y: number }[]): string {
 }
 
 export default function WeightChart({ entries, trend }: Props) {
-  const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 72;
 
@@ -42,11 +55,11 @@ export default function WeightChart({ entries, trend }: Props) {
   const xScale = (i: number) => PAD_H + (i / (entries.length - 1)) * plotW;
   const yScale = (val: number) => PAD_TOP + plotH - ((val - minW) / (maxW - minW)) * plotH;
 
-  // Raw weight points
+  // Maroon actual weight points
   const rawPts = entries.map((e, i) => ({ x: xScale(i), y: yScale(e.weight) }));
   const rawPath = buildPath(rawPts);
 
-  // Trend (smoothed) points
+  // Silver 7-day average (trend) points
   const trendPts = trend.smoothed.map((s, i) => ({ x: xScale(i), y: yScale(s.weight) }));
   const trendPath = buildPath(trendPts);
 
@@ -54,7 +67,7 @@ export default function WeightChart({ entries, trend }: Props) {
   const trendFill = `${trendPath} L${trendPts[trendPts.length - 1].x},${PAD_TOP + plotH} L${trendPts[0].x},${PAD_TOP + plotH} Z`;
 
   // Diff color
-  const diffColor = trend.difference < 0 ? colors.green : trend.difference > 0 ? colors.red : colors.textMuted;
+  const diffColor = trend.difference < 0 ? C.success : trend.difference > 0 ? C.error : C.textMuted;
   const diffSign = trend.difference > 0 ? '+' : '';
 
   // Date range label
@@ -62,10 +75,10 @@ export default function WeightChart({ entries, trend }: Props) {
   const lastDate = entries[entries.length - 1].date;
   const fmtDate = (d: string) => { const p = d.split('-'); return `${p[1]}/${p[2]}`; };
 
-  // Insight pill helper
+  // Change pill helpers
   const pillColor = (val: number | null) => {
-    if (val == null) return colors.textMuted;
-    return val < 0 ? colors.green : val > 0 ? colors.red : colors.textMuted;
+    if (val == null) return C.textMuted;
+    return val < 0 ? C.success : val > 0 ? C.error : C.textMuted;
   };
   const pillText = (val: number | null) => {
     if (val == null) return '—';
@@ -74,99 +87,124 @@ export default function WeightChart({ entries, trend }: Props) {
   };
 
   return (
-    <View>
+    <Box>
       {/* Stats header */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={[styles.avgWeight, { color: colors.text }]}>{trend.average} lbs</Text>
-          <Text style={[styles.dateRange, { color: colors.textDim }]}>
+      <Box flexDirection="row" justifyContent="space-between" alignItems="flex-start" style={{ marginBottom: 12 }}>
+        <Box>
+          <Text
+            style={{
+              fontSize: 24,
+              fontFamily: 'Outfit_700Bold',
+              color: C.text,
+            }}
+          >
+            {trend.average} lbs
+          </Text>
+          <Text variant="dim" style={{ marginTop: 2 }}>
             {fmtDate(firstDate)} – {fmtDate(lastDate)}
           </Text>
-        </View>
-        <Text style={[styles.diff, { color: diffColor }]}>{diffSign}{trend.difference} lbs</Text>
-      </View>
+        </Box>
+        <Text
+          style={{
+            fontSize: 16,
+            fontFamily: 'DMSans_600SemiBold',
+            color: diffColor,
+            marginTop: 4,
+          }}
+        >
+          {diffSign}{trend.difference} lbs
+        </Text>
+      </Box>
 
       {/* SVG chart */}
       <Svg width={chartWidth} height={CHART_HEIGHT}>
         <Defs>
-          <LinearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="rgba(91,127,255,0.08)" />
-            <Stop offset="1" stopColor="rgba(91,127,255,0)" />
+          <LinearGradient id="trendFillMaroon" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="rgba(134,31,65,0.08)" />
+            <Stop offset="1" stopColor="rgba(134,31,65,0)" />
           </LinearGradient>
         </Defs>
 
         {/* Trend fill area */}
-        <Path d={trendFill} fill="url(#trendFill)" />
+        <Path d={trendFill} fill="url(#trendFillMaroon)" />
 
-        {/* Raw weight line */}
-        <Path d={rawPath} stroke={colors.textDim} strokeWidth={1} fill="none" opacity={0.25} />
+        {/* Maroon actual weight line */}
+        <Path d={rawPath} stroke={C.maroon} strokeWidth={2} fill="none" />
 
-        {/* Trend line */}
-        <Path d={trendPath} stroke={colors.blue} strokeWidth={2} fill="none" />
+        {/* Silver 7-day average line */}
+        <Path d={trendPath} stroke={C.silver} strokeWidth={1.5} fill="none" strokeDasharray="4,3" />
 
-        {/* Raw data points */}
+        {/* Maroon data points */}
         {rawPts.map((p, i) => (
           <SvgCircle
             key={entries[i].date}
             cx={p.x}
             cy={p.y}
-            r={2.5}
-            fill={colors.textDim}
-            opacity={0.3}
+            r={3}
+            fill={C.maroon}
           />
         ))}
       </Svg>
 
-      {/* Insight pills */}
-      <View style={styles.pillRow}>
-        <View style={[styles.pill, { backgroundColor: colors.cardAlt }]}>
-          <Text style={[styles.pillText, { color: pillColor(trend.change3Day) }]}>
+      {/* Change pills with directional color */}
+      <Box flexDirection="row" style={{ gap: 10, marginTop: 12 }}>
+        <Box
+          style={{
+            borderRadius: 20,
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            backgroundColor: C.offWhite,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontFamily: 'DMSans_500Medium',
+              color: pillColor(trend.change3Day),
+            }}
+          >
             3-day: {pillText(trend.change3Day)} lbs
           </Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: colors.cardAlt }]}>
-          <Text style={[styles.pillText, { color: pillColor(trend.change7Day) }]}>
+        </Box>
+        <Box
+          style={{
+            borderRadius: 20,
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            backgroundColor: C.offWhite,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 13,
+              fontFamily: 'DMSans_500Medium',
+              color: pillColor(trend.change7Day),
+            }}
+          >
             7-day: {pillText(trend.change7Day)} lbs
           </Text>
-        </View>
-      </View>
-    </View>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 
-const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  avgWeight: {
-    fontSize: 24,
-    fontFamily: 'Outfit_700Bold',
-  },
-  diff: {
-    fontSize: 16,
-    fontFamily: 'DMSans_600SemiBold',
-    marginTop: 4,
-  },
-  dateRange: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 2,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-  },
-  pill: {
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  pillText: {
-    fontSize: 13,
-    fontFamily: 'DMSans_500Medium',
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { View, Text, StyleSheet } from 'react-native';
+// import { useTheme } from '../context/ThemeContext';
+//
+// Old chart used blue for trend line instead of silver, and used
+// colors.textDim for raw line (faded). Now maroon actual + silver dashed avg.
+//
+// const styles = StyleSheet.create({
+//   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+//   avgWeight: { fontSize: 24, fontFamily: 'Outfit_700Bold' },
+//   diff: { fontSize: 16, fontFamily: 'DMSans_600SemiBold', marginTop: 4 },
+//   dateRange: { fontSize: 13, fontFamily: 'DMSans_400Regular', marginTop: 2 },
+//   pillRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+//   pill: { borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
+//   pillText: { fontSize: 13, fontFamily: 'DMSans_500Medium' },
+// });

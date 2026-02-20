@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import Svg, {
   Path,
   Line,
@@ -9,8 +9,18 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
-import { useTheme } from '../context/ThemeContext';
+import { Box, Text } from '../theme/restyleTheme';
 import type { DayLog } from '../utils/progressData';
+
+// ─── Direct color constants ─────────────────────────────────────────────────
+const C = {
+  maroon: '#861F41',
+  silver: '#A8A9AD',
+  textDim: '#9A9A9E',
+  textMuted: '#6B6B6F',
+  success: '#2D8A4E',
+  error: '#C0392B',
+};
 
 interface Props {
   data: DayLog[];
@@ -38,7 +48,6 @@ function filterByRange(data: DayLog[], range: string): DayLog[] {
 }
 
 export default function CalorieChart({ data, goalCalories, range = '1M' }: Props) {
-  const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 72; // account for card padding + screen padding
 
@@ -46,11 +55,13 @@ export default function CalorieChart({ data, goalCalories, range = '1M' }: Props
 
   if (filtered.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-          No data for this period yet
-        </Text>
-      </View>
+      <Box
+        alignItems="center"
+        justifyContent="center"
+        style={{ height: CHART_HEIGHT }}
+      >
+        <Text variant="muted">No data for this period yet</Text>
+      </Box>
     );
   }
 
@@ -74,7 +85,7 @@ export default function CalorieChart({ data, goalCalories, range = '1M' }: Props
   // Goal line Y
   const goalY = yScale(goalCalories);
 
-  // X-axis labels (every 7 days)
+  // X-axis labels (every 7 days) — dim text
   const xLabels: { x: number; label: string }[] = [];
   for (let i = 0; i < filtered.length; i += 7) {
     const parts = filtered[i].date.split('-');
@@ -91,75 +102,75 @@ export default function CalorieChart({ data, goalCalories, range = '1M' }: Props
   const prior7Avg = prior7.length > 0 ? prior7.reduce((s, d) => s + d.calories, 0) / prior7.length : 0;
 
   let trendText = '→ Same';
-  let trendColor = colors.textMuted;
+  let trendColor = C.textMuted;
   if (prior7Avg > 0 && last7Avg !== prior7Avg) {
     const pctChange = Math.round(Math.abs((last7Avg - prior7Avg) / prior7Avg) * 100);
     if (last7Avg > prior7Avg) {
       trendText = `↑ ${pctChange}%`;
-      trendColor = colors.green;
+      trendColor = C.success;
     } else {
       trendText = `↓ ${pctChange}%`;
-      trendColor = colors.red;
+      trendColor = C.error;
     }
   }
 
   return (
-    <View>
+    <Box>
       <Svg width={chartWidth} height={CHART_HEIGHT}>
         <Defs>
           <LinearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="rgba(139,30,63,0.15)" />
-            <Stop offset="1" stopColor="rgba(139,30,63,0)" />
+            <Stop offset="0" stopColor="rgba(134,31,65,0.15)" />
+            <Stop offset="1" stopColor="rgba(134,31,65,0)" />
           </LinearGradient>
         </Defs>
 
         {/* Fill area */}
         <Path d={fillPath} fill="url(#areaFill)" />
 
-        {/* Data line */}
-        <Path d={linePath} stroke={colors.maroon} strokeWidth={2} fill="none" />
+        {/* Maroon actual data line */}
+        <Path d={linePath} stroke={C.maroon} strokeWidth={2} fill="none" />
 
-        {/* Goal dashed line */}
+        {/* Silver dashed goal line */}
         <Line
           x1={PADDING_LEFT}
           y1={goalY}
           x2={PADDING_LEFT + plotW}
           y2={goalY}
-          stroke={colors.textDim}
+          stroke={C.silver}
           strokeWidth={1}
           strokeDasharray="6,4"
-          opacity={0.3}
+          opacity={0.6}
         />
         <SvgText
           x={PADDING_LEFT + plotW}
           y={goalY - 4}
-          fill={colors.textDim}
+          fill={C.textDim}
           fontSize={8}
           textAnchor="end"
         >
           Goal
         </SvgText>
 
-        {/* Data points */}
+        {/* Maroon data points */}
         {filtered.map((day, i) => (
           <SvgCircle
             key={day.date}
             cx={xScale(i)}
             cy={yScale(day.calories)}
             r={3}
-            fill={day.mealsLogged > 0 ? colors.maroon : 'transparent'}
-            stroke={day.mealsLogged > 0 ? colors.maroon : colors.textDim}
+            fill={day.mealsLogged > 0 ? C.maroon : 'transparent'}
+            stroke={day.mealsLogged > 0 ? C.maroon : C.textDim}
             strokeWidth={day.mealsLogged > 0 ? 0 : 1}
           />
         ))}
 
-        {/* X-axis labels */}
+        {/* Dim axis labels */}
         {xLabels.map((lbl) => (
           <SvgText
             key={lbl.label + lbl.x}
             x={lbl.x}
             y={CHART_HEIGHT - 4}
-            fill={colors.textDim}
+            fill={C.textDim}
             fontSize={10}
             textAnchor="middle"
           >
@@ -168,38 +179,36 @@ export default function CalorieChart({ data, goalCalories, range = '1M' }: Props
         ))}
       </Svg>
 
-      {/* Stats row below chart */}
-      <View style={styles.statsRow}>
-        <Text style={[styles.avgText, { color: colors.textMuted }]}>
+      {/* Stats row: avg muted bottom-left, trend bottom-right */}
+      <Box flexDirection="row" justifyContent="space-between" style={{ marginTop: 8 }}>
+        <Text variant="muted">
           Avg: {avg.toLocaleString()} cal/day
         </Text>
-        <Text style={[styles.trendText, { color: trendColor }]}>{trendText}</Text>
-      </View>
-    </View>
+        <Text
+          style={{
+            fontSize: 13,
+            fontFamily: 'DMSans_600SemiBold',
+            color: trendColor,
+          }}
+        >
+          {trendText}
+        </Text>
+      </Box>
+    </Box>
   );
 }
 
-const styles = StyleSheet.create({
-  emptyContainer: {
-    height: CHART_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  avgText: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-  },
-  trendText: {
-    fontSize: 13,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { View, Text, StyleSheet } from 'react-native';
+// import { useTheme } from '../context/ThemeContext';
+//
+// const styles = StyleSheet.create({
+//   emptyContainer: { height: CHART_HEIGHT, justifyContent: 'center', alignItems: 'center' },
+//   emptyText: { fontSize: 14, fontFamily: 'DMSans_400Regular' },
+//   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+//   avgText: { fontSize: 13, fontFamily: 'DMSans_400Regular' },
+//   trendText: { fontSize: 13, fontFamily: 'DMSans_600SemiBold' },
+// });

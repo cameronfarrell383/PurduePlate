@@ -99,9 +99,9 @@ Task  Description                                                          Owner
 ----  -------------------------------------------------------------------  -----  ------  -----
 5.1   Restyle AI Chat — bubble shapes, maroon user msgs, input bar        Cam    DONE    Full Restyle rebuild: zero StyleSheet.create on ai.tsx, AIChat.tsx, AIChatBubble.tsx. AI msgs=white card border borderRadius m except bottom-left xs(4). User msgs=maroon bg white text borderRadius m except bottom-right xs(4). Input bar=inputBg(#F5F5F7) borderRadius s, silver camera icon, maroon send circle. Suggestion cards press-scale animated. Header "CampusPlate AI" pageTitle + "Clear" maroon text. Message entrance slide-in from bottom with fade (150ms Easing.out). Old code commented out, not deleted.
 5.2   AI typing indicator — three pulsing silver dots                     Cam    DONE    New TypingIndicator.tsx component: 3 silver(#A8A9AD) 6px dots, opacity pulse 0.3→1.0→0.3, 150ms stagger between dots (0/150/300ms delay), white card bubble container with border borderRadius m except bottom-left xs(4), 400ms per pulse cycle with Easing.inOut
-5.3   CHECKPOINT: Device test AI Chat                                     Cam    TODO
+5.3   CHECKPOINT: Device test AI Chat                                     Cam    DONE    Send/receive works, typing indicator appears, message animations smooth
 
-Phase 5 Status: IN PROGRESS (2/3 tasks DONE — 5.1-5.2 complete, 5.3 checkpoint remaining)
+Phase 5 Status: COMPLETE (all 3 tasks DONE)
 
 
 ================================================================================
@@ -110,16 +110,16 @@ PHASE 6 — PROGRESS SCREEN
 
 Task  Description                                                          Owner  Status  Notes
 ----  -------------------------------------------------------------------  -----  ------  -----
-6.1   Restyle Progress container — rectangular time tabs, StaggeredList   Cam    TODO
-6.2   Restyle Daily Score card — A grade gold GradientText + shimmer      Cam    TODO
-6.3   Restyle Streak card — AnimatedNumber, 7-day dots, gold milestones   Cam    TODO
-6.4   Restyle Calorie Trend chart — maroon line, silver goal dashed       Cam    TODO
-6.5   Restyle Weight Trend chart — dual lines, change pills              Cam    TODO
-6.6   Restyle remaining: Macro Split, Badges (metallic gradient bg +     Cam    TODO    6 sub-sections
+6.1   Restyle Progress container — rectangular time tabs, StaggeredList   Cam    DONE    Full Restyle rebuild: zero StyleSheet.create, Box/Text from restyleTheme, "Progress" pageTitle, rectangular time tabs (active=maroon bg white text borderRadius s, inactive=transparent+bottom border), StaggeredList wrapping all 10 section cards (50ms stagger), offWhite bg, white cards with border borderRadius m, Feather icon empty state (no emoji), triggerHaptic on tab switch, old code commented at bottom
+6.2   Restyle Daily Score card — A grade gold GradientText + shimmer      Cam    DONE    Feature card borderRadius l. A/A+ grade = gold GradientText + MetallicShimmer on first load (600ms delay). B=success, C=warning, D=maroonLight, F=error flat colors. AnimatedNumber for score. Breakdown bars: silverLight track, maroon fill. Tip text in dim italic. CompactView also uses GradientText for A. Restyle Box/Text, zero StyleSheet.create. Old code commented.
+6.3   Restyle Streak card — AnimatedNumber, 7-day dots, gold milestones   Cam    DONE    AnimatedNumber for streak count (non-milestone). Gold GradientText at milestones (7/14/30/60/100). "day streak" label in bodySmall/textMuted. "Best: X days" in dim. 7-day dot row (in progress.tsx): logged=maroon fill white check, today not logged=gold ring, past not logged=silver fill, future=borderLight ring. Day labels in dim. Restyle Box/Text, zero StyleSheet. Old code commented.
+6.4   Restyle Calorie Trend chart — maroon line, silver goal dashed       Cam    DONE    Maroon actual line, silver dashed goal line (0.6 opacity), maroon data points (small circles), dim axis labels, "Avg: X cal/day" muted bottom-left, trend indicator (success up/error down) bottom-right. Area fill maroon gradient. Restyle Box/Text, zero StyleSheet. Old code commented.
+6.5   Restyle Weight Trend chart — dual lines, change pills              Cam    DONE    Maroon actual line + maroon data points, silver dashed 7-day average line, maroon gradient fill under trend. Change pills with directional color (success down/error up/textMuted same). Empty state (in progress.tsx): silver Feather trending-up + muted text. offWhite pill bg. Restyle Box/Text, zero StyleSheet. Old code commented.
+6.6   Restyle remaining: Macro Split, Badges (metallic gradient bg +     Cam    DONE    6 sub-sections: MacroBreakdown — ring colors (blue protein, gold metallic carbs SVG gradient, silver metallic fat SVG gradient), silverLight bar track. StreakBadge — locked 40% opacity + silver Feather lock + offWhite bg, unlocked full opacity + gold metallic LinearGradient bg + MetallicShimmer once on unlock. MicronutrientScreen — silverLight track + maroon fill bars, rectangular range tabs, Restyle Box/Text. Weekly Report card + Micronutrient link + Log Weight (inputBg borderRadius s, maroon Save) + Share (maroon outline borderRadius s) all done in progress.tsx 6.1. Zero StyleSheet across all files. Old code commented.
       shimmer on unlock), Micronutrients, Report, Weight Log, Share
 6.7   CHECKPOINT: Device test full Progress                               Cam    TODO    Badge shimmer works?
 
-Phase 6 Status: NOT STARTED
+Phase 6 Status: IN PROGRESS (6/7 tasks DONE — 6.1-6.6 complete, 6.7 device checkpoint remaining)
 
 
 ================================================================================
@@ -166,11 +166,11 @@ Phase                        Tasks   Done   Blocked
 2 — Animation Utilities        7       7       0
 3 — Dashboard                 10      10       0
 4 — Browse & Food              5       5       0
-5 — AI Chat                    3       2       0
-6 — Progress                   7       0       0
+5 — AI Chat                    3       3       0
+6 — Progress                   7       6       0
 7 — Global Polish              6       0       0
 8 — Final Testing              4       0       0
-TOTAL                         48      29       0
+TOTAL                         48      36       0
 
 
 ================================================================================

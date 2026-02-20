@@ -7,8 +7,6 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
-  StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -16,10 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-import { useTheme } from '@/src/context/ThemeContext';
+
+// Restyle primitives
+import { Box, Text } from '@/src/theme/restyleTheme';
+import StaggeredList from '@/src/components/StaggeredList';
+import AnimatedCard from '@/src/components/AnimatedCard';
+
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getTodayWater, getWaterGoal } from '@/src/utils/water';
@@ -36,6 +38,30 @@ import { getWeightHistory, calculateWeightTrend, WeightEntry, WeightTrend } from
 import MicronutrientScreen from '@/src/components/MicronutrientScreen';
 import ShareCard from '@/src/components/ShareCard';
 import WeeklyReport from '@/src/components/WeeklyReport';
+import { triggerHaptic } from '@/src/utils/haptics';
+
+// ─── Direct color constants for non-Restyle elements ────────────────────────
+const C = {
+  white: '#FFFFFF',
+  offWhite: '#FAFAFA',
+  maroon: '#861F41',
+  maroonDark: '#6B1835',
+  gold: '#C5A55A',
+  goldMuted: 'rgba(197,165,90,0.12)',
+  silver: '#A8A9AD',
+  silverLight: '#C8C9CC',
+  silverMuted: 'rgba(168,169,173,0.10)',
+  text: '#1A1A1A',
+  textMuted: '#6B6B6F',
+  textDim: '#9A9A9E',
+  border: '#E8E8EA',
+  borderLight: '#F0F0F2',
+  inputBg: '#F5F5F7',
+  success: '#2D8A4E',
+  warning: '#D4A024',
+  error: '#C0392B',
+  blue: '#4A7FC5',
+};
 
 function getLocalDate(offset = 0) {
   const d = new Date();
@@ -58,7 +84,6 @@ interface DayData {
 type RangeType = '1W' | '1M' | '3M' | 'All';
 
 export default function ProgressScreen() {
-  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<RangeType>('1M');
@@ -141,8 +166,8 @@ export default function ProgressScreen() {
       setWeekDots(dots);
 
       // Calculate today's daily score
-      const today = getLocalDate();
-      const todayLog = progressRes.days.find(d => d.date === today);
+      const todayStr = getLocalDate();
+      const todayLog = progressRes.days.find(d => d.date === todayStr);
       if (profileRes.data) {
         const p = profileRes.data;
         const score = calculateDailyScore(
@@ -179,9 +204,9 @@ export default function ProgressScreen() {
     setSavingWeight(true);
     try {
       const userId = await requireUserId();
-      const today = getLocalDate();
+      const todayStr = getLocalDate();
       const { error } = await supabase.from('weight_logs').upsert(
-        { user_id: userId, date: today, weight: w },
+        { user_id: userId, date: todayStr, weight: w },
         { onConflict: 'user_id,date' }
       );
       if (error) {
@@ -200,27 +225,29 @@ export default function ProgressScreen() {
     }
   };
 
+  const today = getLocalDate();
+  const todayData = progressData?.days.find(d => d.date === today);
   const earnedBadges = badges.filter(b => b.earned).length;
 
   if (loading) {
     return (
-      <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
-        <View style={st.loadingWrap}>
-          <ActivityIndicator size="large" color={colors.maroon} />
-        </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.offWhite }}>
+        <Box flex={1} justifyContent="center" alignItems="center">
+          <ActivityIndicator size="large" color={C.maroon} />
+        </Box>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.offWhite }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
-          contentContainerStyle={st.scrollContent}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           refreshControl={
@@ -231,240 +258,355 @@ export default function ProgressScreen() {
                 await loadData();
                 setRefreshing(false);
               }}
-              tintColor={colors.maroon}
+              tintColor={C.maroon}
             />
           }
         >
-          {/* Header */}
-          <Text style={[st.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>Progress</Text>
+          {/* Header — pageTitle */}
+          <Text variant="pageTitle" marginBottom="m">Progress</Text>
 
-          {/* Time Range Pills */}
-          <View style={st.rangePills}>
-            {(['1W', '1M', '3M', 'All'] as RangeType[]).map((r) => (
-              <TouchableOpacity
-                key={r}
-                style={[
-                  st.rangePill,
-                  {
-                    backgroundColor: range === r ? colors.cardAlt : 'transparent',
-                  },
-                ]}
-                onPress={() => setRange(r)}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    st.rangePillText,
-                    {
-                      color: range === r ? colors.text : colors.textDim,
-                      fontFamily: range === r ? 'DMSans_600SemiBold' : 'DMSans_400Regular',
-                    },
-                  ]}
+          {/* Rectangular time range tabs — same style as Browse meal filters */}
+          <Box flexDirection="row" marginBottom="l" style={{ gap: 0 }}>
+            {(['1W', '1M', '3M', 'All'] as RangeType[]).map((r) => {
+              const isActive = range === r;
+              return (
+                <TouchableOpacity
+                  key={r}
+                  onPress={() => { triggerHaptic('light'); setRange(r); }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 10,
+                    alignItems: 'center',
+                    backgroundColor: isActive ? C.maroon : 'transparent',
+                    borderRadius: isActive ? 6 : 0,
+                    borderBottomWidth: isActive ? 0 : 2,
+                    borderBottomColor: isActive ? 'transparent' : C.borderLight,
+                  }}
                 >
-                  {r}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <Text
+                    variant="body"
+                    style={{
+                      fontFamily: 'DMSans_600SemiBold',
+                      fontSize: 13,
+                      color: isActive ? C.white : C.textMuted,
+                    }}
+                  >
+                    {r}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </Box>
 
           {/* Empty state — no meal logs at all */}
           {(progressData?.totalMealsLogged ?? 0) === 0 && (
-            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginBottom: 16, alignItems: 'center', paddingVertical: 32 }]}>
-              <Text style={{ fontSize: 36 }}>📊</Text>
-              <Text style={[{ fontSize: 16, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginTop: 12, textAlign: 'center' }]}>
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+              alignItems="center"
+              style={{ paddingVertical: 32 }}
+            >
+              <Feather name="bar-chart-2" size={32} color={C.silver} />
+              <Text
+                variant="cardTitle"
+                style={{ marginTop: 12, textAlign: 'center' }}
+              >
                 Start logging meals to see your progress here!
               </Text>
-              <Text style={[{ fontSize: 14, color: colors.textMuted, fontFamily: 'DMSans_400Regular', marginTop: 8, textAlign: 'center' }]}>
-                Head to Browse to find your first meal 👉
-              </Text>
-            </View>
-          )}
-
-          {/* SECTION 1 — Daily Score */}
-          {dailyScore && (
-            <View style={{ marginBottom: 16 }}>
-              <DailyScoreCard
-                score={dailyScore.score}
-                grade={dailyScore.grade}
-                gradeColor={dailyScore.gradeColor}
-                breakdown={dailyScore.breakdown}
-              />
-            </View>
-          )}
-
-          {/* SECTION 2 — Streak */}
-          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
-            <StreakDisplay
-              currentStreak={streakData?.currentStreak ?? 0}
-              longestStreak={streakData?.longestStreak ?? 0}
-            />
-            {/* 7-day dot row */}
-            <View style={st.dotRow}>
-              {weekDots.map((d, i) => (
-                <View key={i} style={{ alignItems: 'center' }}>
-                  <View
-                    style={[
-                      st.streakDot,
-                      { backgroundColor: d.logged ? colors.green : colors.textDim },
-                    ]}
-                  >
-                    {d.logged && <Feather name="check" size={12} color="#fff" />}
-                  </View>
-                  <Text style={[st.dotLabel, { color: colors.textMuted }]}>{d.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* SECTION 3 — Calorie Trend */}
-          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
-            <Text style={[st.cardTitle, { color: colors.text }]}>Calorie Trend</Text>
-            <CalorieChart
-              data={progressData?.days ?? []}
-              goalCalories={progressData?.goals.calories ?? 2000}
-              range={range}
-            />
-          </View>
-
-          {/* SECTION 4 — Weight Trend */}
-          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
-            <Text style={[st.cardTitle, { color: colors.text }]}>Weight Trend</Text>
-            {weightEntries.length >= 2 && weightTrend ? (
-              <WeightChart entries={weightEntries} trend={weightTrend} />
-            ) : (
-              <View style={st.placeholderContent}>
-                <Feather name="trending-up" size={28} color={colors.textDim} style={{ opacity: 0.4 }} />
-                <Text style={[st.placeholderText, { color: colors.textMuted }]}>
-                  Log your weight to see trends here
-                </Text>
-                <Feather name="arrow-down" size={16} color={colors.textDim} style={{ opacity: 0.3, marginTop: 4 }} />
-              </View>
-            )}
-          </View>
-
-          {/* SECTION 5 — Macro Breakdown */}
-          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
-            <Text style={[st.cardTitle, { color: colors.text }]}>Macro Split (7-day avg)</Text>
-            <MacroBreakdown
-              actual={{
-                protein: progressData?.weeklyAverages.thisWeek.protein ?? 0,
-                carbs: progressData?.weeklyAverages.thisWeek.carbs ?? 0,
-                fat: progressData?.weeklyAverages.thisWeek.fat ?? 0,
-              }}
-              target={{
-                protein: progressData?.goals.protein ?? 150,
-                carbs: progressData?.goals.carbs ?? 250,
-                fat: progressData?.goals.fat ?? 65,
-              }}
-            />
-          </View>
-
-          {/* SECTION 6 — Badges */}
-          <View style={{ marginTop: 16 }}>
-            <View style={st.sectionHeaderRow}>
-              <Text style={[st.sectionHeaderText, { color: colors.text }]}>Your Badges</Text>
-              <Text style={[st.sectionHeaderMeta, { color: colors.textDim }]}>
-                {earnedBadges} of {badges.length}
-              </Text>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={st.badgeScroll}
-            >
-              {badges.map((b) => (
-                <StreakBadge key={b.id} badge={b} size="small" />
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* SECTION 7 — Micronutrient Link */}
-          <TouchableOpacity
-            style={[st.linkCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}
-            activeOpacity={0.7}
-            onPress={() => setShowMicros(true)}
-          >
-            <Text style={[st.linkCardText, { color: colors.textMuted }]}>View All Nutrients</Text>
-            <Feather name="chevron-right" size={18} color={colors.textDim} />
-          </TouchableOpacity>
-
-          {/* SECTION 8 — Weekly Report */}
-          <TouchableOpacity
-            style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 12 }]}
-            onPress={() => setWeeklyReportVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[st.cardTitle, { color: colors.text }]}>Weekly Report</Text>
-            <View style={st.reportRow}>
-              <Text style={[st.reportSubtext, { color: colors.textMuted }]}>
-                Your weekly report is ready
-              </Text>
-              <Feather name="chevron-right" size={18} color={colors.textDim} />
-            </View>
-          </TouchableOpacity>
-
-          {/* SECTION 9 — Weight Logging (always visible) */}
-          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
-            <Text style={[st.cardTitle, { color: colors.text }]}>Log Weight</Text>
-            {lastWeight ? (
-              <Text style={[st.lastWeightText, { color: colors.textMuted }]}>
-                Last logged: {lastWeight} lbs
-              </Text>
-            ) : (
-              <Text style={[st.lastWeightText, { color: colors.textMuted }]}>
-                Track your weight to see trends
-              </Text>
-            )}
-            <View style={st.weightRow}>
-              <TextInput
-                style={[
-                  st.weightInput,
-                  {
-                    backgroundColor: colors.inputBg,
-                    borderColor: colors.inputBorder,
-                    color: colors.text,
-                    fontFamily: 'DMSans_400Regular',
-                  },
-                ]}
-                placeholder="Weight in lbs"
-                placeholderTextColor={colors.textDim}
-                value={weightInput}
-                onChangeText={setWeightInput}
-                keyboardType="numeric"
-              />
-              <TouchableOpacity
-                style={[st.saveBtn, { backgroundColor: colors.maroon, opacity: savingWeight ? 0.6 : 1 }]}
-                onPress={logWeight}
-                disabled={savingWeight}
-                activeOpacity={0.7}
+              <Text
+                variant="muted"
+                style={{ marginTop: 8, textAlign: 'center' }}
               >
-                <Text style={st.saveBtnText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                Head to Browse to find your first meal
+              </Text>
+            </Box>
+          )}
 
-          {/* SECTION 10 — Share */}
-          <TouchableOpacity
-            style={[st.shareBtn, { borderColor: colors.maroon, opacity: sharing ? 0.6 : 1 }]}
-            activeOpacity={0.7}
-            disabled={sharing}
-            onPress={async () => {
-              if (!shareCardRef.current) return;
-              setSharing(true);
-              try {
-                const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.9 });
-                await Sharing.shareAsync(uri);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } catch (e) {
-                console.error('Share error:', e);
-              } finally {
-                setSharing(false);
-              }
-            }}
-          >
-            <Feather name="share" size={16} color={colors.maroon} style={{ marginRight: 8 }} />
-            <Text style={[st.shareBtnText, { color: colors.maroon }]}>Share Today's Score</Text>
-          </TouchableOpacity>
+          {/* All section cards wrapped in StaggeredList (50ms stagger) */}
+          <StaggeredList staggerDelay={50}>
+
+            {/* SECTION 1 — Daily Score */}
+            {dailyScore && (
+              <Box marginBottom="m">
+                <DailyScoreCard
+                  score={dailyScore.score}
+                  grade={dailyScore.grade}
+                  gradeColor={dailyScore.gradeColor}
+                  breakdown={dailyScore.breakdown}
+                />
+              </Box>
+            )}
+
+            {/* SECTION 2 — Streak */}
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+            >
+              <StreakDisplay
+                currentStreak={streakData?.currentStreak ?? 0}
+                longestStreak={streakData?.longestStreak ?? 0}
+              />
+              {/* 7-day dot row */}
+              <Box flexDirection="row" justifyContent="space-around" style={{ marginTop: 16 }}>
+                {weekDots.map((d, i) => {
+                  const isToday = d.date === today;
+                  const isFuture = d.date > today;
+                  return (
+                    <Box key={i} alignItems="center">
+                      <Box
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: d.logged
+                            ? C.maroon
+                            : (isToday || isFuture)
+                              ? 'transparent'
+                              : C.silver,
+                          borderWidth: (!d.logged && isToday) ? 2 : (!d.logged && isFuture) ? 2 : 0,
+                          borderColor: (!d.logged && isToday)
+                            ? C.gold
+                            : (!d.logged && isFuture)
+                              ? C.borderLight
+                              : 'transparent',
+                        }}
+                      >
+                        {d.logged && <Feather name="check" size={12} color="#fff" />}
+                      </Box>
+                      <Text variant="dim" style={{ marginTop: 4 }}>{d.label}</Text>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+
+            {/* SECTION 3 — Calorie Trend */}
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+            >
+              <Text variant="cardTitle" marginBottom="s">Calorie Trend</Text>
+              <CalorieChart
+                data={progressData?.days ?? []}
+                goalCalories={progressData?.goals.calories ?? 2000}
+                range={range}
+              />
+            </Box>
+
+            {/* SECTION 4 — Weight Trend */}
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+            >
+              <Text variant="cardTitle" marginBottom="s">Weight Trend</Text>
+              {weightEntries.length >= 2 && weightTrend ? (
+                <WeightChart entries={weightEntries} trend={weightTrend} />
+              ) : (
+                <Box alignItems="center" style={{ paddingVertical: 20, gap: 8 }}>
+                  <Feather name="trending-up" size={28} color={C.silver} />
+                  <Text variant="muted">Log your weight to see trends here</Text>
+                </Box>
+              )}
+            </Box>
+
+            {/* SECTION 5 — Macro Breakdown */}
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+            >
+              <Text variant="cardTitle" marginBottom="s">Macro Split (7-day avg)</Text>
+              <MacroBreakdown
+                actual={{
+                  protein: progressData?.weeklyAverages.thisWeek.protein ?? 0,
+                  carbs: progressData?.weeklyAverages.thisWeek.carbs ?? 0,
+                  fat: progressData?.weeklyAverages.thisWeek.fat ?? 0,
+                }}
+                target={{
+                  protein: progressData?.goals.protein ?? 150,
+                  carbs: progressData?.goals.carbs ?? 250,
+                  fat: progressData?.goals.fat ?? 65,
+                }}
+              />
+            </Box>
+
+            {/* SECTION 6 — Badges */}
+            <Box marginBottom="m">
+              <Box flexDirection="row" justifyContent="space-between" alignItems="center" marginBottom="s">
+                <Text variant="cardTitle">Your Badges</Text>
+                <Text variant="dim">{earnedBadges} of {badges.length}</Text>
+              </Box>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+              >
+                {badges.map((b) => (
+                  <StreakBadge key={b.id} badge={b} size="small" />
+                ))}
+              </ScrollView>
+            </Box>
+
+            {/* SECTION 7 — Micronutrient Link */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowMicros(true)}
+              style={{
+                backgroundColor: C.white,
+                borderWidth: 1,
+                borderColor: C.border,
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 16,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text variant="body" style={{ color: C.textMuted }}>View All Nutrients</Text>
+              <Feather name="chevron-right" size={18} color={C.textDim} />
+            </TouchableOpacity>
+
+            {/* SECTION 8 — Weekly Report */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setWeeklyReportVisible(true)}
+              style={{
+                backgroundColor: C.white,
+                borderWidth: 1,
+                borderColor: C.border,
+                borderRadius: 8,
+                padding: 16,
+                marginBottom: 16,
+              }}
+            >
+              <Text variant="cardTitle">Weekly Report</Text>
+              <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+                <Text variant="muted">Your weekly report is ready</Text>
+                <Feather name="chevron-right" size={18} color={C.textDim} />
+              </Box>
+            </TouchableOpacity>
+
+            {/* SECTION 9 — Weight Logging */}
+            <Box
+              backgroundColor="card"
+              borderColor="border"
+              borderWidth={1}
+              borderRadius="m"
+              padding="m"
+              marginBottom="m"
+            >
+              <Text variant="cardTitle">Log Weight</Text>
+              <Text variant="muted" style={{ marginBottom: 12 }}>
+                {lastWeight ? `Last logged: ${lastWeight} lbs` : 'Track your weight to see trends'}
+              </Text>
+              <Box flexDirection="row" style={{ gap: 10 }}>
+                <TextInput
+                  style={{
+                    flex: 1,
+                    backgroundColor: C.inputBg,
+                    borderRadius: 6,
+                    padding: 14,
+                    fontSize: 16,
+                    fontFamily: 'DMSans_400Regular',
+                    color: C.text,
+                  }}
+                  placeholder="Weight in lbs"
+                  placeholderTextColor={C.textDim}
+                  value={weightInput}
+                  onChangeText={setWeightInput}
+                  keyboardType="numeric"
+                />
+                <TouchableOpacity
+                  onPress={logWeight}
+                  disabled={savingWeight}
+                  activeOpacity={0.7}
+                  style={{
+                    backgroundColor: C.maroon,
+                    borderRadius: 6,
+                    paddingHorizontal: 20,
+                    paddingVertical: 14,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    opacity: savingWeight ? 0.6 : 1,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#fff',
+                      fontSize: 14,
+                      fontFamily: 'DMSans_700Bold',
+                    }}
+                  >
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </Box>
+            </Box>
+
+            {/* SECTION 10 — Share */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              disabled={sharing}
+              onPress={async () => {
+                if (!shareCardRef.current) return;
+                setSharing(true);
+                try {
+                  const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.9 });
+                  await Sharing.shareAsync(uri);
+                  triggerHaptic('light');
+                } catch (e) {
+                  console.error('Share error:', e);
+                } finally {
+                  setSharing(false);
+                }
+              }}
+              style={{
+                borderWidth: 1,
+                borderColor: C.maroon,
+                borderRadius: 6,
+                padding: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                backgroundColor: 'transparent',
+                opacity: sharing ? 0.6 : 1,
+              }}
+            >
+              <Feather name="share" size={16} color={C.maroon} style={{ marginRight: 8 }} />
+              <Text
+                style={{
+                  color: C.maroon,
+                  fontSize: 15,
+                  fontFamily: 'DMSans_700Bold',
+                }}
+              >
+                Share Today's Score
+              </Text>
+            </TouchableOpacity>
+
+          </StaggeredList>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -483,183 +625,58 @@ export default function ProgressScreen() {
       </Modal>
 
       {/* Off-screen share card for capture */}
-      {(() => {
-        const today = getLocalDate();
-        const todayData = progressData?.days.find(d => d.date === today);
-        return (
-          <ShareCard
-            cardRef={shareCardRef}
-            userName={userName}
-            date={today}
-            calories={todayData?.calories ?? 0}
-            goalCalories={progressData?.goals.calories ?? 2000}
-            protein={todayData?.protein ?? 0}
-            carbs={todayData?.carbs ?? 0}
-            fat={todayData?.fat ?? 0}
-            grade={dailyScore?.grade ?? '–'}
-            gradeColor={dailyScore?.gradeColor ?? colors.textDim}
-            streak={streakData?.currentStreak ?? 0}
-          />
-        );
-      })()}
+      <ShareCard
+        cardRef={shareCardRef}
+        userName={userName}
+        date={today}
+        calories={todayData?.calories ?? 0}
+        goalCalories={progressData?.goals.calories ?? 2000}
+        protein={todayData?.protein ?? 0}
+        carbs={todayData?.carbs ?? 0}
+        fat={todayData?.fat ?? 0}
+        grade={dailyScore?.grade ?? '–'}
+        gradeColor={dailyScore?.gradeColor ?? C.textDim}
+        streak={streakData?.currentStreak ?? 0}
+      />
     </SafeAreaView>
   );
 }
 
-const st = StyleSheet.create({
-  safe: { flex: 1 },
-  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  title: { fontSize: 26, marginBottom: 16 },
-
-  // Range pills
-  rangePills: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  rangePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  rangePillText: {
-    fontSize: 14,
-  },
-
-  // Card
-  card: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontFamily: 'DMSans_600SemiBold',
-    marginBottom: 12,
-  },
-
-  // Streak dots
-  dotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-  },
-  streakDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dotLabel: {
-    fontSize: 10,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 4,
-  },
-
-  // Placeholder content
-  placeholderContent: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    gap: 8,
-  },
-  placeholderText: {
-    fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
-  },
-
-  // Section header
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionHeaderText: {
-    fontSize: 16,
-    fontFamily: 'DMSans_600SemiBold',
-  },
-  sectionHeaderMeta: {
-    fontSize: 12,
-    fontFamily: 'DMSans_400Regular',
-  },
-
-  // Badge scroll
-  badgeScroll: {
-    gap: 12,
-    paddingBottom: 4,
-  },
-
-  // Link card
-  linkCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    marginTop: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  linkCardText: {
-    fontSize: 15,
-    fontFamily: 'DMSans_500Medium',
-  },
-
-  // Report
-  reportRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  reportSubtext: {
-    fontSize: 14,
-    fontFamily: 'DMSans_400Regular',
-  },
-
-  // Weight
-  lastWeightText: {
-    fontSize: 13,
-    fontFamily: 'DMSans_400Regular',
-    marginBottom: 12,
-  },
-  weightRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  weightInput: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
-    borderWidth: 1,
-  },
-  saveBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontFamily: 'DMSans_700Bold',
-  },
-
-  // Share button
-  shareBtn: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    borderWidth: 1,
-    backgroundColor: 'transparent',
-  },
-  shareBtnText: {
-    fontSize: 15,
-    fontFamily: 'DMSans_700Bold',
-  },
-});
+// ════════════════════════════════════════════════════════════════════════════════
+// OLD CODE — commented out, not deleted (Sprint 5 rule)
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// import { StyleSheet } from 'react-native';
+// import { useTheme } from '@/src/context/ThemeContext';
+//
+// const st = StyleSheet.create({
+//   safe: { flex: 1 },
+//   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+//   scrollContent: { padding: 20, paddingBottom: 100 },
+//   title: { fontSize: 26, marginBottom: 16 },
+//   rangePills: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+//   rangePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+//   rangePillText: { fontSize: 14 },
+//   card: { borderRadius: 14, borderWidth: 1, padding: 16 },
+//   cardTitle: { fontSize: 16, fontFamily: 'DMSans_600SemiBold', marginBottom: 12 },
+//   dotRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
+//   streakDot: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+//   dotLabel: { fontSize: 10, fontFamily: 'DMSans_400Regular', marginTop: 4 },
+//   placeholderContent: { alignItems: 'center', paddingVertical: 20, gap: 8 },
+//   placeholderText: { fontSize: 14, fontFamily: 'DMSans_400Regular' },
+//   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+//   sectionHeaderText: { fontSize: 16, fontFamily: 'DMSans_600SemiBold' },
+//   sectionHeaderMeta: { fontSize: 12, fontFamily: 'DMSans_400Regular' },
+//   badgeScroll: { gap: 12, paddingBottom: 4 },
+//   linkCard: { borderRadius: 14, borderWidth: 1, padding: 16, marginTop: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+//   linkCardText: { fontSize: 15, fontFamily: 'DMSans_500Medium' },
+//   reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+//   reportSubtext: { fontSize: 14, fontFamily: 'DMSans_400Regular' },
+//   lastWeightText: { fontSize: 13, fontFamily: 'DMSans_400Regular', marginBottom: 12 },
+//   weightRow: { flexDirection: 'row', gap: 10 },
+//   weightInput: { flex: 1, borderRadius: 12, padding: 14, fontSize: 16, borderWidth: 1 },
+//   saveBtn: { paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+//   saveBtnText: { color: '#fff', fontSize: 14, fontFamily: 'DMSans_700Bold' },
+//   shareBtn: { marginTop: 20, padding: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', borderWidth: 1, backgroundColor: 'transparent' },
+//   shareBtnText: { fontSize: 15, fontFamily: 'DMSans_700Bold' },
+// });

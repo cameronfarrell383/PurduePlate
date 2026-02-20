@@ -27,6 +27,7 @@ import { getHallAverages, HallAverage, rateHall, getUserRating, getHallReviews, 
 import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
 import { getFavoritesToday, getFitsYourMacros, getTrySomethingNew, getQuickAndLight } from '@/src/utils/recommendations';
 import Skeleton from '@/src/components/Skeleton';
+import MicronutrientScreen from '@/src/components/MicronutrientScreen';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -150,6 +151,9 @@ export default function BrowseScreen() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [filterItems, setFilterItems] = useState<any[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
+
+  // Micronutrient modal
+  const [showMicros, setShowMicros] = useState(false);
 
   // Date fallback when today has no scraped data
   const [usingFallback, setUsingFallback] = useState(false);
@@ -1245,6 +1249,16 @@ export default function BrowseScreen() {
                 ))}
               </View>
 
+              <TouchableOpacity
+                onPress={() => setShowMicros(true)}
+                style={{ marginTop: 12, paddingVertical: 8 }}
+                activeOpacity={0.7}
+              >
+                <Text style={[{ fontSize: 14, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>
+                  View All Nutrients →
+                </Text>
+              </TouchableOpacity>
+
               {selectedItem.dietary_flags && selectedItem.dietary_flags.length > 0 && (
                 <View style={[st.flagRow, { marginTop: 16 }]}>
                   {selectedItem.dietary_flags.map((flag: string) => (
@@ -1279,6 +1293,14 @@ export default function BrowseScreen() {
             </View>
           </>
         )}
+        <Modal
+          visible={showMicros}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowMicros(false)}
+        >
+          <MicronutrientScreen onClose={() => setShowMicros(false)} />
+        </Modal>
       </SafeAreaView>
     );
   }

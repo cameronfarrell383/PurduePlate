@@ -56,15 +56,15 @@ PHASE 3 — DASHBOARD REBUILD (THE SIGNATURE SCREEN)
 
 Task  Description                                                          Owner  Status  Notes
 ----  -------------------------------------------------------------------  -----  ------  -----
-3.1   Create SpiralRings.tsx — 4 concentric SVG rings, rotational         Cam    TODO    Most complex component
+3.1   Create SpiralRings.tsx — 4 concentric SVG rings, rotational         Cam    DONE    4 SVG rings w/ reanimated useAnimatedProps, gold/silver metallic SVG gradients, -30deg stagger rotations, staggered fill (0/120/240/360ms), rewind-surge withSequence on update, over-target gold shift + shimmer, AnimatedNumber center, 25% threshold haptics
       offsets, staggered fill, metallic gradients on carbs+fat rings,
       rewind-surge on update, over-target gold shift + shimmer
-3.2   Create MacroLegend.tsx — colored dots + AnimatedNumber row          Cam    TODO
-3.3   Create DashboardStatsRow.tsx — streak + score AnimatedCards,        Cam    TODO    GradientText on milestones
+3.2   Create MacroLegend.tsx — colored dots + AnimatedNumber row          Cam    DONE    Restyle Box layout, 4 legend items: maroon/blue/flat gold/flat silver dots + AnimatedNumber current/goal, bodySmall variant, space-between row
+3.3   Create DashboardStatsRow.tsx — streak + score AnimatedCards,        Cam    DONE    Two flex-1 AnimatedCards: streak w/ gold GradientText at milestones (7/14/30/60/100), score w/ gold GradientText on A grade, dynamic colors B-F, AnimatedNumber for values, statLabel headers, maroon bottom-left accent on streak card
       gold gradient on milestone streaks, dynamic grade colors
-3.4   Create WaterTracker.tsx — compact inline, animated bar, pills       Cam    TODO
-3.5   Create ForYouSection.tsx — horizontal scroll cards, maroon accent   Cam    TODO
-3.6   Create MealLogSection.tsx — meal groups, Feather icons, no emoji    Cam    TODO    Replace emoji with vectors
+3.4   Create WaterTracker.tsx — compact inline, animated bar, pills       Cam    DONE    Rewrote from ring-based to single-line compact: "Water" label, silverLight track/maroon fill 4px bar with reanimated width anim, AnimatedNumber count, +8oz/+16oz pill buttons with press-scale, haptic on tap
+3.5   Create ForYouSection.tsx — horizontal scroll cards, maroon accent   Cam    DONE    Generic section-based layout: "For You" cardTitle, sub-sections w/ title + "See All →" maroon link, horizontal ScrollView of AnimatedCards w/ press-scale + haptic, 2px maroon left-border accent, icon top-right, Feather empty state, flexible ForYouSubSection[] prop
+3.6   Create MealLogSection.tsx — meal groups, Feather icons, no emoji    Cam    DONE    "Today's Meals" header + "History →" maroon link, 3 groups (Breakfast/Lunch/Dinner) w/ sectionHeader + cal count, Feather icons (coffee/sun/moon) for empty states, macro breakdown per item (P/C/F), delete X button, borderLight dividers, zero emoji
 3.7   Assemble Dashboard index.tsx — full Restyle, StaggeredList,         Cam    TODO    Zero StyleSheet.create
       SpiralRings hero
 3.8   Meal logging success animation — ring update + haptic +             Cam    TODO    Wire after Browse flow
@@ -72,7 +72,7 @@ Task  Description                                                          Owner
 3.9   Pull-to-refresh — maroon spinner, re-trigger animations             Cam    TODO
 3.10  CHECKPOINT: Device test full Dashboard                              Cam    TODO    60fps rings? Metallic visible?
 
-Phase 3 Status: NOT STARTED
+Phase 3 Status: IN PROGRESS (6/10 tasks DONE — 3.1-3.6 complete, 3.7-3.10 remaining)
 
 
 ================================================================================
@@ -164,13 +164,13 @@ Phase                        Tasks   Done   Blocked
 ---------------------------  -----   ----   -------
 1 — Theme Foundation           6       6       0
 2 — Animation Utilities        7       7       0
-3 — Dashboard                 10       0       0
+3 — Dashboard                 10       6       0
 4 — Browse & Food              5       0       0
 5 — AI Chat                    3       0       0
 6 — Progress                   7       0       0
 7 — Global Polish              6       0       0
 8 — Final Testing              4       0       0
-TOTAL                         48      13       0
+TOTAL                         48      19       0
 
 
 ================================================================================

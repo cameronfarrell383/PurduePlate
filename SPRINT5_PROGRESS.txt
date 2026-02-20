@@ -26,9 +26,9 @@ Task  Description                                                          Owner
 1.4   Update _layout.tsx — simplify provider, reanimated babel plugin     Cam    DONE    Removed mode destructure, StatusBar always "dark", added reanimated/plugin to babel.config.js
 1.5   Update SettingsRestyle.tsx — new palette, sharp radii, remove       Cam    DONE    New palette applied: white cards, maroon/gold/silver accents, removed Appearance toggle, silver section headers, gold streak, silver edit border, error sign-out, silver footer. All tints use maroonTint/goldTint/silverTint/successTint/warningTint/errorTint. Sharper radii (6/8/10). Zero TS errors.
       Appearance toggle, metal accents, gold GradientText on A grade
-1.6   CHECKPOINT: Device test Settings screen                             Cam    TODO    MUST PASS before Phase 2
+1.6   CHECKPOINT: Device test Settings screen                             Cam    DONE    Settings renders with new palette, no dark mode toggle, clean white + maroon + silver/gold, all modals work
 
-Phase 1 Status: IN PROGRESS (1.1–1.5 DONE, 1.6 checkpoint pending)
+Phase 1 Status: COMPLETE (all 6 tasks DONE)
 
 
 ================================================================================
@@ -37,17 +37,17 @@ PHASE 2 — REANIMATED SETUP & CORE ANIMATION UTILITIES
 
 Task  Description                                                          Owner  Status  Notes
 ----  -------------------------------------------------------------------  -----  ------  -----
-2.1   Install reanimated + haptics + masked-view + verify linear-gradient  Cam    TODO    Plugin LAST in babel array
+2.1   Install reanimated + haptics + masked-view + verify linear-gradient  Cam    DONE    reanimated+haptics already installed; added @react-native-masked-view/masked-view ^0.3.2 + expo-linear-gradient ~15.0.8; babel plugin already configured; TS compiles clean (only Deno edge fn errors)
       Configure babel, clear cache, verify build
-2.2   Create AnimatedCard.tsx — press-scale 0.97x, spring-back, haptic    Cam    TODO
-2.3   Create AnimatedNumber.tsx — count-up, configurable duration/easing  Cam    TODO    Handle integers + decimals
-2.4   Create StaggeredList.tsx — fade-in + slide-up with stagger delay    Cam    TODO
-2.5   Create src/utils/haptics.ts — expo-haptics wrapper, try/catch       Cam    TODO
-2.6   Create MetallicShimmer.tsx — gradient sweep overlay, plays once     Cam    TODO    NEVER loops continuously
-2.7   Create GradientText.tsx — MaskedView + LinearGradient for           Cam    TODO    Fallback to flat color
+2.2   Create AnimatedCard.tsx — press-scale 0.97x, spring-back, haptic    Cam    DONE    Pressable + reanimated scale 0.97 withTiming 100ms, spring back damping:15 stiffness:150, optional haptic on press, wraps Restyle Card
+2.3   Create AnimatedNumber.tsx — count-up, configurable duration/easing  Cam    DONE    AnimatedTextInput approach, withTiming + Easing.out(cubic), handles integers + decimals, configurable prefix/suffix/textVariant/color
+2.4   Create StaggeredList.tsx — fade-in + slide-up with stagger delay    Cam    DONE    Per-child opacity 0→1 + translateY 15→0, 400ms Easing.out(cubic), configurable staggerDelay/initialDelay/translateY
+2.5   Create src/utils/haptics.ts — expo-haptics wrapper, try/catch       Cam    DONE    Maps light/medium/heavy to impactAsync, success/warning/error to notificationAsync, silent catch for Expo Go compat
+2.6   Create MetallicShimmer.tsx — gradient sweep overlay, plays once     Cam    DONE    Absolute overlay, translateX -width→+width 800ms Easing.inOut(quad), transparent→white 0.4→transparent gradient, plays once on play=true, never loops
+2.7   Create GradientText.tsx — MaskedView + LinearGradient for           Cam    DONE    Gold/silver 5-stop metallic gradients, MaskedView mask text pattern, try/catch fallback to flat color
       gold/silver metallic text
 
-Phase 2 Status: NOT STARTED
+Phase 2 Status: COMPLETE (all 7 tasks DONE)
 
 
 ================================================================================
@@ -162,15 +162,15 @@ SUMMARY TABLE
 
 Phase                        Tasks   Done   Blocked
 ---------------------------  -----   ----   -------
-1 — Theme Foundation           6       5       0
-2 — Animation Utilities        7       0       0
+1 — Theme Foundation           6       6       0
+2 — Animation Utilities        7       7       0
 3 — Dashboard                 10       0       0
 4 — Browse & Food              5       0       0
 5 — AI Chat                    3       0       0
 6 — Progress                   7       0       0
 7 — Global Polish              6       0       0
 8 — Final Testing              4       0       0
-TOTAL                         48       5       0
+TOTAL                         48      13       0
 
 
 ================================================================================

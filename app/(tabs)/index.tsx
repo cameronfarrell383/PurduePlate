@@ -15,12 +15,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getStreakData, StreakData } from '@/src/utils/streaks';
 import { calculateDailyScore, DailyScore } from '@/src/utils/dailyScore';
 import DailyScoreCard from '@/src/components/DailyScoreCard';
+import Confetti from '@/src/components/Confetti';
+import GoalHitBanner from '@/src/components/GoalHitBanner';
 import { logBelongsToMealGroup, getCurrentMealPeriod, getEffectiveMenuDate } from '@/src/utils/meals';
 import { getTodayWater, addWater, removeWater, getWaterGoal } from '@/src/utils/water';
 import { getAllHallStatuses, HallStatus } from '@/src/utils/hours';
@@ -125,6 +129,25 @@ export default function HomeScreen() {
   const [streakData, setStreakData] = useState<StreakData | null>(null);
 
   const [showHistory, setShowHistory] = useState(false);
+
+  // ─── Celebration state ───
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState('');
+  const [bannerColor, setBannerColor] = useState<string | undefined>(undefined);
+
+  // ─── Celebration refs (prevent re-triggering) ───
+  const calorieGoalCelebrated = useRef(false);
+  const waterGoalCelebrated = useRef(false);
+  const lastCelebratedMilestone = useRef(0);
+  const currentDateRef = useRef(getLocalDate());
+
+  // Load persisted streak milestone on mount
+  useEffect(() => {
+    AsyncStorage.getItem('lastStreakMilestone').then((val) => {
+      if (val) lastCelebratedMilestone.current = parseInt(val, 10) || 0;
+    });
+  }, []);
 
   // ─── Entry stagger animations ───
   // 0: greeting, 1: calorie ring, 2-4: macro cards, 5: collections, 6: meals
@@ -241,6 +264,26 @@ export default function HomeScreen() {
       setWaterGoal(waterGoalRes);
       if (hallStatusMap) setOpenHalls(hallStatusMap);
       if (streakResult) setStreakData(streakResult);
+
+      // Reset celebration refs on date change
+      if (today !== currentDateRef.current) {
+        calorieGoalCelebrated.current = false;
+        waterGoalCelebrated.current = false;
+        currentDateRef.current = today;
+      }
+
+      // Streak milestone celebration
+      if (streakResult) {
+        const MILESTONES = [7, 14, 30, 60, 100];
+        if (MILESTONES.includes(streakResult.currentStreak) && streakResult.currentStreak > lastCelebratedMilestone.current) {
+          setShowConfetti(true);
+          setBannerMessage(`🔥 ${streakResult.currentStreak}-day streak! Amazing!`);
+          setBannerColor(undefined);
+          setBannerVisible(true);
+          lastCelebratedMilestone.current = streakResult.currentStreak;
+          AsyncStorage.setItem('lastStreakMilestone', String(streakResult.currentStreak));
+        }
+      }
     } catch (e) {
       console.error('Dashboard load error:', e);
     } finally {
@@ -290,6 +333,20 @@ export default function HomeScreen() {
     playEntry();
   }, [loading, logs]);
 
+  // ─── Calorie goal celebration ───
+  useEffect(() => {
+    if (loading || !profile || logs.length === 0) return;
+    const goal = profile.goal_calories || 2000;
+    if (totalCal >= goal && !calorieGoalCelebrated.current) {
+      calorieGoalCelebrated.current = true;
+      setShowConfetti(true);
+      setBannerMessage('Daily calorie goal reached! 🎯');
+      setBannerColor(undefined);
+      setBannerVisible(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [logs]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -312,6 +369,13 @@ export default function HomeScreen() {
       const userId = await requireUserId();
       const newTotal = await addWater(userId, oz);
       setWaterOz(newTotal);
+      // Water goal celebration
+      if (newTotal >= waterGoal && !waterGoalCelebrated.current) {
+        waterGoalCelebrated.current = true;
+        setBannerMessage('Hydration goal hit! 💧');
+        setBannerColor(colors.blue);
+        setBannerVisible(true);
+      }
     } catch (error) {
       console.error('Failed to add water:', error);
     }
@@ -514,6 +578,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
+      <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
+      <GoalHitBanner
+        visible={bannerVisible}
+        message={bannerMessage}
+        color={bannerColor}
+        onDismiss={() => setBannerVisible(false)}
+      />
       <ScrollView
         contentContainerStyle={st.scroll}
         showsVerticalScrollIndicator={false}

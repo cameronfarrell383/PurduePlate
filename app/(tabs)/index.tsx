@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -32,8 +33,7 @@ import {
 import { FavoriteMenuItem } from '@/src/utils/favorites';
 import WaterTracker from '@/src/components/WaterTracker';
 import Skeleton from '@/src/components/Skeleton';
-import AIChat from '@/src/components/AIChat';
-import type { MealItem } from '@/src/utils/ai';
+import HistoryScreen from './history';
 import { useStaggerAnimation } from '@/src/hooks/useStaggerAnimation';
 
 function getLocalDate(d = new Date()) {
@@ -120,7 +120,7 @@ export default function HomeScreen() {
   const [openHalls, setOpenHalls] = useState<OpenHall[]>([]);
   const [forYouLoading, setForYouLoading] = useState(true);
 
-  const [showAIChat, setShowAIChat] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // ─── Entry stagger animations ───
   // 0: greeting, 1: calorie ring, 2-4: macro cards, 5: collections, 6: meals
@@ -248,31 +248,6 @@ export default function HomeScreen() {
       loadData();
     }, [loadData])
   );
-
-  // ─── "Log this" from AI meal suggestions ───
-  const handleLogAIItem = useCallback(async (item: MealItem) => {
-    try {
-      const userId = await requireUserId();
-      const date = await getEffectiveMenuDate();
-      const { error } = await supabase.from('meal_logs').insert({
-        user_id: userId,
-        menu_item_id: item.id,
-        date,
-        meal: item.meal || getCurrentMealPeriod(),
-        servings: 1,
-      });
-      if (error) {
-        console.error('AI log meal failed:', error.message);
-        Alert.alert('Error', 'Failed to log meal. Please try again.');
-        return;
-      }
-      Alert.alert('Logged!', `${item.name} (${item.calories} cal) added to your log.`);
-      loadData();
-    } catch (e: any) {
-      console.error('AI log error:', e?.message);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-    }
-  }, [loadData]);
 
   // ─── Animate ring + macros when data changes ───
   useEffect(() => {
@@ -722,23 +697,34 @@ export default function HomeScreen() {
         <Animated.View style={[{ marginTop: 28 }, {
           opacity: entryAnims[6],
         }]}>
+          <View style={st.sectionHead}>
+            <Text style={[st.sectionTitle, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>Today's Meals</Text>
+            <TouchableOpacity onPress={() => setShowHistory(true)} activeOpacity={0.7}>
+              <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>History →</Text>
+            </TouchableOpacity>
+          </View>
           {renderMealGroup('Breakfast', 'BREAKFAST')}
           {renderMealGroup('Lunch', 'LUNCH')}
           {renderMealGroup('Dinner', 'DINNER')}
         </Animated.View>
       </ScrollView>
 
-      {/* AI Floating Action Button */}
-      <TouchableOpacity
-        style={[st.aiFab, { backgroundColor: colors.maroon }]}
-        onPress={() => setShowAIChat(true)}
-        activeOpacity={0.85}
+      {/* History Modal */}
+      <Modal
+        visible={showHistory}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowHistory(false)}
       >
-        <Text style={st.aiFabEmoji}>✨</Text>
-      </TouchableOpacity>
-
-      {/* AI Chat Modal */}
-      <AIChat visible={showAIChat} onClose={() => setShowAIChat(false)} onLogItem={handleLogAIItem} />
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={st.historyModalHeader}>
+            <TouchableOpacity onPress={() => setShowHistory(false)} activeOpacity={0.6}>
+              <Text style={[{ fontSize: 15, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          <HistoryScreen />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -778,20 +764,5 @@ const st = StyleSheet.create({
   logCal: { fontSize: 14, opacity: 0.7, marginRight: 8 },
   deleteBtn: { padding: 4 },
   divider: { height: 1, marginLeft: 20 },
-  aiFab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#8B1E3F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  aiFabEmoji: { fontSize: 24 },
+  historyModalHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
 });

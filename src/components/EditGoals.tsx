@@ -174,7 +174,7 @@ export default function EditGoals({
             )}
 
             {/* ── Goal fields — each TextInput defined explicitly, NOT in .map() ── */}
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
 
               {/* Calories */}
               <View style={st.fieldRow}>

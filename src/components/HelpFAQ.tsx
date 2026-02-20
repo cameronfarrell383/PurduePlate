@@ -110,7 +110,7 @@ export default function HelpFAQ({ visible, onClose }: HelpFAQProps) {
         </View>
 
         <ScrollView contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
             {FAQ_ITEMS.map((item, i) => (
               <View key={i}>
                 <FAQItem
@@ -120,14 +120,14 @@ export default function HelpFAQ({ visible, onClose }: HelpFAQProps) {
                   onToggle={() => toggle(i)}
                 />
                 {i < FAQ_ITEMS.length - 1 && (
-                  <View style={[st.divider, { backgroundColor: colors.border }]} />
+                  <View style={[st.divider, { backgroundColor: colors.cardGlassBorder }]} />
                 )}
               </View>
             ))}
           </View>
 
           <Text style={[st.footer, { color: colors.textDim, fontFamily: 'DMSans_400Regular' }]}>
-            CampusPlate v1.0 · Built for Virginia Tech
+            CampusPlate v2.0 · Built for Hokies, by Hokies
           </Text>
         </ScrollView>
 

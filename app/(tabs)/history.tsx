@@ -136,7 +136,7 @@ export default function HistoryScreen() {
                   <Text style={[st.logName, { color: colors.text, fontFamily: 'DMSans_500Medium' }]} numberOfLines={1}>{name}</Text>
                   <Text style={[st.logCal, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{n.cal}</Text>
                 </View>
-                {i < mealLogs.length - 1 && <View style={[st.divider, { backgroundColor: colors.border }]} />}
+                {i < mealLogs.length - 1 && <View style={[st.divider, { backgroundColor: colors.cardGlassBorder }]} />}
               </View>
             );
           })
@@ -149,6 +149,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={[st.safe, { backgroundColor: colors.background }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(selectedDate).then(() => setRefreshing(false)); }} tintColor={colors.maroon} />}
       >
         <View style={st.pad}>
@@ -167,7 +168,7 @@ export default function HistoryScreen() {
             return (
               <TouchableOpacity
                 key={d.date}
-                style={[st.dayPill, { backgroundColor: sel ? colors.maroon : colors.card, borderColor: sel ? colors.maroon : colors.border, borderWidth: 1 }]}
+                style={[st.dayPill, { backgroundColor: sel ? colors.maroon : colors.cardGlass, borderColor: sel ? colors.maroon : colors.cardGlassBorder, borderWidth: 1 }]}
                 onPress={() => selectDate(d.date)}
               >
                 <Text style={[st.dayNum, { color: sel ? '#fff' : colors.text, fontFamily: 'Outfit_700Bold' }]}>{d.dayNum}</Text>
@@ -182,7 +183,7 @@ export default function HistoryScreen() {
         ) : (
           <View style={st.pad}>
             {/* Daily Summary */}
-            <View style={[st.summaryCard, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+            <View style={[st.summaryCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}>
               <Text style={[{ fontSize: 12, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center' }]}>Total Intake</Text>
               <Text style={[{ fontSize: 36, color: colors.text, fontFamily: 'Outfit_800ExtraBold', textAlign: 'center', marginVertical: 4 }]}>{totalCal}</Text>
               <Text style={[{ fontSize: 13, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center' }]}>
@@ -226,7 +227,7 @@ const st = StyleSheet.create({
   summaryCard: { borderRadius: 14, padding: 20 },
   statRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 },
   statItem: { alignItems: 'center' },
-  mealHeader: { fontSize: 12, fontWeight: '700', letterSpacing: 1.5, opacity: 0.3, textTransform: 'uppercase', marginBottom: 12 },
+  mealHeader: { fontSize: 12, fontFamily: 'DMSans_700Bold', letterSpacing: 1.5, opacity: 0.3, textTransform: 'uppercase', marginBottom: 12 },
   logRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   logDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
   logName: { flex: 1, fontSize: 14 },

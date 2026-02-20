@@ -175,7 +175,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
           >
 
             {/* ── Reminder rows ── */}
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               {reminders.map((reminder, index) => (
                 <React.Fragment key={reminder.meal}>
                   {index > 0 && <View style={[st.sep, { backgroundColor: colors.border }]} />}
@@ -218,7 +218,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
                       <View style={st.timeCol}>
                         <TouchableOpacity
                           onPress={() => adjustTime(reminder.meal, 'hour', 1)}
-                          style={[st.arrowBtn, { backgroundColor: colors.card }]}
+                          style={[st.arrowBtn, { backgroundColor: colors.cardGlass }]}
                           activeOpacity={0.6}
                         >
                           <Text style={[st.arrowText, { color: colors.text }]}>&#9650;</Text>
@@ -228,7 +228,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
                         </Text>
                         <TouchableOpacity
                           onPress={() => adjustTime(reminder.meal, 'hour', -1)}
-                          style={[st.arrowBtn, { backgroundColor: colors.card }]}
+                          style={[st.arrowBtn, { backgroundColor: colors.cardGlass }]}
                           activeOpacity={0.6}
                         >
                           <Text style={[st.arrowText, { color: colors.text }]}>&#9660;</Text>
@@ -244,7 +244,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
                       <View style={st.timeCol}>
                         <TouchableOpacity
                           onPress={() => adjustTime(reminder.meal, 'minute', 15)}
-                          style={[st.arrowBtn, { backgroundColor: colors.card }]}
+                          style={[st.arrowBtn, { backgroundColor: colors.cardGlass }]}
                           activeOpacity={0.6}
                         >
                           <Text style={[st.arrowText, { color: colors.text }]}>&#9650;</Text>
@@ -254,7 +254,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
                         </Text>
                         <TouchableOpacity
                           onPress={() => adjustTime(reminder.meal, 'minute', -15)}
-                          style={[st.arrowBtn, { backgroundColor: colors.card }]}
+                          style={[st.arrowBtn, { backgroundColor: colors.cardGlass }]}
                           activeOpacity={0.6}
                         >
                           <Text style={[st.arrowText, { color: colors.text }]}>&#9660;</Text>

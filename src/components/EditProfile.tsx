@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
@@ -241,7 +242,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
 
               {/* ── Personal Info ── */}
               <SectionHeader title="PERSONAL INFO" />
-              <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
 
                 <View style={st.fieldRow}>
                   <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Name</Text>
@@ -280,7 +281,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
 
               {/* ── Body Stats ── */}
               <SectionHeader title="BODY STATS" />
-              <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
 
                 <View style={st.fieldRow}>
                   <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>Weight</Text>
@@ -372,7 +373,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
 
               {/* ── Preferences ── */}
               <SectionHeader title="PREFERENCES" />
-              <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
 
                 <View style={[st.fieldRow, { flexDirection: 'column', alignItems: 'flex-start' }]}>
                   <Text style={[st.label, { color: colors.text, fontFamily: 'DMSans_500Medium', marginBottom: 10 }]}>Activity Level</Text>
@@ -418,7 +419,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
                         {hall.name}
                       </Text>
                       {homeHallId === hall.id && (
-                        <Text style={{ fontSize: 14, color: colors.maroon }}>✓</Text>
+                        <Feather name="check" size={14} color={colors.maroon} />
                       )}
                     </TouchableOpacity>
                   ))}

@@ -685,7 +685,7 @@ export default function BrowseScreen() {
       <View style={st.headerRow}>
         {view !== 'halls' && (
           <TouchableOpacity onPress={goBack} style={st.backBtn}>
-            <Text style={[{ fontSize: 20, color: colors.text }]}>←</Text>
+            <Feather name="arrow-left" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }}>
@@ -807,7 +807,7 @@ export default function BrowseScreen() {
           >
             <View style={st.headerRow}>
               <TouchableOpacity onPress={clearFilter} style={st.backBtn}>
-                <Text style={[{ fontSize: 20, color: colors.text }]}>←</Text>
+                <Feather name="arrow-left" size={20} color={colors.text} />
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={[st.title, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>{getFilterTitle(activeFilter)}</Text>
@@ -818,7 +818,10 @@ export default function BrowseScreen() {
               onPress={clearFilter}
               style={[st.clearFilterBtn, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, borderWidth: 1 }]}
             >
-              <Text style={[{ fontSize: 13, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>✕ Clear Filter</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Feather name="x" size={13} color={colors.maroon} />
+                <Text style={[{ fontSize: 13, color: colors.maroon, fontFamily: 'DMSans_600SemiBold' }]}>Clear Filter</Text>
+              </View>
             </TouchableOpacity>
 
             {filterLoading ? (
@@ -898,7 +901,7 @@ export default function BrowseScreen() {
               />
               {hallSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setHallSearch('')} style={st.clearBtn}>
-                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                  <Feather name="x" size={14} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1006,7 +1009,7 @@ export default function BrowseScreen() {
               />
               {itemSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setItemSearch('')} style={st.clearBtn}>
-                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                  <Feather name="x" size={14} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1145,7 +1148,7 @@ export default function BrowseScreen() {
               />
               {itemSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setItemSearch('')} style={st.clearBtn}>
-                  <Text style={[{ fontSize: 14, color: colors.textMuted }]}>✕</Text>
+                  <Feather name="x" size={14} color={colors.textMuted} />
                 </TouchableOpacity>
               )}
             </View>

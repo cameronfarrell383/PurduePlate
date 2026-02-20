@@ -58,7 +58,7 @@ export default function DailyScoreCard({ score, grade, gradeColor, breakdown, co
   }
 
   return (
-    <View style={[styles.fullCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.fullCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
       <View style={styles.fullHeader}>
         <Text style={[styles.fullGrade, { color: gradeColor }]}>{grade}</Text>
         <Text style={[styles.fullScore, { color: colors.textMuted }]}>{score} / 100</Text>

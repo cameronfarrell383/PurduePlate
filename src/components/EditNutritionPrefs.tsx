@@ -133,7 +133,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
 
             {/* ── Dietary Needs ── */}
             <SectionHeader title="DIETARY NEEDS" />
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <Text style={[st.cardHint, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
                 Select all that apply. These will be highlighted on menus.
               </Text>
@@ -164,7 +164,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
 
             {/* ── High Protein Toggle ── */}
             <SectionHeader title="GYM MODE" />
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <View style={st.toggleRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={[st.toggleLabel, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
@@ -185,7 +185,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
 
             {/* ── Meals Per Day ── */}
             <SectionHeader title="MEALS PER DAY" />
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <Text style={[st.cardHint, { color: colors.textMuted, fontFamily: 'DMSans_400Regular' }]}>
                 How many campus meals do you eat daily?
               </Text>

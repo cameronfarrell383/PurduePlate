@@ -174,7 +174,7 @@ export default function MicronutrientScreen({ onClose }: Props) {
 
           {/* Sections */}
           {SECTIONS.map((section) => (
-            <View key={section.title} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View key={section.title} style={[styles.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <Text style={[styles.sectionTitle, { color: colors.textDim }]}>{section.title}</Text>
               {section.rows.map((row, i) => {
                 const value = data?.[row.key] ?? 0;

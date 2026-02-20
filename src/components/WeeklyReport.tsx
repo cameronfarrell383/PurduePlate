@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Circle as SvgCircle, Line, Polyline, Rect } from 'react-native-svg';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
 import { requireUserId } from '@/src/utils/auth';
 import {
@@ -245,7 +246,7 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
 
             {/* ── 2. Daily bar chart ── */}
             <Text style={[st.sectionLabel, { color: colors.textMuted }]}>DAILY CALORIES</Text>
-            <View style={[st.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.chartCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <Svg width={chartWidth} height={chartHeight + 24}>
                 {/* Goal line (dashed) */}
                 <Line
@@ -331,7 +332,7 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
 
             {/* ── 3. Macro breakdown ── */}
             <Text style={[st.sectionLabel, { color: colors.textMuted }]}>MACRO BREAKDOWN</Text>
-            <View style={[st.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.chartCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <Text style={[st.macroBarLabel, { color: colors.text, fontFamily: 'DMSans_500Medium' }]}>
                 Actual
               </Text>
@@ -372,7 +373,7 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
 
             {/* ── 4. Hydration ── */}
             <Text style={[st.sectionLabel, { color: colors.textMuted }]}>HYDRATION</Text>
-            <View style={[st.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[st.chartCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
               <View style={st.hydroRow}>
                 <View>
                   <Text style={[st.hydroValue, { color: colors.blue, fontFamily: 'Outfit_700Bold' }]}>
@@ -416,8 +417,8 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
             {/* ── 5. Streaks ── */}
             <Text style={[st.sectionLabel, { color: colors.textMuted }]}>STREAKS & CONSISTENCY</Text>
             <View style={st.streakRow}>
-              <View style={[st.streakCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={{ fontSize: 24 }}>🔥</Text>
+              <View style={[st.streakCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+                <Feather name="zap" size={24} color={colors.orange} />
                 <Text style={[st.streakValue, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
                   {data.streak}
                 </Text>
@@ -425,8 +426,8 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
                   day streak
                 </Text>
               </View>
-              <View style={[st.streakCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={{ fontSize: 24 }}>📅</Text>
+              <View style={[st.streakCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+                <Feather name="calendar" size={24} color={colors.blue} />
                 <Text style={[st.streakValue, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
                   {data.daysLogged}/7
                 </Text>
@@ -434,8 +435,8 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
                   days logged
                 </Text>
               </View>
-              <View style={[st.streakCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <Text style={{ fontSize: 24 }}>⭐</Text>
+              <View style={[st.streakCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
+                <Feather name="star" size={24} color={colors.yellow} />
                 <Text style={[st.streakValue, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
                   {data.mostConsistentMeal}
                 </Text>
@@ -475,7 +476,7 @@ export default function WeeklyReport({ visible, onClose, initialEndDate }: Weekl
               return (
                 <>
                   <Text style={[st.sectionLabel, { color: colors.textMuted }]}>WEIGHT TREND</Text>
-                  <View style={[st.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[st.chartCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
                     <View style={st.weightHeader}>
                       <View>
                         <Text style={[st.weightValue, { color: colors.text, fontFamily: 'Outfit_700Bold' }]}>
@@ -558,7 +559,7 @@ function SummaryCard({
   colors: any;
 }) {
   return (
-    <View style={[st.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[st.summaryCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
       <Text style={[st.summaryValue, { color, fontFamily: 'Outfit_700Bold' }]}>
         {value}
         {unit ? <Text style={st.summaryUnit}> {unit}</Text> : null}

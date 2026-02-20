@@ -269,7 +269,7 @@ export default function ProgressScreen() {
 
           {/* Empty state — no meal logs at all */}
           {(progressData?.totalMealsLogged ?? 0) === 0 && (
-            <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 16, alignItems: 'center', paddingVertical: 32 }]}>
+            <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginBottom: 16, alignItems: 'center', paddingVertical: 32 }]}>
               <Text style={{ fontSize: 36 }}>📊</Text>
               <Text style={[{ fontSize: 16, color: colors.text, fontFamily: 'DMSans_600SemiBold', marginTop: 12, textAlign: 'center' }]}>
                 Start logging meals to see your progress here!
@@ -293,7 +293,7 @@ export default function ProgressScreen() {
           )}
 
           {/* SECTION 2 — Streak */}
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}>
             <StreakDisplay
               currentStreak={streakData?.currentStreak ?? 0}
               longestStreak={streakData?.longestStreak ?? 0}
@@ -308,7 +308,7 @@ export default function ProgressScreen() {
                       { backgroundColor: d.logged ? colors.green : colors.textDim },
                     ]}
                   >
-                    {d.logged && <Text style={{ fontSize: 12, color: '#fff' }}>✓</Text>}
+                    {d.logged && <Feather name="check" size={12} color="#fff" />}
                   </View>
                   <Text style={[st.dotLabel, { color: colors.textMuted }]}>{d.label}</Text>
                 </View>
@@ -317,7 +317,7 @@ export default function ProgressScreen() {
           </View>
 
           {/* SECTION 3 — Calorie Trend */}
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
             <Text style={[st.cardTitle, { color: colors.text }]}>Calorie Trend</Text>
             <CalorieChart
               data={progressData?.days ?? []}
@@ -327,7 +327,7 @@ export default function ProgressScreen() {
           </View>
 
           {/* SECTION 4 — Weight Trend */}
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
             <Text style={[st.cardTitle, { color: colors.text }]}>Weight Trend</Text>
             {weightEntries.length >= 2 && weightTrend ? (
               <WeightChart entries={weightEntries} trend={weightTrend} />
@@ -343,7 +343,7 @@ export default function ProgressScreen() {
           </View>
 
           {/* SECTION 5 — Macro Breakdown */}
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
             <Text style={[st.cardTitle, { color: colors.text }]}>Macro Split (7-day avg)</Text>
             <MacroBreakdown
               actual={{
@@ -380,7 +380,7 @@ export default function ProgressScreen() {
 
           {/* SECTION 7 — Micronutrient Link */}
           <TouchableOpacity
-            style={[st.linkCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[st.linkCard, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder }]}
             activeOpacity={0.7}
             onPress={() => setShowMicros(true)}
           >
@@ -390,7 +390,7 @@ export default function ProgressScreen() {
 
           {/* SECTION 8 — Weekly Report */}
           <TouchableOpacity
-            style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 12 }]}
+            style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 12 }]}
             onPress={() => setWeeklyReportVisible(true)}
             activeOpacity={0.7}
           >
@@ -404,7 +404,7 @@ export default function ProgressScreen() {
           </TouchableOpacity>
 
           {/* SECTION 9 — Weight Logging (always visible) */}
-          <View style={[st.card, { backgroundColor: colors.card, borderColor: colors.border, marginTop: 16 }]}>
+          <View style={[st.card, { backgroundColor: colors.cardGlass, borderColor: colors.cardGlassBorder, marginTop: 16 }]}>
             <Text style={[st.cardTitle, { color: colors.text }]}>Log Weight</Text>
             {lastWeight ? (
               <Text style={[st.lastWeightText, { color: colors.textMuted }]}>
@@ -509,7 +509,7 @@ export default function ProgressScreen() {
 const st = StyleSheet.create({
   safe: { flex: 1 },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { padding: 20, paddingBottom: 120 },
+  scrollContent: { padding: 20, paddingBottom: 100 },
   title: { fontSize: 26, marginBottom: 16 },
 
   // Range pills

@@ -39,7 +39,7 @@ export default function Skeleton({ width, height, borderRadius = 8, style }: Ske
           width: width as any,
           height,
           borderRadius,
-          backgroundColor: colors.card,
+          backgroundColor: colors.cardGlass,
           opacity: pulse,
         },
         style,

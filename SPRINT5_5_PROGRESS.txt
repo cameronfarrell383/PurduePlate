@@ -47,7 +47,7 @@ Task  Description                                                          Owner
 ----  -------------------------------------------------------------------  -----  ------  -----
 2.1   Above-the-fold hierarchy — only greeting + rings + legend visible    Cam    DONE    Reduced top padding to 12px, tightened greeting/rings margins to "s", 28px gap below MacroLegend for chapter break
       without scrolling
-2.2   Section spacing and dividers — 28-32px gaps + borderLight dividers   Cam    TODO    Creates visual "chapters"
+2.2   Section spacing and dividers — 28-32px gaps + borderLight dividers   Cam    DONE    28px below legend, 20px below stats, 32px+divider above For You, 20px between sub-sections, 32px+divider above Meals
       between major sections
 2.3   Smarter For You — only show sections with items, max 2 visible,     Cam    TODO    Wider cards (160px+)
       wider food cards with no name truncation

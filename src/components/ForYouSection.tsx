@@ -64,8 +64,8 @@ export default function ForYouSection({
         For You
       </Text>
 
-      {visibleSections.map((section) => (
-        <Box key={section.title} marginBottom="m">
+      {visibleSections.map((section, idx) => (
+        <Box key={section.title} style={{ marginBottom: idx < visibleSections.length - 1 ? 20 : 0 }}>
           {/* Sub-section header */}
           <Box
             flexDirection="row"

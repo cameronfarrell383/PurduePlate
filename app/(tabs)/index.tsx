@@ -526,8 +526,8 @@ export default function HomeScreen() {
             />
           </Box>
 
-          {/* 4. DashboardStatsRow */}
-          <Box marginBottom="m">
+          {/* 4. DashboardStatsRow — 20px gap below */}
+          <Box style={{ marginBottom: 20 }}>
             <DashboardStatsRow
               streak={streakData?.currentStreak ?? 0}
               score={dailyScore.score}
@@ -535,8 +535,8 @@ export default function HomeScreen() {
             />
           </Box>
 
-          {/* 5. WaterTracker */}
-          <Box marginBottom="m">
+          {/* 5. WaterTracker — 32px gap + divider below before For You */}
+          <Box style={{ marginBottom: 32 }}>
             <WaterTracker
               waterOz={waterOz}
               waterGoal={waterGoal}
@@ -544,8 +544,11 @@ export default function HomeScreen() {
             />
           </Box>
 
-          {/* 6. ForYouSection */}
-          <Box marginBottom="m">
+          {/* Divider between WaterTracker and For You */}
+          <Box style={{ height: 1, backgroundColor: '#E5E5E5', marginHorizontal: -4, marginBottom: 32 }} />
+
+          {/* 6. ForYouSection — 32px gap + divider below before Today's Meals */}
+          <Box style={{ marginBottom: 32 }}>
             {forYouLoading ? (
               <Box>
                 <Text variant="cardTitle" marginBottom="m">For You</Text>
@@ -581,6 +584,9 @@ export default function HomeScreen() {
               />
             )}
           </Box>
+
+          {/* Divider between For You and Today's Meals */}
+          <Box style={{ height: 1, backgroundColor: '#E5E5E5', marginHorizontal: -4, marginBottom: 32 }} />
 
           {/* 7. MealLogSection */}
           <Box marginBottom="xxl">

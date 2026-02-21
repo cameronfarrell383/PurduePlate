@@ -28,24 +28,35 @@ const C = {
   error: '#C0392B',
 };
 
+export interface ScoreDetailData {
+  calories: { actual: number; goal: number };
+  protein: { actual: number; goal: number };
+  carbs: { actual: number; goal: number };
+  fat: { actual: number; goal: number };
+  mealsLogged: number;
+  water: { actual: number; goal: number };
+}
+
 interface Props {
   score: number;
   grade: string;
   gradeColor: string;
   breakdown: ScoreBreakdown;
   compact?: boolean;
+  detailData?: ScoreDetailData;
 }
 
 const CATEGORIES: {
   key: keyof ScoreBreakdown;
   label: string;
+  unit: string;
 }[] = [
-  { key: 'calories', label: 'Calories' },
-  { key: 'protein',  label: 'Protein' },
-  { key: 'carbs',    label: 'Carbs' },
-  { key: 'fat',      label: 'Fat' },
-  { key: 'meals',    label: 'Meals' },
-  { key: 'water',    label: 'Water' },
+  { key: 'calories', label: 'Calories', unit: 'cal' },
+  { key: 'protein',  label: 'Protein',  unit: 'g' },
+  { key: 'carbs',    label: 'Carbs',    unit: 'g' },
+  { key: 'fat',      label: 'Fat',      unit: 'g' },
+  { key: 'meals',    label: 'Meals',    unit: '' },
+  { key: 'water',    label: 'Water',    unit: 'oz' },
 ];
 
 const TIPS: Record<string, string> = {
@@ -59,23 +70,38 @@ const TIPS: Record<string, string> = {
 
 // Grade color mapping per PRD: A=gold gradient, B=success, C=warning, D=maroonLight, F=error
 function getGradeColor(grade: string): string {
-  if (grade === 'A+' || grade === 'A') return C.gold; // Flat fallback for non-gradient contexts
+  if (grade === 'A+' || grade === 'A') return C.gold;
   if (grade === 'B') return C.success;
   if (grade === 'C') return C.warning;
   if (grade === 'D') return C.maroonLight;
-  return C.error; // F
+  return C.error;
 }
 
 function isAGrade(grade: string): boolean {
   return grade === 'A+' || grade === 'A';
 }
 
-export default function DailyScoreCard({ score, grade, gradeColor, breakdown, compact = false }: Props) {
+function formatNum(n: number): string {
+  return n >= 1000 ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : String(Math.round(n));
+}
+
+function getDetailText(key: string, detail: ScoreDetailData | undefined, unit: string): string | null {
+  if (!detail) return null;
+  if (key === 'calories') return `${formatNum(detail.calories.actual)} of ${formatNum(detail.calories.goal)} ${unit}`;
+  if (key === 'protein') return `${formatNum(detail.protein.actual)} of ${formatNum(detail.protein.goal)}${unit}`;
+  if (key === 'carbs') return `${formatNum(detail.carbs.actual)} of ${formatNum(detail.carbs.goal)}${unit}`;
+  if (key === 'fat') return `${formatNum(detail.fat.actual)} of ${formatNum(detail.fat.goal)}${unit}`;
+  if (key === 'meals') return `${detail.mealsLogged} of 3 logged`;
+  if (key === 'water') return `${formatNum(detail.water.actual)} of ${formatNum(detail.water.goal)} ${unit}`;
+  return null;
+}
+
+export default function DailyScoreCard({ score, grade, gradeColor, breakdown, compact = false, detailData }: Props) {
   if (compact) {
     return <CompactView score={score} grade={grade} />;
   }
 
-  // Find lowest scoring category for tip
+  // Find lowest scoring category for tip + gold highlight
   let lowestKey = 'calories';
   let lowestPct = 1;
   for (const cat of CATEGORIES) {
@@ -145,21 +171,52 @@ export default function DailyScoreCard({ score, grade, gradeColor, breakdown, co
         />
       </Box>
 
-      {/* Breakdown bars: silverLight track, maroon fill */}
-      <Box style={{ gap: 10 }}>
+      {/* Breakdown bars with real numbers */}
+      <Box style={{ gap: 12 }}>
         {CATEGORIES.map((cat) => {
           const entry = breakdown[cat.key];
           const fillPct = Math.min((entry.points / entry.max) * 100, 100);
+          const isLowest = cat.key === lowestKey;
+          const barColor = isLowest ? C.gold : C.maroon;
+          const detail = getDetailText(cat.key, detailData, cat.unit);
+
           return (
-            <Box key={cat.key} flexDirection="row" alignItems="center" style={{ gap: 8 }}>
-              <Text
-                variant="muted"
-                style={{ width: 60 }}
-              >
-                {cat.label}
-              </Text>
+            <Box key={cat.key}>
+              {/* Label row: "Calories · 1/40 · 3,061 of 3,387 cal" */}
+              <Box flexDirection="row" alignItems="center" style={{ marginBottom: 4, gap: 6 }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: isLowest ? 'DMSans_700Bold' : 'DMSans_500Medium',
+                    color: isLowest ? C.gold : C.textMuted,
+                  }}
+                >
+                  {cat.label}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontFamily: 'DMSans_500Medium',
+                    color: C.textDim,
+                  }}
+                >
+                  {entry.points}/{entry.max}
+                </Text>
+                {detail && (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontFamily: 'DMSans_400Regular',
+                      color: C.textDim,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {detail}
+                  </Text>
+                )}
+              </Box>
+              {/* Bar */}
               <Box
-                flex={1}
                 style={{
                   height: 6,
                   borderRadius: 3,
@@ -172,21 +229,10 @@ export default function DailyScoreCard({ score, grade, gradeColor, breakdown, co
                     height: 6,
                     borderRadius: 3,
                     width: `${fillPct}%` as any,
-                    backgroundColor: C.maroon,
+                    backgroundColor: barColor,
                   }}
                 />
               </Box>
-              <Text
-                variant="muted"
-                style={{
-                  width: 40,
-                  textAlign: 'right',
-                  fontFamily: 'DMSans_500Medium',
-                  color: C.text,
-                }}
-              >
-                {entry.points}/{entry.max}
-              </Text>
             </Box>
           );
         })}

@@ -27,7 +27,7 @@ import { getTodayWater, getWaterGoal } from '@/src/utils/water';
 import { calculateDailyScore, DailyScore } from '@/src/utils/dailyScore';
 import { getProgressData, ProgressData } from '@/src/utils/progressData';
 import { getStreakData, getBadges, getWaterStreak, getTotalMealsLogged, StreakData, Badge } from '@/src/utils/streaks';
-import DailyScoreCard from '@/src/components/DailyScoreCard';
+import DailyScoreCard, { ScoreDetailData } from '@/src/components/DailyScoreCard';
 import StreakDisplay from '@/src/components/StreakDisplay';
 import CalorieChart from '@/src/components/CalorieChart';
 import MacroBreakdown from '@/src/components/MacroBreakdown';
@@ -119,6 +119,7 @@ export default function ProgressScreen() {
 
   // Data states
   const [dailyScore, setDailyScore] = useState<DailyScore | null>(null);
+  const [scoreDetail, setScoreDetail] = useState<ScoreDetailData | undefined>(undefined);
   const [streakData, setStreakData] = useState<StreakData | null>(null);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -218,6 +219,14 @@ export default function ProgressScreen() {
           waterGoalOz,
         );
         setDailyScore(score);
+        setScoreDetail({
+          calories: { actual: todayLog?.calories ?? 0, goal: p.goal_calories || 2000 },
+          protein: { actual: todayLog?.protein ?? 0, goal: p.goal_protein_g || 150 },
+          carbs: { actual: todayLog?.carbs ?? 0, goal: p.goal_carbs_g || 200 },
+          fat: { actual: todayLog?.fat ?? 0, goal: p.goal_fat_g || 65 },
+          mealsLogged: todayLog?.mealsLogged ?? 0,
+          water: { actual: waterCount, goal: waterGoalOz },
+        });
       }
     } catch (e) {
       console.error('Progress load error:', e);
@@ -412,6 +421,7 @@ export default function ProgressScreen() {
                 grade={dailyScore.grade}
                 gradeColor={dailyScore.gradeColor}
                 breakdown={dailyScore.breakdown}
+                detailData={scoreDetail}
               />
             </Box>
           )}

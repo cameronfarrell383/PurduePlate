@@ -71,7 +71,7 @@ Task  Description                                                          Owner
 ----  -------------------------------------------------------------------  -----  ------  -----
 3.1   Restructure into 3 sections — "This Week" / "Body & Nutrition" /    Cam    DONE    3 sections with silver uppercase headers + dividers. Log Weight moved to modal via Weight Trend card tap. Reduced 10 cards to structured chapters.
       "Achievements" with section headers and dividers
-3.2   Daily Score card — show real numbers behind each bar, highlight      Cam    TODO
+3.2   Daily Score card — show real numbers behind each bar, highlight      Cam    DONE    Each bar shows "Calories · 1/40 · 3,061 of 3,387 cal". Lowest-scoring bar highlighted in gold. Detail data passed from progress screen.
       most improvable category in gold
 3.3   Streak visualization — 1W dots (keep), 1M mini calendar grid,       Cam    TODO    GitHub contribution graph style
       3M/All condensed view
@@ -79,7 +79,7 @@ Task  Description                                                          Owner
       "See All", motivating card when 0 unlocked
 3.5   CHECKPOINT: Progress test — three questions answered quickly         Cam    TODO    MUST PASS before Phase 4
 
-Phase 3 Status: IN PROGRESS — 3.1 DONE
+Phase 3 Status: IN PROGRESS — 3.1-3.2 DONE
 
 
 ================================================================================
@@ -148,11 +148,11 @@ Phase                           Tasks   Done   Blocked
 ------------------------------  -----   ----   -------
 1 — Browse Flow                   8       8       0
 2 — Dashboard                     7       7       0
-3 — Progress                      5       1       0
+3 — Progress                      5       2       0
 4 — AI Chat                       4       0       0
 5 — Global UX Polish              9       0       0
 6 — Final Details                 4       0       0
-TOTAL                            37      16       0
+TOTAL                            37      17       0
 
 
 ================================================================================

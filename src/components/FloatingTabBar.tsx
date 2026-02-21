@@ -110,7 +110,7 @@ function TabItem({
         {!isAI && (
           <Text
             style={{
-              fontSize: 10,
+              fontSize: 11,
               fontFamily: 'DMSans_500Medium',
               marginTop: 2,
               color: labelColor,

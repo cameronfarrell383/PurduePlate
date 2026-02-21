@@ -745,7 +745,7 @@ export default function BrowseScreen() {
   const renderHeader = () => (
     <Box flexDirection="row" alignItems="center" marginBottom="m">
       {view !== 'halls' && (
-        <TouchableOpacity onPress={goBack} style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center', marginRight: 8 }}>
+        <TouchableOpacity onPress={goBack} accessibilityLabel="Go back" accessibilityRole="button" style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
           <Feather name="arrow-left" size={20} color={C.text} />
         </TouchableOpacity>
       )}
@@ -847,7 +847,7 @@ export default function BrowseScreen() {
                     borderRadius: 4, backgroundColor: badge.bg,
                   }}
                 >
-                  <Text style={{ fontSize: 10, color: badge.color, fontFamily: 'DMSans_700Bold' }}>{badge.text}</Text>
+                  <Text style={{ fontSize: 11, color: badge.color, fontFamily: 'DMSans_700Bold' }}>{badge.text}</Text>
                 </Box>
               )}
             </Box>
@@ -858,6 +858,8 @@ export default function BrowseScreen() {
           {/* Heart: 44x44 minimum tap target */}
           <TouchableOpacity
             onPress={() => handleToggleFavorite(item)}
+            accessibilityLabel={isFav ? 'Remove from favorites' : 'Add to favorites'}
+            accessibilityRole="button"
             style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
           >
             <Feather name="heart" size={22} color={isFav ? C.maroon : C.silver} />
@@ -893,7 +895,9 @@ export default function BrowseScreen() {
           <Box flexDirection="row" justifyContent="flex-end" style={{ marginBottom: 8 }}>
             <TouchableOpacity
               onPress={() => setRatingModalVisible(false)}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Close rating"
+              accessibilityRole="button"
+              style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
             >
               <Feather name="x" size={22} color={C.textMuted} />
             </TouchableOpacity>
@@ -910,7 +914,14 @@ export default function BrowseScreen() {
             <>
               <Box flexDirection="row" justifyContent="center" style={{ gap: 12, marginBottom: 20 }}>
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity key={star} onPress={() => { setRatingStars(star); triggerHaptic('light'); }}>
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => { setRatingStars(star); triggerHaptic('light'); }}
+                    accessibilityLabel={`${star} star${star > 1 ? 's' : ''}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: star <= ratingStars }}
+                    style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
+                  >
                     <Feather name="star" size={36} color={star <= ratingStars ? C.gold : C.textDim} />
                   </TouchableOpacity>
                 ))}
@@ -968,7 +979,7 @@ export default function BrowseScreen() {
           {renderToast()}
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
             <Box flexDirection="row" alignItems="center" marginBottom="m">
-              <TouchableOpacity onPress={clearFilter} style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center', marginRight: 8 }}>
+              <TouchableOpacity onPress={clearFilter} accessibilityLabel="Go back" accessibilityRole="button" style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
                 <Feather name="arrow-left" size={20} color={C.text} />
               </TouchableOpacity>
               <Box flex={1}>

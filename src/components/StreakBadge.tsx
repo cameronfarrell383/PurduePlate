@@ -44,7 +44,7 @@ export default function StreakBadge({ badge, size = 'small' }: Props) {
   }, [badge.earned, shimmerPlayed]);
 
   return (
-    <Box alignItems="center">
+    <Box alignItems="center" accessibilityLabel={`${badge.name}${badge.earned ? ', earned' : ', locked'}`}>
       <View
         style={{
           width: circleSize,

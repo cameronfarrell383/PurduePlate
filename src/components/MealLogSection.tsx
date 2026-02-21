@@ -158,7 +158,9 @@ export default function MealLogSection({
                       {/* Delete */}
                       <TouchableOpacity
                         onPress={() => onDeleteLog(log.id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel="Delete meal"
+                        accessibilityRole="button"
+                        style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
                       >
                         <Feather name="x" size={16} color="#9A9A9E" />
                       </TouchableOpacity>

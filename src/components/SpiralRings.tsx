@@ -201,7 +201,11 @@ export default function SpiralRings({
   );
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View
+      style={[styles.container, { width: size, height: size }]}
+      accessibilityLabel={`Calories ${calories.current} of ${calories.goal}, Protein ${protein.current}g of ${protein.goal}g, Carbs ${carbs.current}g of ${carbs.goal}g, Fat ${fat.current}g of ${fat.goal}g`}
+      accessibilityRole="image"
+    >
       <Svg width={size} height={size}>
         <Defs>
           <SvgLinearGradient id="goldMetallic" x1="0%" y1="0%" x2="100%" y2="100%">

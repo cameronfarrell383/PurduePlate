@@ -14,7 +14,7 @@ export default function ErrorState({
 }: ErrorStateProps) {
   return (
     <Box alignItems="center" paddingVertical="xl" paddingHorizontal="l" style={{ gap: 12 }}>
-      <Feather name="alert-circle" size={36} color="#A8A9AD" />
+      <Feather name="alert-circle" size={36} color="#A8A9AD" accessibilityElementsHidden />
       <Text
         variant="muted"
         style={{ textAlign: 'center', fontSize: 14, lineHeight: 20 }}
@@ -24,10 +24,14 @@ export default function ErrorState({
       {onRetry && (
         <TouchableOpacity
           onPress={onRetry}
+          accessibilityLabel="Try again"
+          accessibilityRole="button"
           activeOpacity={0.7}
           style={{
             paddingHorizontal: 24,
             paddingVertical: 10,
+            minHeight: 44,
+            justifyContent: 'center',
             borderRadius: 8,
             borderWidth: 1,
             borderColor: '#E8E8EA',

@@ -871,7 +871,9 @@ export default function ProgressScreen() {
               <Text variant="pageTitle">Log Weight</Text>
               <TouchableOpacity
                 onPress={() => setShowWeightModal(false)}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityLabel="Close weight log"
+                accessibilityRole="button"
+                style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
               >
                 <Feather name="x" size={24} color={C.text} />
               </TouchableOpacity>

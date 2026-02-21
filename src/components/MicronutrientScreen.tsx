@@ -147,7 +147,7 @@ export default function MicronutrientScreen({ onClose }: Props) {
       {/* Header */}
       <Box flexDirection="row" alignItems="center" paddingHorizontal="l" style={{ paddingVertical: 12 }}>
         {onClose && (
-          <TouchableOpacity onPress={onClose} style={{ marginRight: 12, width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity onPress={onClose} accessibilityLabel="Go back" accessibilityRole="button" style={{ marginRight: 12, width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}>
             <Feather name="arrow-left" size={20} color={C.text} />
           </TouchableOpacity>
         )}

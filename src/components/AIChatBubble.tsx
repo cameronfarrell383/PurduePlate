@@ -210,7 +210,7 @@ export default function AIChatBubble({ role, content, mealItems, onLogItem }: AI
               <View style={{ flex: 1, height: 1, backgroundColor: C.borderLight }} />
               <Text
                 style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontFamily: 'DMSans_600SemiBold',
                   color: C.textDim,
                   letterSpacing: 0.8,

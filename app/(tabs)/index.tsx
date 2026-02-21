@@ -684,7 +684,9 @@ export default function HomeScreen() {
             <Text variant="pageTitle">History</Text>
             <TouchableOpacity
               onPress={() => setShowHistory(false)}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityLabel="Close history"
+              accessibilityRole="button"
+              style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
             >
               <Feather name="x" size={24} color="#1A1A1A" />
             </TouchableOpacity>

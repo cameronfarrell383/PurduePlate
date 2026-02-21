@@ -49,7 +49,7 @@ Task  Description                                                          Owner
       without scrolling
 2.2   Section spacing and dividers — 28-32px gaps + borderLight dividers   Cam    DONE    28px below legend, 20px below stats, 32px+divider above For You, 20px between sub-sections, 32px+divider above Meals
       between major sections
-2.3   Smarter For You — only show sections with items, max 2 visible,     Cam    TODO    Wider cards (160px+)
+2.3   Smarter For You — only show sections with items, max 2 visible,     Cam    DONE    Max 2 sections, priority: Macros>Favs>New. Cards 164px wide, 2-line name, bold maroon cal, dim hall. Removed icon top-right.
       wider food cards with no name truncation
 2.4   Compact empty states — single line "No lunch · Browse →" with       Cam    TODO    Cuts height from ~80px to ~40px
       tappable link, remove decorative icons

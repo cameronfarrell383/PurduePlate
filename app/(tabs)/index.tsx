@@ -385,18 +385,8 @@ export default function HomeScreen() {
 
   // ─── Build ForYou sections ───
 
+  // Priority order: Fits Your Macros > Your Favorites > Try Something New > Quick & Light
   const forYouSections: ForYouSubSection[] = [
-    {
-      title: 'Your Favorites Today',
-      iconName: 'heart',
-      items: forYouFavs.map((f) => ({
-        id: f.id,
-        name: f.name,
-        calories: f.nutrition?.calories ?? 0,
-        hallName: hallNames[f.dining_hall_id] ?? '',
-      })),
-      filter: 'favorites',
-    },
     {
       title: 'Fits Your Macros',
       iconName: 'target',
@@ -407,6 +397,17 @@ export default function HomeScreen() {
         hallName: i.hall_name,
       })),
       filter: 'macros',
+    },
+    {
+      title: 'Your Favorites Today',
+      iconName: 'heart',
+      items: forYouFavs.map((f) => ({
+        id: f.id,
+        name: f.name,
+        calories: f.nutrition?.calories ?? 0,
+        hallName: hallNames[f.dining_hall_id] ?? '',
+      })),
+      filter: 'favorites',
     },
     {
       title: 'Try Something New',

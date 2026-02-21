@@ -26,6 +26,9 @@ interface ForYouSectionProps {
   onItemPress?: (item: ForYouItem) => void;
 }
 
+// Max number of sub-sections visible at once
+const MAX_VISIBLE_SECTIONS = 2;
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function ForYouSection({
@@ -33,7 +36,10 @@ export default function ForYouSection({
   onSeeAll,
   onItemPress,
 }: ForYouSectionProps) {
-  const visibleSections = sections.filter((s) => s.items.length > 0);
+  // Only show sections with items, capped at MAX_VISIBLE_SECTIONS
+  const visibleSections = sections
+    .filter((s) => s.items.length > 0)
+    .slice(0, MAX_VISIBLE_SECTIONS);
 
   if (visibleSections.length === 0) {
     return (
@@ -109,25 +115,24 @@ export default function ForYouSection({
                 {/* Maroon left-border accent */}
                 <Box style={styles.leftAccent} />
 
-                {/* Icon top-right */}
-                <Box style={styles.iconWrap}>
-                  <Feather
-                    name={section.iconName as any}
-                    size={14}
-                    color="#9A9A9E"
-                  />
-                </Box>
-
+                {/* Food name — 2 lines max */}
                 <Text
                   variant="body"
-                  style={{ fontFamily: 'DMSans_600SemiBold' }}
-                  numberOfLines={1}
+                  style={{ fontFamily: 'DMSans_600SemiBold', lineHeight: 18 }}
+                  numberOfLines={2}
                 >
                   {item.name}
                 </Text>
-                <Text variant="muted" style={{ marginTop: 2 }}>
+
+                {/* Calorie count — bold and prominent */}
+                <Text
+                  variant="body"
+                  style={{ fontFamily: 'DMSans_700Bold', marginTop: 4, color: '#861F41' }}
+                >
                   {item.calories} cal
                 </Text>
+
+                {/* Dining hall — dim, 1 line */}
                 {item.hallName ? (
                   <Text variant="dim" style={{ marginTop: 2 }} numberOfLines={1}>
                     {item.hallName}
@@ -147,7 +152,7 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   foodCard: {
-    width: 140,
+    width: 164,
     marginRight: 10,
     overflow: 'hidden',
   },
@@ -157,13 +162,8 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: '#861F41', // maroon
+    backgroundColor: '#861F41',
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
-  },
-  iconWrap: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
   },
 });

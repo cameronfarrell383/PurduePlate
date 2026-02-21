@@ -1157,7 +1157,6 @@ export default function BrowseScreen() {
                           <AnimatedCard
                             key={hall.id}
                             onPress={() => openHall(hall)}
-                            haptic
                             padding="m"
                             marginBottom="s"
                             style={{ opacity: isClosed ? 0.5 : 1 }}
@@ -1202,7 +1201,6 @@ export default function BrowseScreen() {
                     <AnimatedCard
                       key={hall.id}
                       onPress={() => openHall(hall)}
-                      haptic
                       padding="m"
                       marginBottom="s"
                       style={{ opacity: isClosed ? 0.5 : 1 }}

@@ -110,7 +110,6 @@ export default function ForYouSection({
                 borderWidth={1}
                 style={styles.foodCard}
                 onPress={() => onItemPress?.(item)}
-                haptic
               >
                 {/* Maroon left-border accent */}
                 <Box style={styles.leftAccent} />

@@ -8,20 +8,16 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Card } from '../theme/restyleTheme';
-import { triggerHaptic } from '../utils/haptics';
-
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type CardProps = React.ComponentProps<typeof Card>;
 
 interface AnimatedCardProps extends CardProps {
   onPress?: () => void;
-  haptic?: boolean;
 }
 
 export default function AnimatedCard({
   onPress,
-  haptic = false,
   children,
   ...cardProps
 }: AnimatedCardProps) {
@@ -36,10 +32,7 @@ export default function AnimatedCard({
       duration: 100,
       easing: Easing.out(Easing.quad),
     });
-    if (haptic) {
-      triggerHaptic('light');
-    }
-  }, [haptic, scale]);
+  }, [scale]);
 
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, {

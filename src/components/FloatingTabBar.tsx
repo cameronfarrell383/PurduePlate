@@ -175,7 +175,7 @@ export default function FloatingTabBar({
           });
 
           if (!isFocused && !event.defaultPrevented) {
-            triggerHaptic('light');
+            triggerHaptic('medium');
             navigation.navigate(route.name);
           }
         };

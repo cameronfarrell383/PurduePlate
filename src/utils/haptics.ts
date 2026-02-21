@@ -24,7 +24,7 @@ export function triggerHaptic(style: HapticStyle): void {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         break;
     }
-  } catch {
-    // Silent fail — haptics unavailable (e.g. Expo Go on some devices)
+  } catch (e) {
+    console.log('[Haptics] Error:', e);
   }
 }

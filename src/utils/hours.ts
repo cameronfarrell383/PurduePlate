@@ -168,6 +168,22 @@ export async function getAllHallStatuses(now: Date): Promise<Record<number, Hall
       }
     }
 
+    // Fill in default hours for any halls that have no hours data
+    // (e.g. dining_hall_hours has data for IDs 8-13 but dining_halls has IDs 1-6)
+    try {
+      const { data: allHalls } = await supabase
+        .from('dining_halls')
+        .select('id');
+      for (const h of allHalls ?? []) {
+        if (!result[h.id]) {
+          console.log(`[hours] Hall ${h.id} missing from hours data — applying default hours`);
+          result[h.id] = computeStatus(nowMinutes, DEFAULT_MEAL_HOURS, DEFAULT_MEAL_HOURS);
+        }
+      }
+    } catch {
+      // Non-critical — halls without hours just won't get a badge
+    }
+
     return result;
   } catch (err) {
     throw err instanceof Error ? err : new Error('Failed to fetch hall statuses');

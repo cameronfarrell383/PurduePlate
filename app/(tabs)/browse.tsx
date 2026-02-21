@@ -301,8 +301,11 @@ export default function BrowseScreen() {
   const loadHallStatuses = useCallback(async () => {
     try {
       const statuses = await getAllHallStatuses(new Date());
+      console.log('[browse] Hall statuses loaded:', JSON.stringify(statuses, null, 2));
       setHallStatuses(statuses);
-    } catch {}
+    } catch (err) {
+      console.error('[browse] loadHallStatuses error:', err);
+    }
   }, []);
 
   const RECENT_SEARCHES_KEY = 'campusplate_recent_searches';
@@ -654,6 +657,7 @@ export default function BrowseScreen() {
     const list = hallSearch
       ? halls.filter((h) => h.name.toLowerCase().includes(hallSearch.toLowerCase()))
       : halls;
+    console.log('[browse] Hall IDs:', list.map(h => h.id), 'Status keys:', Object.keys(hallStatuses));
     return [...list].sort((a, b) => {
       const aOpen = hallStatuses[a.id]?.isOpen ? 1 : 0;
       const bOpen = hallStatuses[b.id]?.isOpen ? 1 : 0;

@@ -24,6 +24,7 @@ import StaggeredList from '@/src/components/StaggeredList';
 import Confetti from '@/src/components/Confetti';
 import GoalHitBanner from '@/src/components/GoalHitBanner';
 import Skeleton from '@/src/components/Skeleton';
+import ErrorState from '@/src/components/ErrorState';
 
 // Data utilities
 import { requireUserId } from '@/src/utils/auth';
@@ -110,6 +111,7 @@ export default function HomeScreen() {
   const [hallNames, setHallNames] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [showSkeleton, setShowSkeleton] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [waterOz, setWaterOz] = useState<number>(0);
   const [waterGoal, setWaterGoal] = useState<number>(64);
@@ -242,6 +244,7 @@ export default function HomeScreen() {
   };
 
   const loadData = useCallback(async () => {
+    setLoadError(false);
     try {
       const userId = await requireUserId();
       const today = getLocalDate();
@@ -303,6 +306,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.error('Dashboard load error:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -504,6 +508,20 @@ export default function HomeScreen() {
   // Still loading but within 300ms window — show nothing (prevents skeleton flash)
   if (loading) {
     return <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }} />;
+  }
+
+  // Error state — show retry card
+  if (loadError && !profile) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+        <Box flex={1} justifyContent="center">
+          <ErrorState
+            message="Couldn't load your dashboard. Check your connection and try again."
+            onRetry={loadData}
+          />
+        </Box>
+      </SafeAreaView>
+    );
   }
 
   // ─── Main render ───

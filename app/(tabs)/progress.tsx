@@ -21,6 +21,7 @@ import { Box, Text } from '@/src/theme/restyleTheme';
 import StaggeredList from '@/src/components/StaggeredList';
 
 import Skeleton from '@/src/components/Skeleton';
+import ErrorState from '@/src/components/ErrorState';
 import { requireUserId } from '@/src/utils/auth';
 import { supabase } from '@/src/utils/supabase';
 import { getTodayWater, getWaterGoal } from '@/src/utils/water';
@@ -114,6 +115,7 @@ function SectionHeader({ title, isFirst = false }: { title: string; isFirst?: bo
 
 export default function ProgressScreen() {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<RangeType>('1M');
 
@@ -244,6 +246,7 @@ export default function ProgressScreen() {
       }
     } catch (e) {
       console.error('Progress load error:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -333,6 +336,19 @@ export default function ProgressScreen() {
             <Skeleton width={120} height={12} borderRadius={6} style={{ marginBottom: 16 }} />
             <Skeleton width={'100%' as any} height={140} borderRadius={8} />
           </Box>
+        </Box>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError && !dailyScore) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: C.offWhite }}>
+        <Box flex={1} justifyContent="center">
+          <ErrorState
+            message="Couldn't load your progress. Check your connection and try again."
+            onRetry={() => { setLoadError(false); setLoading(true); loadData(); }}
+          />
         </Box>
       </SafeAreaView>
     );

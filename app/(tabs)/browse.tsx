@@ -28,6 +28,7 @@ import ReanimatedAnimated, {
 import { Box, Text } from '@/src/theme/restyleTheme';
 import AnimatedCard from '@/src/components/AnimatedCard';
 import Skeleton from '@/src/components/Skeleton';
+import ErrorState from '@/src/components/ErrorState';
 import MicronutrientScreen from '@/src/components/MicronutrientScreen';
 
 // Data utilities
@@ -148,6 +149,7 @@ export default function BrowseScreen() {
   const [servings, setServings] = useState(1);
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [logging, setLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
@@ -239,6 +241,7 @@ export default function BrowseScreen() {
       setEffectiveDate(menuDate);
     } catch (e) {
       console.error('Load halls error:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -1188,6 +1191,11 @@ export default function BrowseScreen() {
                   <Skeleton width={'100%'} height={80} borderRadius={8} />
                   <Skeleton width={'100%'} height={80} borderRadius={8} />
                 </Box>
+              ) : loadError ? (
+                <ErrorState
+                  message="Couldn't load dining halls. Check your connection and try again."
+                  onRetry={() => { setLoadError(false); setLoading(true); loadHalls(); }}
+                />
               ) : filteredHalls.length === 0 ? (
                 <Box alignItems="center" style={{ paddingTop: 40 }}>
                   <Feather name="home" size={32} color={C.silver} />

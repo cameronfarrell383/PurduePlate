@@ -115,10 +115,10 @@ Task  Description                                                          Owner
       network error messaging
 5.5   Micro-copy pass — conversational tone, time-aware placeholders,     Cam    DONE    "Calorie goal crushed!", "Nutrition breakdown →", "Tell a friend", "Add your weight to start tracking". Week-in-review/Enter weight already done.
       encouraging empty states, fun celebrations
-5.6   Navigation audit — back buttons on all non-tab screens,             Cam    TODO
+5.6   Navigation audit — back buttons on all non-tab screens,             Cam    DONE    All drill-down views have arrow-left back (20px). Modals use X top-right (History, Weight, Rating). Micro icon 22→20. Nav stack preserved after log.
       consistent modal close position, nav stack integrity
-5.7   Pull-to-refresh everywhere — Browse, Progress, Settings             Cam    TODO    Maroon tint on all spinners
-5.8   Accessibility minimum — 44px tap targets, a11y labels,              Cam    TODO    Test Dynamic Type largest setting
+5.7   Pull-to-refresh everywhere — Browse, Progress, Settings             Cam    DONE    Added to Settings (Browse+Progress already had it). All 4 screens use tintColor="#861F41" maroon.
+5.8   Accessibility minimum — 44px tap targets, a11y labels,              Cam    DONE    44px tap targets on all icon buttons. accessibilityLabel on back/close/delete/heart/star/rings. Badge earned/locked a11y. Min 11px fonts. Color+text on hall status.
       color not sole indicator
 5.9   CHECKPOINT: First-time user test — have someone else try it         Cam    TODO    THE most important test
 
@@ -150,9 +150,9 @@ Phase                           Tasks   Done   Blocked
 2 — Dashboard                     7       7       0
 3 — Progress                      5       5       0
 4 — AI Chat                       4       4       0
-5 — Global UX Polish              9       5       0
+5 — Global UX Polish              9       8       0
 6 — Final Details                 4       0       0
-TOTAL                            37      29       0
+TOTAL                            37      32       0
 
 
 ================================================================================

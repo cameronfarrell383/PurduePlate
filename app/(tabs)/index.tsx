@@ -533,6 +533,7 @@ export default function HomeScreen() {
               streak={streakData?.currentStreak ?? 0}
               score={dailyScore.score}
               grade={dailyScore.grade}
+              breakdown={dailyScore.breakdown}
             />
           </Box>
 

@@ -55,12 +55,12 @@ Task  Description                                                          Owner
       tappable link, remove decorative icons
 2.5   Water tracker — "Almost there!" at 80%, goal hit feedback,          Cam    DONE    "Almost there!" gold at 80%, "Goal hit!" green at 100%. Bounce on +8/+16 buttons. Haptic success + 6-piece mini confetti at 100%.
       bounce animation on buttons
-2.6   Stats row — "Day 1" framing for new users, actionable tip below     Cam    TODO    "Log lunch for +10 pts"
+2.6   Stats row — "Day 1" framing for new users, actionable tip below     Cam    DONE    Streak 0-1 shows "Day 1" + "Log daily to build your streak". Score shows dynamic tip: picks biggest gap (meals>water>protein>cal).
       score instead of just numbers
 2.7   CHECKPOINT: Dashboard 3-second test — can you answer the three      Cam    TODO    MUST PASS before Phase 3
       key questions in <3 seconds each?
 
-Phase 2 Status: NOT STARTED
+Phase 2 Status: 2.1-2.6 DONE — awaiting 2.7 device checkpoint
 
 
 ================================================================================
@@ -147,12 +147,12 @@ SUMMARY TABLE
 Phase                           Tasks   Done   Blocked
 ------------------------------  -----   ----   -------
 1 — Browse Flow                   8       8       0
-2 — Dashboard                     7       0       0
+2 — Dashboard                     7       6       0
 3 — Progress                      5       0       0
 4 — AI Chat                       4       0       0
 5 — Global UX Polish              9       0       0
 6 — Final Details                 4       0       0
-TOTAL                            37       8       0
+TOTAL                            37      14       0
 
 
 ================================================================================

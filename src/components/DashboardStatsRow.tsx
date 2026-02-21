@@ -4,6 +4,7 @@ import AnimatedCard from './AnimatedCard';
 import AnimatedNumber from './AnimatedNumber';
 import GradientText from './GradientText';
 import { Box, Text } from '../theme/restyleTheme';
+import { ScoreBreakdown } from '../utils/dailyScore';
 
 // Milestones that get gold gradient text
 const MILESTONES = [7, 14, 30, 60, 100];
@@ -20,16 +21,51 @@ interface DashboardStatsRowProps {
   streak: number;
   score: number;
   grade: string;
+  breakdown?: ScoreBreakdown;
 }
+
+// ── Compute the most impactful tip ──────────────────────────────────────
+
+function getScoreTip(breakdown?: ScoreBreakdown): string | null {
+  if (!breakdown) return null;
+
+  // Compute gap (max - points) for each category, sorted by largest gap
+  const gaps: { key: string; gap: number; label: string }[] = [
+    { key: 'meals', gap: breakdown.meals.max - breakdown.meals.points, label: getMealTip(breakdown.meals.count, breakdown.meals.max - breakdown.meals.points) },
+    { key: 'water', gap: breakdown.water.max - breakdown.water.points, label: `Drink water for +${breakdown.water.max - breakdown.water.points} pts` },
+    { key: 'protein', gap: breakdown.protein.max - breakdown.protein.points, label: `Hit protein for +${breakdown.protein.max - breakdown.protein.points} pts` },
+    { key: 'calories', gap: breakdown.calories.max - breakdown.calories.points, label: `Hit cal goal for +${breakdown.calories.max - breakdown.calories.points} pts` },
+  ];
+
+  // Filter out zero-gap categories
+  const actionable = gaps.filter((g) => g.gap > 0);
+  if (actionable.length === 0) return null;
+
+  // Sort by gap descending, pick the easiest big-gap action
+  actionable.sort((a, b) => b.gap - a.gap);
+  return actionable[0].label;
+}
+
+function getMealTip(count: number, gap: number): string {
+  if (count === 0) return `Log a meal for +${gap} pts`;
+  if (count === 1) return `Log lunch for +${gap} pts`;
+  if (count === 2) return `Log dinner for +${gap} pts`;
+  return `Log meals for +${gap} pts`;
+}
+
+// ── Component ───────────────────────────────────────────────────────────
 
 export default function DashboardStatsRow({
   streak,
   score,
   grade,
+  breakdown,
 }: DashboardStatsRowProps) {
   const isMilestone = MILESTONES.includes(streak);
-  const isGradeA = grade === 'A';
+  const isGradeA = grade === 'A' || grade === 'A+';
   const gradeColor = GRADE_COLORS[grade] || '#1A1A1A';
+  const isNewUser = streak <= 1;
+  const scoreTip = getScoreTip(breakdown);
 
   return (
     <Box flexDirection="row" gap="s">
@@ -45,7 +81,11 @@ export default function DashboardStatsRow({
         >
           <Text variant="statLabel">CURRENT STREAK</Text>
           <Box marginTop="xs" marginBottom="xxs">
-            {isMilestone ? (
+            {isNewUser ? (
+              <Text variant="grade" style={{ color: '#1A1A1A' }}>
+                Day 1
+              </Text>
+            ) : isMilestone ? (
               <GradientText
                 text={String(streak)}
                 gradientType="gold"
@@ -60,7 +100,13 @@ export default function DashboardStatsRow({
               />
             )}
           </Box>
-          <Text variant="muted">days</Text>
+          {isNewUser ? (
+            <Text variant="dim" style={{ fontSize: 11 }}>
+              Log daily to build your streak
+            </Text>
+          ) : (
+            <Text variant="muted">days</Text>
+          )}
           {/* Thin maroon bottom-left accent */}
           <View style={styles.streakAccent} />
         </AnimatedCard>
@@ -99,6 +145,11 @@ export default function DashboardStatsRow({
             textVariant="muted"
             duration={600}
           />
+          {scoreTip && !isGradeA && (
+            <Text variant="dim" style={{ fontSize: 11, marginTop: 4 }}>
+              {scoreTip}
+            </Text>
+          )}
         </AnimatedCard>
       </Box>
     </Box>

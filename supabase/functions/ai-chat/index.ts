@@ -59,16 +59,32 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ── Authenticate user from JWT ──────────────────────────────────────
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
+    if (!authHeader) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(authHeader);
+    if (authError || !user) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+
+    const userId = user.id;
+
     // ── Parse & sanitize input ──────────────────────────────────────────
     const body = await req.json();
-    const userId: string | undefined = body.userId;
     const rawMessage: string | undefined = body.message;
     const history: { role: string; content: string }[] = body.history ?? [];
     const date: string | undefined = body.date;
 
-    if (!userId || !rawMessage || !date) {
+    if (!rawMessage || !date) {
       return jsonResponse(
-        { error: "Missing required fields: userId, message, date" },
+        { error: "Missing required fields: message, date" },
         400
       );
     }
@@ -79,22 +95,13 @@ Deno.serve(async (req) => {
     }
 
     // ALLOWLIST — remove when paywall is implemented
-    const allowedUsers = [
-      "cc8fc9de-4323-4a15-9c92-9668fa825cfc", // Bandhip
-      "8cda2f5c-880d-4144-a8f5-ce1b2df38237", // Cam
-    ];
-    if (!allowedUsers.includes(userId)) {
+    const allowedUsers = (Deno.env.get("AI_ALLOWED_USERS") || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (allowedUsers.length > 0 && !allowedUsers.includes(userId)) {
       return jsonResponse(
         { error: "AI Meal Planner is coming soon! Stay tuned." },
         403
       );
     }
-
-    // ── Create admin Supabase client (bypasses RLS for server-side ops) ─
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // ── 1. Rate limiting ────────────────────────────────────────────────
     const d = new Date();

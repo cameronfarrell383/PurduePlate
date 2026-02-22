@@ -181,13 +181,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
 
     setLoading(true);
     try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        Alert.alert('Error', 'You must be logged in to use the AI assistant.');
-        return;
-      }
-
-      const response = await sendAIMessage(userId, msg, historyRef.current);
+      const response = await sendAIMessage(msg, historyRef.current);
       historyRef.current = [...historyRef.current, { role: 'user', content: msg }];
 
       const assistantMsg: DisplayMessage = {

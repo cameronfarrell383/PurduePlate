@@ -32,7 +32,6 @@ export interface ChatLogRow {
  * Returns the assistant's response content and any meal item suggestions.
  */
 export async function sendMessage(
-  userId: string,
   message: string,
   history: ChatMessage[]
 ): Promise<{ content: string; mealItems: MealItem[] | null }> {
@@ -43,6 +42,7 @@ export async function sendMessage(
   }
 
   const date = await getEffectiveMenuDate();
+  const session = sessionData.session;
 
   // Only send last 10 messages as context — exclude the current user message
   // since it's passed separately as `message`. The Edge Function expects
@@ -52,18 +52,18 @@ export async function sendMessage(
     content: m.content,
   }));
 
+  // userId is derived server-side from the JWT — never sent by the client
+  const invokeBody = { message, history: trimmedHistory, date };
+
   const supabaseUrl = 'https://kexytkfzoomvhjcotkqs.supabase.co';
   const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtleHl0a2Z6b29tdmhqY290a3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNjk4OTMsImV4cCI6MjA4Njk0NTg5M30.UiXS-ZHAKpS6xrg1D4BEBv0BEv2V1YpU2PR3ynQP3ag';
-  const session = sessionData.session;
-
-  const invokeBody = { userId, message, history: trimmedHistory, date };
 
   const response = await fetch(`${supabaseUrl}/functions/v1/ai-chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'apikey': supabaseAnonKey,
-      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'Authorization': `Bearer ${session.access_token}`,
     },
     body: JSON.stringify(invokeBody),
   });

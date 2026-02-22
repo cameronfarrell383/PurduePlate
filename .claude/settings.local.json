@@ -44,7 +44,8 @@
       "Bash(pip show:*)",
       "Bash(pip install:*)",
       "Bash(python:*)",
-      "Bash(npx expo config:*)"
+      "Bash(npx expo config:*)",
+      "Bash(git -C /c/Users/cfarr/CampusPlate log --all --grep=\"ai-chat\" --oneline)"
     ]
   }
 }

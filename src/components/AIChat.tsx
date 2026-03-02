@@ -73,7 +73,7 @@ function getTimeSuggestions(): { icon: keyof typeof Feather.glyphMap; title: str
   }
   if (period === 'lunch') {
     return [
-      { icon: 'search', title: "What's high-protein at D2 right now?", subtitle: 'Find meals that fit your goals' },
+      { icon: 'search', title: "What's high-protein at Earhart right now?", subtitle: 'Find meals that fit your goals' },
       { icon: 'target', title: 'Plan my lunch under 800 calories', subtitle: 'Based on your remaining budget' },
       { icon: 'trending-up', title: 'What should I eat to hit my protein goal?', subtitle: 'Close your macro gaps' },
     ];
@@ -260,7 +260,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
         {isTab ? (
           <Box flex={1}>
             <Text variant="pageTitle" style={{ fontSize: 20 }}>
-              CampusPlate AI
+              PurduePlate AI
             </Text>
           </Box>
         ) : (
@@ -272,7 +272,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
             </TouchableOpacity>
             <Box flex={1} alignItems="center">
               <Text variant="pageTitle" style={{ fontSize: 20 }}>
-                CampusPlate AI
+                PurduePlate AI
               </Text>
             </Box>
           </>
@@ -282,7 +282,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
           style={{ width: 64, alignItems: 'flex-end' }}
           activeOpacity={0.6}
         >
-          <Text variant="body" style={{ color: '#861F41', fontFamily: 'DMSans_500Medium' }}>
+          <Text variant="body" style={{ color: '#CFB991', fontFamily: 'DMSans_500Medium' }}>
             Clear
           </Text>
         </TouchableOpacity>
@@ -296,7 +296,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
         {/* ── Messages ── */}
         {initialLoading ? (
           <Box flex={1} justifyContent="center" alignItems="center">
-            <ActivityIndicator size="large" color="#861F41" />
+            <ActivityIndicator size="large" color="#CFB991" />
           </Box>
         ) : (
           <FlatList
@@ -368,7 +368,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
                           backgroundColor: '#FFFFFF',
                         }}
                       >
-                        <Text variant="body" style={{ color: '#861F41', fontFamily: 'DMSans_600SemiBold' }}>
+                        <Text variant="body" style={{ color: '#CFB991', fontFamily: 'DMSans_600SemiBold' }}>
                           Retry
                         </Text>
                       </TouchableOpacity>
@@ -434,7 +434,7 @@ export default function AIChat({ mode = 'tab', visible = true, onClose, onLogIte
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: '#861F41',
+                backgroundColor: '#CFB991',
                 justifyContent: 'center',
                 alignItems: 'center',
                 opacity: input.trim() && !loading ? 1 : 0.4,

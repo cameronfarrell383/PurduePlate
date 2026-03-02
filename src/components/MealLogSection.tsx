@@ -119,7 +119,7 @@ export default function MealLogSection({
                   Nothing for {group.labelLower} yet{' · '}
                   <Text
                     variant="muted"
-                    style={{ fontSize: 13, color: '#861F41', fontFamily: 'DMSans_600SemiBold' }}
+                    style={{ fontSize: 13, color: '#CFB991', fontFamily: 'DMSans_600SemiBold' }}
                     onPress={() => onBrowseMeal?.(group.key)}
                   >
                     Browse →

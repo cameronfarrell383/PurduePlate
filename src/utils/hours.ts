@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-// Default VT dining hall hours — used when dining_hall_hours table has no data
+// Default Purdue dining hall hours — used when dining_hall_hours table has no data
 const DEFAULT_MEAL_HOURS = [
   { meal_label: 'Breakfast', open_time: '07:00:00', close_time: '10:00:00' },
   { meal_label: 'Lunch',     open_time: '11:00:00', close_time: '14:00:00' },

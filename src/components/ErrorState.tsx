@@ -41,7 +41,7 @@ function ErrorState({
         >
           <Text
             variant="body"
-            style={{ color: '#861F41', fontFamily: 'DMSans_600SemiBold' }}
+            style={{ color: '#CFB991', fontFamily: 'DMSans_600SemiBold' }}
           >
             Try Again
           </Text>

@@ -543,7 +543,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#861F41" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#CFB991" />
         }
       >
         {/* 1. Greeting + Avatar row — compact, single line feel */}
@@ -558,7 +558,7 @@ export default function HomeScreen() {
             borderRadius="full"
             alignItems="center"
             justifyContent="center"
-            style={{ backgroundColor: '#861F41' }}
+            style={{ backgroundColor: '#CFB991' }}
           >
             <Text variant="body" style={{ color: '#FFFFFF', fontFamily: 'DMSans_700Bold', fontSize: 16 }}>
               {profile?.name?.charAt(0)?.toUpperCase() || '?'}

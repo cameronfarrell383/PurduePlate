@@ -46,8 +46,8 @@ function OptionCard({ icon, label, desc, selected, onPress }: {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: selected ? 'rgba(139,30,63,0.12)' : 'rgba(168,169,173,0.10)' }}>
-        <Feather name={icon as any} size={22} color={selected ? '#861F41' : '#A8A9AD'} />
+      <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: selected ? 'rgba(207,185,145,0.12)' : 'rgba(168,169,173,0.10)' }}>
+        <Feather name={icon as any} size={22} color={selected ? '#CFB991' : '#A8A9AD'} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 16, marginBottom: 2, color: colors.text, fontFamily: 'DMSans_600SemiBold' }}>{label}</Text>
@@ -283,16 +283,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 0:
         return (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Feather name="coffee" size={64} color="#861F41" style={{ marginBottom: 16 }} />
+            <Feather name="coffee" size={64} color="#CFB991" style={{ marginBottom: 16 }} />
             <Text style={[{ fontSize: 36, color: colors.text, fontFamily: 'Outfit_800ExtraBold', textAlign: 'center' }]}>
-              CampusPlate
+              PurduePlate
             </Text>
             <Text style={{ fontSize: 15, lineHeight: 22, color: colors.textMuted, fontFamily: 'DMSans_400Regular', textAlign: 'center', marginTop: 12, paddingHorizontal: 20 }}>
               Track what you eat on campus. Hit your goals without the guesswork.
             </Text>
             <ContinueBtn onPress={next} label="Get Started" />
             <Text style={[{ color: colors.textDim, fontSize: 12, marginTop: 24, fontFamily: 'DMSans_400Regular' }]}>
-              Built for Virginia Tech
+              Built for Purdue University
             </Text>
           </View>
         );
@@ -439,7 +439,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     }}
                     onPress={() => setIsMale(sex === 'Male')}
                   >
-                    <Feather name="user" size={28} color={isMale === (sex === 'Male') ? '#861F41' : '#A8A9AD'} style={{ marginBottom: 8 }} />
+                    <Feather name="user" size={28} color={isMale === (sex === 'Male') ? '#CFB991' : '#A8A9AD'} style={{ marginBottom: 8 }} />
                     <Text style={[{ fontSize: 16, color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>{sex}</Text>
                   </TouchableOpacity>
                 ))}
@@ -499,8 +499,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     }}
                     onPress={() => setHomeHall(hall.id)}
                   >
-                    <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: homeHall === hall.id ? 'rgba(139,30,63,0.12)' : 'rgba(255,255,255,0.05)' }}>
-                      <Feather name="coffee" size={22} color={homeHall === hall.id ? '#861F41' : '#A8A9AD'} />
+                    <View style={{ width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: homeHall === hall.id ? 'rgba(207,185,145,0.12)' : 'rgba(255,255,255,0.05)' }}>
+                      <Feather name="coffee" size={22} color={homeHall === hall.id ? '#CFB991' : '#A8A9AD'} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 16, marginBottom: 2, color: colors.text, fontFamily: 'DMSans_600SemiBold' }}>{hall.name}</Text>
@@ -527,7 +527,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   <Chip key={y} label={y} selected={year === y} onPress={() => setYear(y)} />
                 ))}
               </View>
-              <InputField label="Dorm / Residence" value={dorm} onChangeText={setDorm} placeholder="Slusher Hall" />
+              <InputField label="Dorm / Residence" value={dorm} onChangeText={setDorm} placeholder="Earhart Hall" />
               <Text style={{ fontSize: 13, marginBottom: 10, color: colors.textMuted, fontFamily: 'DMSans_500Medium' }}>Meals on campus per day</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                 {[1, 2, 3].map((n) => (
@@ -609,7 +609,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       {/* Progress bar */}
       {step > 0 && (
         <View style={{ height: 3, marginHorizontal: 20, borderRadius: 2, marginTop: 8, backgroundColor: colors.border }}>
-          <View style={{ height: 3, borderRadius: 2, backgroundColor: '#861F41', width: `${progress * 100}%` }} />
+          <View style={{ height: 3, borderRadius: 2, backgroundColor: '#CFB991', width: `${progress * 100}%` }} />
         </View>
       )}
 

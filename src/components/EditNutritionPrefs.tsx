@@ -88,7 +88,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
 
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#861F41" />
+            <ActivityIndicator size="large" color="#CFB991" />
           </View>
         ) : (
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
@@ -107,8 +107,8 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
                       key={opt}
                       style={{
                         paddingHorizontal: 14, paddingVertical: 9, borderRadius: 6, borderWidth: 1,
-                        backgroundColor: selected ? '#861F41' : '#FAFAFA',
-                        borderColor: selected ? '#861F41' : '#E8E8EA',
+                        backgroundColor: selected ? '#CFB991' : '#FAFAFA',
+                        borderColor: selected ? '#CFB991' : '#E8E8EA',
                       }}
                       onPress={() => toggleDietary(opt)}
                       activeOpacity={0.7}
@@ -128,7 +128,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
                   <Text style={{ fontSize: 15, marginBottom: 2, color: '#1A1A1A', fontFamily: 'DMSans_600SemiBold' }}>Prioritize High Protein</Text>
                   <Text style={{ fontSize: 12, lineHeight: 16, color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>Highlights high-protein items in your collections</Text>
                 </View>
-                <Switch value={highProtein} onValueChange={setHighProtein} trackColor={{ false: '#9A9A9E', true: '#861F41' }} thumbColor="#FFFFFF" />
+                <Switch value={highProtein} onValueChange={setHighProtein} trackColor={{ false: '#9A9A9E', true: '#CFB991' }} thumbColor="#FFFFFF" />
               </View>
             </View>
 
@@ -144,8 +144,8 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
                     key={n}
                     style={{
                       flex: 1, paddingVertical: 12, borderRadius: 6, borderWidth: 1, alignItems: 'center',
-                      backgroundColor: mealsPerDay === n ? '#861F41' : '#FAFAFA',
-                      borderColor: mealsPerDay === n ? '#861F41' : '#E8E8EA',
+                      backgroundColor: mealsPerDay === n ? '#CFB991' : '#FAFAFA',
+                      borderColor: mealsPerDay === n ? '#CFB991' : '#E8E8EA',
                     }}
                     onPress={() => setMealsPerDay(n)}
                     activeOpacity={0.7}
@@ -160,7 +160,7 @@ export default function EditNutritionPrefs({ visible, onClose, onSaved }: EditNu
 
             {/* Save — maroon accent */}
             <TouchableOpacity
-              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginTop: 24, backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
+              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginTop: 24, backgroundColor: '#CFB991', opacity: saving ? 0.6 : 1 }}
               onPress={handleSave}
               disabled={saving}
               activeOpacity={0.85}

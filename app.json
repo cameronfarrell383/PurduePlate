@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "CampusPlate",
-    "slug": "CampusPlate",
+    "name": "PurduePlate",
+    "slug": "PurduePlate",
     "version": "2.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "campusplate",
+    "scheme": "purdueplate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#861F41"
+        "backgroundColor": "#CFB991"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false

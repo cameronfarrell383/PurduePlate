@@ -12,7 +12,7 @@ import type { WeightEntry, WeightTrend } from '../utils/weightData';
 
 // ─── Direct color constants ─────────────────────────────────────────────────
 const C = {
-  maroon: '#861F41',
+  maroon: '#CFB991',
   silver: '#A8A9AD',
   silverLight: '#C8C9CC',
   text: '#1A1A1A',
@@ -120,8 +120,8 @@ export default function WeightChart({ entries, trend }: Props) {
       <Svg width={chartWidth} height={CHART_HEIGHT}>
         <Defs>
           <LinearGradient id="trendFillMaroon" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="rgba(134,31,65,0.08)" />
-            <Stop offset="1" stopColor="rgba(134,31,65,0)" />
+            <Stop offset="0" stopColor="rgba(207,185,145,0.08)" />
+            <Stop offset="1" stopColor="rgba(207,185,145,0)" />
           </LinearGradient>
         </Defs>
 

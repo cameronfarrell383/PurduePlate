@@ -52,7 +52,7 @@ const ROTATIONS = [-90, -120, -150, -180];
 
 // Track circle opacities
 const TRACK_COLORS = [
-  'rgba(134,31,65,0.10)', // cal — maroon
+  'rgba(207,185,145,0.10)', // cal — maroon
   'rgba(74,127,197,0.10)', // pro — steel blue
   'rgba(197,165,90,0.10)', // carb — gold
   'rgba(168,169,173,0.10)', // fat — silver
@@ -60,7 +60,7 @@ const TRACK_COLORS = [
 
 // Normal stroke IDs / colors
 const NORMAL_STROKES = [
-  '#861F41', // cal — flat maroon
+  '#CFB991', // cal — flat maroon
   '#4A7FC5', // pro — flat steel blue
   'url(#goldMetallic)', // carb — always gold gradient
   'url(#silverMetallic)', // fat — silver gradient

@@ -131,7 +131,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
 
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#861F41" />
+            <ActivityIndicator size="large" color="#CFB991" />
           </View>
         ) : (
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -145,7 +145,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
                     <Switch
                       value={reminder.enabled}
                       onValueChange={() => handleToggle(reminder.meal)}
-                      trackColor={{ false: '#9A9A9E', true: '#861F41' }}
+                      trackColor={{ false: '#9A9A9E', true: '#CFB991' }}
                       thumbColor="#FFFFFF"
                     />
                     <View style={{ marginLeft: 12 }}>
@@ -199,7 +199,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
 
                       {/* AM/PM toggle */}
                       <TouchableOpacity
-                        style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6, marginLeft: 8, marginBottom: 24, backgroundColor: '#861F41' }}
+                        style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6, marginLeft: 8, marginBottom: 24, backgroundColor: '#CFB991' }}
                         onPress={() => toggleAmPm(reminder.meal)}
                         activeOpacity={0.7}
                       >
@@ -219,7 +219,7 @@ export default function ReminderSettings({ visible, onClose }: ReminderSettingsP
 
             {/* Save — maroon accent */}
             <TouchableOpacity
-              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
+              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', backgroundColor: '#CFB991', opacity: saving ? 0.6 : 1 }}
               onPress={handleSave}
               disabled={saving}
               activeOpacity={0.85}

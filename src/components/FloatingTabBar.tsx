@@ -30,7 +30,7 @@ const TAB_CONFIG: {
   { name: 'more', label: 'Settings', icon: 'sliders', size: 22 },
 ];
 
-const MAROON = '#861F41';
+const MAROON = '#CFB991';
 const SILVER = '#A8A9AD';
 
 function TabItem({

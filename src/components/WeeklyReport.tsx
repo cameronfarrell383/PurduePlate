@@ -56,7 +56,7 @@ function getDayLabel(dateStr: string): string {
 const C = {
   white: '#FFFFFF',
   offWhite: '#FAFAFA',
-  maroon: '#861F41',
+  maroon: '#CFB991',
   text: '#1A1A1A',
   textMuted: '#6B6B6F',
   textDim: '#9A9A9E',
@@ -420,7 +420,7 @@ function SummaryCard({ label, value, unit, pct, color }: {
         {value}{unit ? <Text style={{ fontSize: 14 }}> {unit}</Text> : null}
       </Text>
       <Text style={{ fontSize: 12, marginTop: 2, color: '#6B6B6F', fontFamily: 'DMSans_400Regular' }}>{label}</Text>
-      <Text style={{ fontSize: 12, marginTop: 4, fontFamily: 'DMSans_600SemiBold', color: pct >= 85 && pct <= 115 ? '#2D8A4E' : pct > 115 ? '#C0392B' : '#861F41' }}>
+      <Text style={{ fontSize: 12, marginTop: 4, fontFamily: 'DMSans_600SemiBold', color: pct >= 85 && pct <= 115 ? '#2D8A4E' : pct > 115 ? '#C0392B' : '#CFB991' }}>
         {pct}% of goal
       </Text>
     </View>

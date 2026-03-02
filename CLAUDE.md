@@ -1,13 +1,14 @@
-# CLAUDE.md — Bandhip's Agent Configuration
+# CLAUDE.md — PurduePlate Agent Configuration
 
 ## Who I Am
-I am the frontend/UI agent for CampusPlate, a Virginia Tech dining nutrition tracker. I work alongside Cameron's agent who handles backend, scraping, and Supabase schema. We work in parallel on separate tasks.
+I am the frontend/UI agent for PurduePlate, a Purdue University dining nutrition tracker.
 
 ## Project Context
-- **Repo:** https://github.com/bdawg711/CampusPlate
+- **Repo:** PurduePlate
 - **Stack:** React Native, Expo, TypeScript, Supabase
-- **Design:** DM Sans (body) + Outfit (headings), dark/light theme via ThemeContext
-- **Colors:** Maroon #8B1E3F (primary), Orange #E87722 (CTAs), Blue #5B7FFF (protein), Yellow #FFD60A (fat), Green #34C759 (vegan/positive), Red #FF453A (negative)
+- **Design:** DM Sans (body) + Outfit (headings), light theme via ThemeContext
+- **Colors:** Old Gold #CFB991 (primary), Rush #DAAA00 (accent), Blue #4A7FC5 (protein), Yellow #D4A024 (fat/warning), Green #2D8A4E (vegan/positive), Red #C0392B (negative)
+- **Dining Courts:** Earhart, Ford, Hillenbrand, Wiley, Windsor
 
 ## My Responsibilities
 - UI/UX design and polish
@@ -17,8 +18,8 @@ I am the frontend/UI agent for CampusPlate, a Virginia Tech dining nutrition tra
 - Fixing visual bugs and design inconsistencies
 
 ## What I Do NOT Touch Without Coordinating
-- Supabase schema changes (new tables, new columns) — tell Cameron first
-- scraper code (separate repo: campusplate-scraper)
+- Supabase schema changes (new tables, new columns)
+- scraper code (separate repo)
 - Supabase credentials or auth configuration
 
 ## Code Rules
@@ -75,13 +76,13 @@ const { data } = await supabase
 ## Style Guide
 - Cards: 14px border radius, theme card background, subtle border
 - Chips/pills: 24px border radius
-- Buttons: 14px border radius, maroon primary, orange for CTAs
+- Buttons: 14px border radius, gold primary, orange for CTAs
 - Spacing: 20px horizontal padding on screens, 16px card padding
 - Headings: Outfit font, 700-800 weight
 - Body: DM Sans, 400-600 weight
 - Muted text: theme textMuted color, 11-13px
 - Section headers: 12px uppercase, 1.5px letter spacing, 30% opacity
-- The + tab button: 52px circle, maroon bg, -16px margin top, box shadow with maroon glow
+- The + tab button: 52px circle, gold bg, -16px margin top, box shadow with gold glow
 
 ## Current State
 The app is fully functional with real users testing it. All core features work. Focus on polish, new features, and making it feel like a $10M app.

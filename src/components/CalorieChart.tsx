@@ -14,7 +14,7 @@ import type { DayLog } from '../utils/progressData';
 
 // ─── Direct color constants ─────────────────────────────────────────────────
 const C = {
-  maroon: '#861F41',
+  maroon: '#CFB991',
   silver: '#A8A9AD',
   textDim: '#9A9A9E',
   textMuted: '#6B6B6F',
@@ -119,8 +119,8 @@ export default function CalorieChart({ data, goalCalories, range = '1M' }: Props
       <Svg width={chartWidth} height={CHART_HEIGHT}>
         <Defs>
           <LinearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#861F41" stopOpacity={0.15} />
-            <Stop offset="1" stopColor="#861F41" stopOpacity={0} />
+            <Stop offset="0" stopColor="#CFB991" stopOpacity={0.15} />
+            <Stop offset="1" stopColor="#CFB991" stopOpacity={0} />
           </LinearGradient>
         </Defs>
 

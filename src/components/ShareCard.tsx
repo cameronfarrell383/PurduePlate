@@ -54,7 +54,7 @@ export default function ShareCard({
       collapsable={false}
     >
       {/* Brand */}
-      <Text style={[styles.brand, { color: colors.maroon }]}>CampusPlate</Text>
+      <Text style={[styles.brand, { color: colors.maroon }]}>PurduePlate</Text>
 
       {/* Score percentage */}
       <Text style={[styles.grade, { color: gradeColor }]}>{score != null ? `${score}%` : grade}</Text>
@@ -116,7 +116,7 @@ export default function ShareCard({
       <Text style={[styles.date, { color: colors.textMuted }]}>{dateDisplay}</Text>
 
       {/* Footer */}
-      <Text style={[styles.footer, { color: colors.textDim }]}>Track your nutrition at VT</Text>
+      <Text style={[styles.footer, { color: colors.textDim }]}>Track your nutrition at Purdue</Text>
     </View>
   );
 }

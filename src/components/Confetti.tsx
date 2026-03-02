@@ -16,7 +16,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const PIECE_COUNT = 35;
 
-const COLORS = ['#861F41', '#C5A55A', '#A8A9AD', '#FFFFFF'];
+const COLORS = ['#CFB991', '#C5A55A', '#A8A9AD', '#FFFFFF'];
 
 interface PieceConfig {
   startX: number;

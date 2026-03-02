@@ -16,7 +16,7 @@ interface MacroLegendProps {
 }
 
 const LEGEND_ITEMS: { label: string; key: keyof MacroLegendProps; dotColor: string; overColor: string; suffix: string }[] = [
-  { label: 'Calories', key: 'calories', dotColor: '#861F41', overColor: '#861F41', suffix: '' },
+  { label: 'Calories', key: 'calories', dotColor: '#CFB991', overColor: '#CFB991', suffix: '' },
   { label: 'Protein', key: 'protein', dotColor: '#4A7FC5', overColor: '#4A7FC5', suffix: 'g' },
   { label: 'Carbs', key: 'carbs', dotColor: '#C5A55A', overColor: '#C5A55A', suffix: 'g' },
   { label: 'Fat', key: 'fat', dotColor: '#A8A9AD', overColor: '#666666', suffix: 'g' },

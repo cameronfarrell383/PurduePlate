@@ -126,7 +126,7 @@ export default function ForYouSection({
                 {/* Calorie count — bold and prominent */}
                 <Text
                   variant="body"
-                  style={{ fontFamily: 'DMSans_700Bold', marginTop: 4, color: '#861F41' }}
+                  style={{ fontFamily: 'DMSans_700Bold', marginTop: 4, color: '#CFB991' }}
                 >
                   {item.calories} cal
                 </Text>
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: '#861F41',
+    backgroundColor: '#CFB991',
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },

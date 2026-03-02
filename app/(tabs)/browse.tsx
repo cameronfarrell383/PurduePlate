@@ -48,9 +48,9 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const C = {
   white: '#FFFFFF',
   offWhite: '#FAFAFA',
-  maroon: '#861F41',
+  maroon: '#CFB991',
   maroonDark: '#6B1835',
-  maroonMuted: 'rgba(134,31,65,0.08)',
+  maroonMuted: 'rgba(207,185,145,0.08)',
   gold: '#C5A55A',
   goldMuted: 'rgba(197,165,90,0.12)',
   silver: '#A8A9AD',
@@ -310,7 +310,7 @@ export default function BrowseScreen() {
     }
   }, []);
 
-  const RECENT_SEARCHES_KEY = 'campusplate_recent_searches';
+  const RECENT_SEARCHES_KEY = 'purdueplate_recent_searches';
 
   const loadRecentSearches = useCallback(async () => {
     try {

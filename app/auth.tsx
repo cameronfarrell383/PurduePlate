@@ -129,9 +129,9 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
         <View style={{ alignItems: 'center', marginBottom: 32 }}>
-          <Feather name="coffee" size={48} color="#861F41" />
+          <Feather name="coffee" size={48} color="#CFB991" />
           <Text style={{ fontSize: 32, color: colors.text, fontFamily: 'Outfit_800ExtraBold' }}>
-            CampusPlate
+            PurduePlate
           </Text>
           <Text style={{ fontSize: 14, marginTop: 4, color: colors.textMuted }}>
             Track your dining hall nutrition

@@ -14,13 +14,13 @@ export interface HelpFAQProps {
 }
 
 const FAQ_ITEMS: { q: string; a: string }[] = [
-  { q: 'How are my calorie goals calculated?', a: 'CampusPlate uses the Mifflin-St Jeor equation to estimate your daily calorie needs based on your weight, height, age, gender, and activity level. Your selected goal (cut, maintain, or bulk) adjusts the target accordingly.' },
-  { q: 'Where does the menu data come from?', a: "Menu data is pulled directly from Virginia Tech's official dining services website (FoodPro) and updated daily. Menus are subject to change — always check signage at the dining location." },
-  { q: 'Can I track meals from off-campus restaurants?', a: "Currently, CampusPlate only supports on-campus dining locations listed on VT's official dining site. Off-campus meal tracking may be added in a future update." },
+  { q: 'How are my calorie goals calculated?', a: 'PurduePlate uses the Mifflin-St Jeor equation to estimate your daily calorie needs based on your weight, height, age, gender, and activity level. Your selected goal (cut, maintain, or bulk) adjusts the target accordingly.' },
+  { q: 'Where does the menu data come from?', a: "Menu data is pulled directly from Purdue University's official dining services website and updated daily. Menus are subject to change — always check signage at the dining location." },
+  { q: 'Can I track meals from off-campus restaurants?', a: "Currently, PurduePlate only supports on-campus dining locations listed on Purdue's official dining site. Off-campus meal tracking may be added in a future update." },
   { q: 'How do I change my nutrition goals?', a: "Go to the More tab and tap 'Nutrition Goals'. You can set custom calorie and macro targets, or recalculate based on your current body stats." },
   { q: 'What does the water tracker measure?', a: "The water tracker counts ounces of water consumed. Tap the quick-add buttons to log water throughout the day. You can customize your daily goal in the More tab under 'Water Goal'." },
   { q: 'How do I reset my password?', a: "On the login screen, tap 'Forgot Password?' and enter your email. You'll receive a password reset link." },
-  { q: 'Is my data private?', a: 'Your data is stored securely and is only accessible to you. CampusPlate does not share personal information with third parties.' },
+  { q: 'Is my data private?', a: 'Your data is stored securely and is only accessible to you. PurduePlate does not share personal information with third parties.' },
   { q: 'How do I delete my account?', a: 'Contact the development team to request account deletion. This feature will be added in a future update.' },
 ];
 
@@ -93,7 +93,7 @@ export default function HelpFAQ({ visible, onClose }: HelpFAQProps) {
           </View>
 
           <Text style={{ textAlign: 'center', fontSize: 12, opacity: 0.4, marginTop: 24, color: '#A8A9AD', fontFamily: 'DMSans_400Regular' }}>
-            CampusPlate v2.5 · Built for Hokies, by Hokies
+            PurduePlate v2.5 · Built for Boilermakers, by Boilermakers
           </Text>
         </ScrollView>
       </View>

@@ -11,7 +11,7 @@ import { Box, Text } from '@/src/theme/restyleTheme';
 import type { MealItem } from '@/src/utils/ai';
 
 const C = {
-  maroon: '#861F41',
+  maroon: '#CFB991',
   text: '#1A1A1A',
   textMuted: '#6B6B6F',
   textDim: '#9A9A9E',

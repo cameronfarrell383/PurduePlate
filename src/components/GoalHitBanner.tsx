@@ -79,7 +79,7 @@ export default function GoalHitBanner({ visible, message, variant, color, onDism
         >
           <Text
             style={{
-              color: '#861F41',
+              color: '#CFB991',
               fontSize: 15,
               fontFamily: 'DMSans_700Bold',
               textAlign: 'center',
@@ -98,7 +98,7 @@ export default function GoalHitBanner({ visible, message, variant, color, onDism
       <Animated.View
         style={[
           containerStyle,
-          { backgroundColor: '#861F41', paddingVertical: 14, paddingHorizontal: 20 },
+          { backgroundColor: '#CFB991', paddingVertical: 14, paddingHorizontal: 20 },
           animStyle,
         ]}
       >
@@ -115,7 +115,7 @@ export default function GoalHitBanner({ visible, message, variant, color, onDism
   }
 
   // Water variant or fallback: solid bg + white text
-  const bgColor = effectiveVariant === 'water' ? '#4A7FC5' : (color ?? '#861F41');
+  const bgColor = effectiveVariant === 'water' ? '#4A7FC5' : (color ?? '#CFB991');
   return (
     <Animated.View
       style={[

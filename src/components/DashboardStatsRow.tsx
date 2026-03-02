@@ -13,7 +13,7 @@ const MILESTONES = [7, 14, 30, 60, 100];
 function getScoreColor(score: number): string {
   if (score >= 80) return '#2D8A4E';
   if (score >= 50) return '#C5A55A';
-  return '#861F41';
+  return '#CFB991';
 }
 
 interface DashboardStatsRowProps {
@@ -157,6 +157,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: '30%',
     height: 2,
-    backgroundColor: '#861F41',
+    backgroundColor: '#CFB991',
   },
 });

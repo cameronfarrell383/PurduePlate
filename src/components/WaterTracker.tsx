@@ -26,7 +26,7 @@ interface WaterTrackerProps {
 
 // ── Mini confetti burst (6 pieces, 0.5s) ────────────────────────────────
 
-const MINI_CONFETTI_COLORS = ['#34C759', '#C5A55A', '#4A7FC5', '#861F41', '#FFD60A'];
+const MINI_CONFETTI_COLORS = ['#34C759', '#C5A55A', '#4A7FC5', '#CFB991', '#FFD60A'];
 const MINI_PIECE_COUNT = 6;
 
 interface MiniPieceConfig {

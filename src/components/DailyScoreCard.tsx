@@ -15,7 +15,7 @@ import type { ScoreBreakdown } from '../utils/dailyScore';
 // ─── Direct color constants ─────────────────────────────────────────────────
 const C = {
   white: '#FFFFFF',
-  maroon: '#861F41',
+  maroon: '#CFB991',
   gold: '#C5A55A',
   silverLight: '#C8C9CC',
   text: '#1A1A1A',

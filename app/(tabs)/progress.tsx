@@ -44,7 +44,7 @@ import { triggerHaptic } from '@/src/utils/haptics';
 const C = {
   white: '#FFFFFF',
   offWhite: '#FAFAFA',
-  maroon: '#861F41',
+  maroon: '#CFB991',
   maroonDark: '#6B1835',
   gold: '#C5A55A',
   goldMuted: 'rgba(197,165,90,0.12)',

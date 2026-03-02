@@ -8,16 +8,16 @@ import {
 } from '@shopify/restyle';
 import React from 'react';
 
-// ── Hokie Prestige Palette ──────────────────────────────────────────────────
+// ── Boilermaker Gold Palette ──────────────────────────────────────────────────
 
 const palette = {
   // Primary
   white: '#FFFFFF',
   offWhite: '#FAFAFA',
-  maroon: '#861F41',
-  maroonDark: '#6B1835',
-  maroonLight: '#A8325A',
-  maroonMuted: 'rgba(134,31,65,0.08)',
+  maroon: '#CFB991',
+  maroonDark: '#B59A5B',
+  maroonLight: '#DAAA00',
+  maroonMuted: 'rgba(207,185,145,0.08)',
   transparent: 'transparent',
 
   // Metallic Gold
@@ -42,7 +42,7 @@ const palette = {
   error: '#C0392B',
 
   // Ring colors (flat)
-  calorieRing: '#861F41',
+  calorieRing: '#CFB991',
   proteinRing: '#4A7FC5',
 
   // Overlay
@@ -66,12 +66,12 @@ const theme = createTheme({
     inputBg: '#F5F5F7',
     inputBorder: '#E8E8EA',
     barTrack: 'rgba(0,0,0,0.06)',
-    glowMaroon: 'rgba(134,31,65,0.12)',
+    glowMaroon: 'rgba(207,185,145,0.12)',
     tabBarBg: '#FFFFFF',
     mutedTint: 'rgba(0,0,0,0.04)',
 
     // Icon tint backgrounds
-    maroonTint: 'rgba(134,31,65,0.08)',
+    maroonTint: 'rgba(207,185,145,0.08)',
     goldTint: 'rgba(197,165,90,0.12)',
     silverTint: 'rgba(168,169,173,0.10)',
     successTint: 'rgba(45,138,78,0.10)',

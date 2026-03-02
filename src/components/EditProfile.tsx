@@ -65,8 +65,8 @@ function PillRow({ options, selected, onSelect }: {
           key={opt}
           style={{
             paddingHorizontal: 14, paddingVertical: 8, borderRadius: 6, borderWidth: 1,
-            backgroundColor: selected === opt ? '#861F41' : '#FAFAFA',
-            borderColor: selected === opt ? '#861F41' : '#E8E8EA',
+            backgroundColor: selected === opt ? '#CFB991' : '#FAFAFA',
+            borderColor: selected === opt ? '#CFB991' : '#E8E8EA',
           }}
           onPress={() => onSelect(opt)}
           activeOpacity={0.7}
@@ -175,7 +175,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
 
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#861F41" />
+            <ActivityIndicator size="large" color="#CFB991" />
           </View>
         ) : (
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -196,7 +196,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
                 <View style={{ height: 1, marginHorizontal: 14, backgroundColor: '#F0F0F2' }} />
                 <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 }}>
                   <Text style={{ fontSize: 14, width: 80, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Dorm</Text>
-                  <TextInput style={inputStyle} value={dorm} onChangeText={setDorm} placeholder="Slusher Hall" placeholderTextColor="#9A9A9E" returnKeyType="done" />
+                  <TextInput style={inputStyle} value={dorm} onChangeText={setDorm} placeholder="Earhart Hall" placeholderTextColor="#9A9A9E" returnKeyType="done" />
                 </View>
               </View>
 
@@ -237,8 +237,8 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
                         key={g.label}
                         style={{
                           flex: 1, padding: 12, borderRadius: 6, borderWidth: 1, alignItems: 'center',
-                          backgroundColor: isMale === g.val ? '#861F41' : '#FAFAFA',
-                          borderColor: isMale === g.val ? '#861F41' : '#E8E8EA',
+                          backgroundColor: isMale === g.val ? '#CFB991' : '#FAFAFA',
+                          borderColor: isMale === g.val ? '#CFB991' : '#E8E8EA',
                         }}
                         onPress={() => setIsMale(g.val)}
                         activeOpacity={0.7}
@@ -278,14 +278,14 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
                       key={hall.id}
                       style={{
                         flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1, marginBottom: 8, width: '100%',
-                        backgroundColor: homeHallId === hall.id ? 'rgba(134,31,65,0.08)' : '#FAFAFA',
-                        borderColor: homeHallId === hall.id ? '#861F41' : '#E8E8EA',
+                        backgroundColor: homeHallId === hall.id ? 'rgba(207,185,145,0.08)' : '#FAFAFA',
+                        borderColor: homeHallId === hall.id ? '#CFB991' : '#E8E8EA',
                       }}
                       onPress={() => setHomeHallId(hall.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={{ fontSize: 14, fontFamily: 'DMSans_500Medium', color: homeHallId === hall.id ? '#861F41' : '#1A1A1A', flex: 1 }}>{hall.name}</Text>
-                      {homeHallId === hall.id && <Feather name="check" size={14} color="#861F41" />}
+                      <Text style={{ fontSize: 14, fontFamily: 'DMSans_500Medium', color: homeHallId === hall.id ? '#CFB991' : '#1A1A1A', flex: 1 }}>{hall.name}</Text>
+                      {homeHallId === hall.id && <Feather name="check" size={14} color="#CFB991" />}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -293,7 +293,7 @@ export default function EditProfile({ visible, onClose, onSaved }: EditProfilePr
 
               {/* Save — maroon accent */}
               <TouchableOpacity
-                style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginTop: 24, backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
+                style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginTop: 24, backgroundColor: '#CFB991', opacity: saving ? 0.6 : 1 }}
                 onPress={handleSave}
                 disabled={saving}
                 activeOpacity={0.85}

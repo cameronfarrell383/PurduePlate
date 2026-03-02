@@ -140,7 +140,7 @@ export default function EditGoals({
             {/* Mode toggle */}
             <View style={{ flexDirection: 'row', borderRadius: 6, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FAFAFA', padding: 4, marginBottom: 16 }}>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'custom' ? '#861F41' : 'transparent' }}
+                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'custom' ? '#CFB991' : 'transparent' }}
                 onPress={() => setMode('custom')}
                 activeOpacity={0.7}
               >
@@ -149,7 +149,7 @@ export default function EditGoals({
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'calculated' ? '#861F41' : 'transparent' }}
+                style={{ flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center', backgroundColor: mode === 'calculated' ? '#CFB991' : 'transparent' }}
                 onPress={() => setMode('calculated')}
                 activeOpacity={0.7}
               >
@@ -169,10 +169,10 @@ export default function EditGoals({
             <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#E8E8EA', backgroundColor: '#FFFFFF', overflow: 'hidden', marginBottom: 12 }}>
               {/* Calories */}
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#861F41' }} />
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#CFB991' }} />
                 <Text style={{ width: 72, fontSize: 14, color: '#1A1A1A', fontFamily: 'DMSans_500Medium' }}>Calories</Text>
                 <TextInput
-                  style={getInputStyle('#861F41')}
+                  style={getInputStyle('#CFB991')}
                   value={calories}
                   onChangeText={setCalories}
                   keyboardType="number-pad"
@@ -264,7 +264,7 @@ export default function EditGoals({
 
             {/* Save button — maroon accent */}
             <TouchableOpacity
-              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginBottom: 12, backgroundColor: '#861F41', opacity: saving ? 0.6 : 1 }}
+              style={{ borderRadius: 6, paddingVertical: 16, alignItems: 'center', marginBottom: 12, backgroundColor: '#CFB991', opacity: saving ? 0.6 : 1 }}
               onPress={handleSave}
               disabled={saving || recalculating}
               activeOpacity={0.85}

@@ -119,7 +119,7 @@ export default function SettingsRestyle() {
       );
       setScoreValue(dailyScore.score);
       setScoreGrade(dailyScore.grade);
-      setScoreGradeColor(dailyScore.score >= 80 ? '#2D8A4E' : dailyScore.score >= 50 ? '#C5A55A' : '#861F41');
+      setScoreGradeColor(dailyScore.score >= 80 ? '#2D8A4E' : dailyScore.score >= 50 ? '#C5A55A' : '#CFB991');
     } catch (e) {
       if (__DEV__) console.error('More load error:', e);
     } finally {
@@ -197,7 +197,7 @@ export default function SettingsRestyle() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: 'Check out CampusPlate — track your dining nutrition at Virginia Tech!',
+        message: 'Check out PurduePlate — track your dining nutrition at Purdue!',
       });
     } catch {}
   };
@@ -263,7 +263,7 @@ export default function SettingsRestyle() {
               await loadData();
               setRefreshing(false);
             }}
-            tintColor="#861F41"
+            tintColor="#CFB991"
           />
         }
       >
@@ -416,7 +416,7 @@ export default function SettingsRestyle() {
           <SettingsRow
             icon="info" iconBg="silverTint" iconColor="silver"
             label="About" isLast
-            onPress={() => Alert.alert('CampusPlate v2.5', 'Virginia Tech dining nutrition tracker.\nTrack meals, hit your macros, eat smarter.\n\nBuilt for Hokies, by Hokies.')}
+            onPress={() => Alert.alert('PurduePlate v2.5', 'Purdue University dining nutrition tracker.\nTrack meals, hit your macros, eat smarter.\n\nBuilt for Boilermakers, by Boilermakers.')}
             rightContent={
               <>
                 <Text variant="bodySmall" color="textDim" marginRight="s">v2.5</Text>
@@ -436,8 +436,8 @@ export default function SettingsRestyle() {
 
         {/* ── Footer ── */}
         <Box alignItems="center" style={{ marginTop: 24, paddingBottom: 8 }}>
-          <Text variant="muted" color="silver" style={{ fontSize: 13 }}>CampusPlate v2.5</Text>
-          <Text variant="dim" color="silver" style={{ opacity: 0.5, marginTop: 4 }}>Built for Hokies, by Hokies</Text>
+          <Text variant="muted" color="silver" style={{ fontSize: 13 }}>PurduePlate v2.5</Text>
+          <Text variant="dim" color="silver" style={{ opacity: 0.5, marginTop: 4 }}>Built for Boilermakers, by Boilermakers</Text>
         </Box>
       </ScrollView>
 

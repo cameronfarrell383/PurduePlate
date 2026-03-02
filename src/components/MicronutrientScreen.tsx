@@ -19,8 +19,8 @@ import {
 const C = {
   white: '#FFFFFF',
   offWhite: '#FAFAFA',
-  maroon: '#861F41',
-  maroonMuted: 'rgba(134,31,65,0.08)',
+  maroon: '#CFB991',
+  maroonMuted: 'rgba(207,185,145,0.08)',
   silverLight: '#C8C9CC',
   text: '#1A1A1A',
   textMuted: '#6B6B6F',
@@ -196,7 +196,7 @@ export default function MicronutrientScreen({ onClose }: Props) {
             style={{
               backgroundColor: C.maroonMuted,
               borderWidth: 1,
-              borderColor: 'rgba(134,31,65,0.15)',
+              borderColor: 'rgba(207,185,145,0.15)',
               borderRadius: 8,
               padding: 16,
               marginBottom: 16,

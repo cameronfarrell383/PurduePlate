@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 
-// ── Single light theme colors matching the Hokie Prestige palette ──────────
+// ── Single light theme colors matching the Boilermaker Gold palette ──────────
 
 const colors = {
   // Backgrounds
@@ -25,14 +25,14 @@ const colors = {
   cardGlass: '#FFFFFF',
   cardGlassBorder: '#E8E8EA',
   barTrack: 'rgba(0,0,0,0.06)',
-  glowMaroon: 'rgba(134,31,65,0.12)',
+  glowMaroon: 'rgba(207,185,145,0.12)',
   tabBarBg: '#FFFFFF',
   mutedTint: 'rgba(0,0,0,0.04)',
 
   // Accent colors
-  maroon: '#861F41',
-  maroonLight: '#A8325A',
-  maroonDark: '#6B1835',
+  maroon: '#CFB991',
+  maroonLight: '#DAAA00',
+  maroonDark: '#B59A5B',
   orange: '#E87722',
   green: '#2D8A4E',
   blue: '#4A7FC5',
@@ -46,7 +46,7 @@ const colors = {
   silverLight: '#C8C9CC',
 
   // Tint backgrounds
-  maroonTint: 'rgba(134,31,65,0.08)',
+  maroonTint: 'rgba(207,185,145,0.08)',
   goldTint: 'rgba(197,165,90,0.12)',
   silverTint: 'rgba(168,169,173,0.10)',
   successTint: 'rgba(45,138,78,0.10)',
